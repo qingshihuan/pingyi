@@ -90,6 +90,37 @@ def extract(archive: Path, destination: Path) -> None:
             bundle.extractall(destination, filter="data")
 
 
+def extract_runtime_payload(
+    archive: Path,
+    destination: Path,
+    executable_name: str,
+) -> Path:
+    extraction_root = destination.parent / f".{destination.name}-extract"
+    if extraction_root.exists():
+        shutil.rmtree(extraction_root)
+    try:
+        extract(archive, extraction_root)
+        executables = list(extraction_root.rglob(executable_name))
+        if len(executables) != 1:
+            raise RuntimeError(
+                f"Expected one {executable_name} in {archive.name}, found {len(executables)}"
+            )
+
+        payload_root = executables[0].parent
+        destination.mkdir(parents=True, exist_ok=True)
+        for source in payload_root.iterdir():
+            target = destination / source.name
+            if source.is_dir():
+                shutil.copytree(source, target)
+            else:
+                shutil.copy2(source, target)
+    finally:
+        if extraction_root.exists():
+            shutil.rmtree(extraction_root)
+
+    return destination / executable_name
+
+
 def reset_destination(destination: Path) -> None:
     resolved = destination.resolve()
     if resolved == resolved.parent or len(resolved.parts) < 3:
@@ -115,9 +146,13 @@ def main() -> int:
             print(f"Downloading {asset['name']}", flush=True)
             download(asset, archive)
             backend_directory = destination / asset["backend"]
-            extract(archive, backend_directory)
-            executable = backend_directory / (
+            executable_name = (
                 "llama-server.exe" if args.runtime == "win-x64" else "llama-server"
+            )
+            executable = extract_runtime_payload(
+                archive,
+                backend_directory,
+                executable_name,
             )
             if not executable.is_file():
                 raise RuntimeError(f"llama-server is missing after extracting {asset['name']}")
