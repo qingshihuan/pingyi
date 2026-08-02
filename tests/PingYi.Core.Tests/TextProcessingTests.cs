@@ -22,6 +22,7 @@ public sealed class TextProcessingTests
 
     [Theory]
     [InlineData("zh", "auto-opposite", "en")]
+    [InlineData("zh-Hant", "auto-opposite", "en")]
     [InlineData("en", "auto-opposite", "zh")]
     [InlineData("zh", "zh", "zh")]
     [InlineData("auto", "ja", "ja")]
@@ -32,6 +33,31 @@ public sealed class TextProcessingTests
         string expected)
     {
         Assert.Equal(expected, TextProcessing.ResolveTargetLanguage(source, configured));
+    }
+
+    [Theory]
+    [InlineData("auto", "auto-opposite", "ja", "画面を翻訳します", true, "auto", "zh")]
+    [InlineData("auto", "auto-opposite", "zh", "这是中文", true, "auto", "en")]
+    [InlineData("auto", "auto-opposite", "en", "Hello", false, "en", "zh")]
+    [InlineData("ja", "zh", "en", "Hello", true, "ja", "zh")]
+    public void ResolveTranslationLanguages_SeparatesAutomaticSourceDetectionFromTargetRule(
+        string configuredSource,
+        string configuredTarget,
+        string detectedOcrLanguage,
+        string text,
+        bool providerCanDetect,
+        string expectedSource,
+        string expectedTarget)
+    {
+        var route = TextProcessing.ResolveTranslationLanguages(
+            configuredSource,
+            configuredTarget,
+            detectedOcrLanguage,
+            text,
+            providerCanDetect);
+
+        Assert.Equal(expectedSource, route.SourceLanguage);
+        Assert.Equal(expectedTarget, route.TargetLanguage);
     }
 
     [Fact]

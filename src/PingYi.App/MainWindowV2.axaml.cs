@@ -42,6 +42,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
     }
 
+    public IReadOnlyList<CaptureDisplay> GetCaptureDisplays() => CaptureDisplay.From(this);
+
     private void LoadSettings()
     {
         if (_services is null)
@@ -55,7 +57,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         ModeSummaryText.Text = DescribeMode(settings, ocr, translation);
         OcrSummaryText.Text = ocr.DisplayName;
         var targetLanguage = settings.TargetLanguage == LanguageCatalog.AutoOpposite
-            ? "智能中英互换"
+            ? "自动翻译"
             : LanguageCatalog.GetDisplayName(settings.TargetLanguage);
         TranslationSummaryText.Text = $"{translation.DisplayName} · → {targetLanguage}";
         PrivacySummaryText.Text = BuildPrivacyDescription(settings, ocr, translation);

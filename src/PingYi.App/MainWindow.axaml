@@ -303,98 +303,56 @@
                         ColumnSpacing="12" RowSpacing="10">
                     <StackPanel Spacing="5">
                       <TextBlock Text="OCR API Key" Classes="field-label" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox x:Name="BaiduOcrApiKeyBox" IsReadOnly="True"
                                  PlaceholderText="尚未保存"
                                  AutomationProperties.Name="百度 OCR API Key" />
-                        <Button Grid.Column="1" Classes="ghost secret-action"
+                        <Button Grid.Column="1" x:Name="BaiduOcrApiKeyRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
                                 Tag="baidu-ocr-api-key" Click="ToggleSecretVisibility_OnClick"
-                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示或隐藏 OCR API Key">
-                          <PathIcon Classes="icon" Data="M2 12C4.5 7.5 8 5 12 5C16 5 19.5 7.5 22 12C19.5 16.5 16 19 12 19C8 19 4.5 16.5 2 12 M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="ghost secret-action"
-                                Tag="baidu-ocr-api-key" Click="CopySecretButton_OnClick"
-                                ToolTip.Tip="复制" AutomationProperties.Name="复制 OCR API Key">
-                          <PathIcon Classes="icon" Data="M8 8H19V19H8V8 M5 5H16V8 M5 5V16H8" />
-                        </Button>
-                        <Button Grid.Column="3" Classes="ghost secret-action"
-                                Tag="baidu-ocr-api-key" Click="PasteSecretButton_OnClick"
-                                ToolTip.Tip="粘贴" AutomationProperties.Name="粘贴 OCR API Key">
-                          <PathIcon Classes="icon" Data="M9 5V3H15V5 M7 5H17V21H7V5 M10 10H14 M10 14H15" />
-                        </Button>
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 OCR API Key" />
                       </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Spacing="5">
                       <TextBlock Text="OCR Secret Key" Classes="field-label" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox x:Name="BaiduOcrSecretBox" IsReadOnly="True"
                                  PlaceholderText="尚未保存"
                                  AutomationProperties.Name="百度 OCR Secret Key" />
-                        <Button Grid.Column="1" Classes="ghost secret-action"
+                        <Button Grid.Column="1" x:Name="BaiduOcrSecretRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
                                 Tag="baidu-ocr-secret-key" Click="ToggleSecretVisibility_OnClick"
-                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示或隐藏 OCR Secret Key">
-                          <PathIcon Classes="icon" Data="M2 12C4.5 7.5 8 5 12 5C16 5 19.5 7.5 22 12C19.5 16.5 16 19 12 19C8 19 4.5 16.5 2 12 M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="ghost secret-action"
-                                Tag="baidu-ocr-secret-key" Click="CopySecretButton_OnClick"
-                                ToolTip.Tip="复制" AutomationProperties.Name="复制 OCR Secret Key">
-                          <PathIcon Classes="icon" Data="M8 8H19V19H8V8 M5 5H16V8 M5 5V16H8" />
-                        </Button>
-                        <Button Grid.Column="3" Classes="ghost secret-action"
-                                Tag="baidu-ocr-secret-key" Click="PasteSecretButton_OnClick"
-                                ToolTip.Tip="粘贴" AutomationProperties.Name="粘贴 OCR Secret Key">
-                          <PathIcon Classes="icon" Data="M9 5V3H15V5 M7 5H17V21H7V5 M10 10H14 M10 14H15" />
-                        </Button>
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 OCR Secret Key" />
                       </Grid>
                     </StackPanel>
                     <StackPanel Grid.Row="1" Spacing="5">
                       <TextBlock Text="翻译 APP ID" Classes="field-label" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox x:Name="BaiduTranslateAppIdBox" IsReadOnly="True"
                                  PlaceholderText="尚未保存"
                                  AutomationProperties.Name="百度翻译 APP ID" />
-                        <Button Grid.Column="1" Classes="ghost secret-action"
+                        <Button Grid.Column="1" x:Name="BaiduTranslateAppIdRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
                                 Tag="baidu-translate-app-id" Click="ToggleSecretVisibility_OnClick"
-                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示或隐藏翻译 APP ID">
-                          <PathIcon Classes="icon" Data="M2 12C4.5 7.5 8 5 12 5C16 5 19.5 7.5 22 12C19.5 16.5 16 19 12 19C8 19 4.5 16.5 2 12 M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="ghost secret-action"
-                                Tag="baidu-translate-app-id" Click="CopySecretButton_OnClick"
-                                ToolTip.Tip="复制" AutomationProperties.Name="复制翻译 APP ID">
-                          <PathIcon Classes="icon" Data="M8 8H19V19H8V8 M5 5H16V8 M5 5V16H8" />
-                        </Button>
-                        <Button Grid.Column="3" Classes="ghost secret-action"
-                                Tag="baidu-translate-app-id" Click="PasteSecretButton_OnClick"
-                                ToolTip.Tip="粘贴" AutomationProperties.Name="粘贴翻译 APP ID">
-                          <PathIcon Classes="icon" Data="M9 5V3H15V5 M7 5H17V21H7V5 M10 10H14 M10 14H15" />
-                        </Button>
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示翻译 APP ID" />
                       </Grid>
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="1" Spacing="5">
                       <TextBlock Text="翻译密钥" Classes="field-label" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox x:Name="BaiduTranslateSecretBox" IsReadOnly="True"
                                  PlaceholderText="尚未保存"
                                  AutomationProperties.Name="百度翻译密钥" />
-                        <Button Grid.Column="1" Classes="ghost secret-action"
+                        <Button Grid.Column="1" x:Name="BaiduTranslateSecretRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
                                 Tag="baidu-translate-secret" Click="ToggleSecretVisibility_OnClick"
-                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示或隐藏翻译密钥">
-                          <PathIcon Classes="icon" Data="M2 12C4.5 7.5 8 5 12 5C16 5 19.5 7.5 22 12C19.5 16.5 16 19 12 19C8 19 4.5 16.5 2 12 M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="ghost secret-action"
-                                Tag="baidu-translate-secret" Click="CopySecretButton_OnClick"
-                                ToolTip.Tip="复制" AutomationProperties.Name="复制翻译密钥">
-                          <PathIcon Classes="icon" Data="M8 8H19V19H8V8 M5 5H16V8 M5 5V16H8" />
-                        </Button>
-                        <Button Grid.Column="3" Classes="ghost secret-action"
-                                Tag="baidu-translate-secret" Click="PasteSecretButton_OnClick"
-                                ToolTip.Tip="粘贴" AutomationProperties.Name="粘贴翻译密钥">
-                          <PathIcon Classes="icon" Data="M9 5V3H15V5 M7 5H17V21H7V5 M10 10H14 M10 14H15" />
-                        </Button>
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示翻译密钥" />
                       </Grid>
                     </StackPanel>
                     <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="inline-status">
                       <StackPanel Spacing="4">
+                        <TextBlock Text="点击“显示”后可直接编辑，并可在输入框中使用 Ctrl+C / Ctrl+V。"
+                                   Classes="tertiary" FontSize="11" TextWrapping="Wrap" />
                         <TextBlock x:Name="BaiduOcrCredentialStatusText"
                                    Text="OCR 凭据：正在检查安全存储…"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
@@ -436,26 +394,17 @@
                     </StackPanel>
                     <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="5">
                       <TextBlock Text="API Key" Classes="field-label" />
-                      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="4">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                         <TextBox x:Name="CustomApiKeyBox" IsReadOnly="True"
                                  PlaceholderText="本地无鉴权服务可留空"
                                  AutomationProperties.Name="兼容翻译接口 API Key" />
-                        <Button Grid.Column="1" Classes="ghost secret-action"
+                        <Button Grid.Column="1" x:Name="CustomApiKeyRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
                                 Tag="custom-translation-api-key" Click="ToggleSecretVisibility_OnClick"
-                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示或隐藏兼容接口 API Key">
-                          <PathIcon Classes="icon" Data="M2 12C4.5 7.5 8 5 12 5C16 5 19.5 7.5 22 12C19.5 16.5 16 19 12 19C8 19 4.5 16.5 2 12 M12 9A3 3 0 1 0 12 15A3 3 0 1 0 12 9" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="ghost secret-action"
-                                Tag="custom-translation-api-key" Click="CopySecretButton_OnClick"
-                                ToolTip.Tip="复制" AutomationProperties.Name="复制兼容接口 API Key">
-                          <PathIcon Classes="icon" Data="M8 8H19V19H8V8 M5 5H16V8 M5 5V16H8" />
-                        </Button>
-                        <Button Grid.Column="3" Classes="ghost secret-action"
-                                Tag="custom-translation-api-key" Click="PasteSecretButton_OnClick"
-                                ToolTip.Tip="粘贴" AutomationProperties.Name="粘贴兼容接口 API Key">
-                          <PathIcon Classes="icon" Data="M9 5V3H15V5 M7 5H17V21H7V5 M10 10H14 M10 14H15" />
-                        </Button>
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示兼容接口 API Key" />
                       </Grid>
+                      <TextBlock Text="显示后可直接编辑，并可在输入框中使用 Ctrl+C / Ctrl+V。"
+                                 Classes="tertiary" FontSize="11" TextWrapping="Wrap" />
                     </StackPanel>
                     <Border Grid.Row="3" Grid.ColumnSpan="2" Classes="inline-status">
                       <TextBlock x:Name="CustomTranslationStatusText"

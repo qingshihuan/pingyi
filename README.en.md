@@ -28,7 +28,7 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 - **OCR text extraction:** copy text from images, video subtitles, desktop applications, and non-selectable web pages.
 - **Local multimodal OCR:** use a vision model through llama.cpp, Ollama, LM Studio, or vLLM directly, or let it correct a PaddleOCR draft.
 - **Real offline fallback:** bundled PaddleOCR ONNX and Argos Translate provide Chinese-English OCR and translation without network access.
-- **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints, with automatic source-language detection and 34 common target languages.
+- **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints. The default automatically detects the source, translates foreign text to Simplified Chinese and Chinese to English, and still offers 34 explicit target languages.
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
 - **Optional cloud providers:** configure Baidu OCR, Baidu Translate, or a custom Chat Completions service when desired.
 - **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu X11 x64.
@@ -45,7 +45,7 @@ Download the edition for your system from [GitHub Releases](https://github.com/q
 
 On Windows, prefer `*-win-x64-setup.exe` or use the portable ZIP. On Ubuntu X11, install the `.deb` or extract the `.tar.gz`. The two editions use separate installation and data directories, so they can coexist without overwriting the previous release.
 
-Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. The result card lets you copy the source text, translation, or both; retry processing; or pin the card. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings.
+On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP remains portable. Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. Each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. The result card lets you copy the source text, translation, or both; retry processing; or pin the card, and later captures reuse the same result window instead of stacking new windows. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings. Credential fields expose only a show/hide control; once shown, standard copy and paste commands work inside the text box.
 
 > Windows SmartScreen may show an unknown-publisher warning because the current open-source release does not yet use a paid commercial code-signing certificate. Download only from this repository's Releases page and verify the files with the supplied SHA-256 checksums.
 

@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using System.Diagnostics;
@@ -248,7 +247,11 @@ public partial class MainWindow : Window, IMainWindowShell
         try
         {
             await _services.SaveSettingsAsync(_services.Settings with { TargetLanguage = language.Code });
-            SetGlobalStatus($"目标语言已切换为：{language.Name}。", isError: false);
+            SetGlobalStatus(
+                language.Code == LanguageCatalog.AutoOpposite
+                    ? "已启用自动翻译：外语译成简体中文，中文译成英文。"
+                    : $"目标语言已切换为：{language.Name}。",
+                isError: false);
         }
         catch (Exception exception)
         {
@@ -412,6 +415,8 @@ public partial class MainWindow : Window, IMainWindowShell
             FinishButtonOperation(button, presetSaved ? "已应用，连接失败" : "应用失败", success: false);
         }
     }
+
+    public IReadOnlyList<CaptureDisplay> GetCaptureDisplays() => CaptureDisplay.From(this);
 
     private async void ManagedModelCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -1295,16 +1300,36 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private void RegisterSecretFields()
     {
-        RegisterSecretField(SecretKeys.BaiduOcrApiKey, "OCR API Key", BaiduOcrApiKeyBox);
-        RegisterSecretField(SecretKeys.BaiduOcrSecretKey, "OCR Secret Key", BaiduOcrSecretBox);
-        RegisterSecretField(SecretKeys.BaiduTranslateAppId, "翻译 APP ID", BaiduTranslateAppIdBox);
-        RegisterSecretField(SecretKeys.BaiduTranslateSecret, "翻译密钥", BaiduTranslateSecretBox);
-        RegisterSecretField(SecretKeys.CustomTranslationApiKey, "兼容接口 API Key", CustomApiKeyBox);
+        RegisterSecretField(
+            SecretKeys.BaiduOcrApiKey,
+            "OCR API Key",
+            BaiduOcrApiKeyBox,
+            BaiduOcrApiKeyRevealButton);
+        RegisterSecretField(
+            SecretKeys.BaiduOcrSecretKey,
+            "OCR Secret Key",
+            BaiduOcrSecretBox,
+            BaiduOcrSecretRevealButton);
+        RegisterSecretField(
+            SecretKeys.BaiduTranslateAppId,
+            "翻译 APP ID",
+            BaiduTranslateAppIdBox,
+            BaiduTranslateAppIdRevealButton);
+        RegisterSecretField(
+            SecretKeys.BaiduTranslateSecret,
+            "翻译密钥",
+            BaiduTranslateSecretBox,
+            BaiduTranslateSecretRevealButton);
+        RegisterSecretField(
+            SecretKeys.CustomTranslationApiKey,
+            "兼容接口 API Key",
+            CustomApiKeyBox,
+            CustomApiKeyRevealButton);
     }
 
-    private void RegisterSecretField(string key, string displayName, TextBox textBox)
+    private void RegisterSecretField(string key, string displayName, TextBox textBox, Button revealButton)
     {
-        _secretFields[key] = new SecretFieldState(key, displayName, textBox);
+        _secretFields[key] = new SecretFieldState(key, displayName, textBox, revealButton);
         RenderSecretField(_secretFields[key]);
     }
 
@@ -1341,53 +1366,6 @@ public partial class MainWindow : Window, IMainWindowShell
         SetGlobalStatus(
             state.IsRevealed ? $"{state.DisplayName} 已显示，可直接编辑或粘贴。" : $"{state.DisplayName} 已隐藏。",
             isError: false);
-    }
-
-    private async void CopySecretButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (!TryGetSecretField(sender, out var state))
-        {
-            return;
-        }
-
-        SyncSecretFieldFromEditor(state);
-        if (string.IsNullOrWhiteSpace(state.Value))
-        {
-            SetGlobalStatus($"{state.DisplayName} 尚未填写，无法复制。", isError: true);
-            return;
-        }
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is null)
-        {
-            SetGlobalStatus("当前系统剪贴板不可用。", isError: true);
-            return;
-        }
-
-        await clipboard.SetTextAsync(state.Value);
-        SetGlobalStatus($"{state.DisplayName} 已复制到剪贴板。", isError: false);
-    }
-
-    private async void PasteSecretButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (!TryGetSecretField(sender, out var state))
-        {
-            return;
-        }
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        var value = clipboard is null ? null : await clipboard.TryGetTextAsync();
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            SetGlobalStatus("剪贴板中没有可粘贴的文本。", isError: true);
-            return;
-        }
-
-        state.Value = value.Trim();
-        state.IsDirty = !string.Equals(state.Value, state.OriginalValue, StringComparison.Ordinal);
-        state.IsRevealed = false;
-        RenderSecretField(state);
-        SetGlobalStatus($"{state.DisplayName} 已粘贴，点击“保存并应用”后写入系统安全存储。", isError: false);
     }
 
     private async Task PersistSecretFieldAsync(string key)
@@ -1460,6 +1438,10 @@ public partial class MainWindow : Window, IMainWindowShell
     {
         state.TextBox.IsReadOnly = !state.IsRevealed;
         state.TextBox.Text = state.IsRevealed ? state.Value : SecretDisplay.Mask(state.Value);
+        state.RevealButton.Content = state.IsRevealed ? "隐藏" : "显示";
+        AutomationProperties.SetName(
+            state.RevealButton,
+            $"{(state.IsRevealed ? "隐藏" : "显示")}{state.DisplayName}");
     }
 
     private sealed record ProviderChoice(string Id, string Name)
@@ -1477,7 +1459,7 @@ public partial class MainWindow : Window, IMainWindowShell
         var provider = _services.Providers.GetTranslationProvider(providerId);
         var choices = new List<LanguageChoice>
         {
-            new(LanguageCatalog.AutoOpposite, "智能中英互换")
+            new(LanguageCatalog.AutoOpposite, "自动（推荐）")
         };
         choices.AddRange(
             LanguageCatalog.All
@@ -1490,8 +1472,8 @@ public partial class MainWindow : Window, IMainWindowShell
         TargetLanguageCombo.SelectedItem = choices.FirstOrDefault(
             choice => string.Equals(choice.Code, configuredLanguage, StringComparison.OrdinalIgnoreCase)) ?? choices[0];
         TranslationLanguageHintText.Text = providerId == "custom-chat"
-            ? "本机 / 自定义大模型支持多语言；实际效果取决于所选模型。"
-            : "该翻译引擎只显示当前已经适配的语言。";
+            ? "自动识别原文；外语译成简体中文，中文译成英文。也可手动指定目标语言；实际效果取决于所选模型。"
+            : "自动识别原文；外语译成简体中文，中文译成英文。列表仅显示该引擎已适配的目标语言。";
     }
 
     private sealed record LanguageChoice(string Code, string Name)
@@ -1510,11 +1492,16 @@ public partial class MainWindow : Window, IMainWindowShell
         public override string ToString() => Name;
     }
 
-    private sealed class SecretFieldState(string key, string displayName, TextBox textBox)
+    private sealed class SecretFieldState(
+        string key,
+        string displayName,
+        TextBox textBox,
+        Button revealButton)
     {
         public string Key { get; } = key;
         public string DisplayName { get; } = displayName;
         public TextBox TextBox { get; } = textBox;
+        public Button RevealButton { get; } = revealButton;
         public string Value { get; set; } = string.Empty;
         public string OriginalValue { get; set; } = string.Empty;
         public bool IsDirty { get; set; }

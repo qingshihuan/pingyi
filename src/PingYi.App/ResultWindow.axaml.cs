@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using PingYi.Core;
 using CorePixelRect = PingYi.Core.PixelRect;
 
@@ -12,6 +13,7 @@ namespace PingYi.App;
 public partial class ResultWindow : Window
 {
     private CorePixelRect _anchor;
+    private bool _allowClose;
 
     public ResultWindow()
     {
@@ -20,21 +22,53 @@ public partial class ResultWindow : Window
         {
             if (eventArgs.Key == Key.Escape && PinButton.IsChecked != true)
             {
-                Close();
+                Hide();
             }
+        };
+        Closing += (_, eventArgs) =>
+        {
+            if (_allowClose)
+            {
+                return;
+            }
+
+            eventArgs.Cancel = true;
+            Hide();
         };
         Opened += (_, _) => ClampToScreen();
     }
 
     public event Func<Task>? RetryRequested;
     public event Action? OpenSettingsRequested;
+    public bool IsPinned => PinButton.IsChecked == true;
 
     public void ShowAt(CorePixelRect anchor)
     {
         _anchor = anchor;
         Position = new PixelPoint(anchor.X, anchor.Y + anchor.Height + 10);
-        Show();
+        if (!IsVisible)
+        {
+            Show();
+        }
         Activate();
+        Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
+    }
+
+    public void ShowCurrent()
+    {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        Activate();
+        Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
+    }
+
+    public void ClosePermanently()
+    {
+        _allowClose = true;
+        Close();
     }
 
     public void SetLoading(string status, string privacy)
@@ -119,7 +153,7 @@ public partial class ResultWindow : Window
         PinButtonLabel.Text = Topmost ? "已固定" : "固定";
     }
 
-    private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Close();
+    private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Hide();
 
     private void RepairButton_OnClick(object? sender, RoutedEventArgs e) => OpenSettingsRequested?.Invoke();
 

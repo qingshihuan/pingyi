@@ -4,6 +4,10 @@ namespace PingYi.Core;
 
 public static class TextProcessing
 {
+    public readonly record struct TranslationLanguageRoute(
+        string SourceLanguage,
+        string TargetLanguage);
+
     public static string DetectLanguage(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -77,7 +81,33 @@ public static class TextProcessing
             return LanguageCatalog.NormalizeTarget(configuredTarget);
         }
 
-        return sourceLanguage == "zh" ? "en" : "zh";
+        return sourceLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
+    }
+
+    public static TranslationLanguageRoute ResolveTranslationLanguages(
+        string configuredSource,
+        string configuredTarget,
+        string? detectedOcrLanguage,
+        string text,
+        bool providerCanDetectSourceLanguage)
+    {
+        var hasExplicitSource = configuredSource != LanguageCatalog.Auto;
+        var detectedSource = hasExplicitSource
+            ? LanguageCatalog.NormalizeSource(configuredSource)
+            : LanguageCatalog.IsKnown(detectedOcrLanguage)
+                ? LanguageCatalog.NormalizeSource(detectedOcrLanguage)
+                : DetectLanguage(text);
+
+        if (!LanguageCatalog.IsKnown(detectedSource))
+        {
+            detectedSource = DetectLanguage(text);
+        }
+
+        var targetLanguage = ResolveTargetLanguage(detectedSource, configuredTarget);
+        var providerSource = !hasExplicitSource && providerCanDetectSourceLanguage
+            ? LanguageCatalog.Auto
+            : detectedSource;
+        return new TranslationLanguageRoute(providerSource, targetLanguage);
     }
 
     public static string BuildPlainText(IEnumerable<OcrBlock> blocks)

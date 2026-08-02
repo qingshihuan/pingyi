@@ -31,13 +31,14 @@ public static class TranslationFallback
             !cancellationToken.IsCancellationRequested &&
             primary.Metadata.Id != offlineFallback.Metadata.Id)
         {
-            if (!SupportsLanguagePair(offlineFallback.Metadata, request))
+            var fallbackRequest = ResolveFallbackRequest(offlineFallback.Metadata, request);
+            if (fallbackRequest is null)
             {
                 var source = request.SourceLanguage == LanguageCatalog.Auto
                     ? "自动检测语言"
                     : LanguageCatalog.GetDisplayName(request.SourceLanguage);
                 var target = request.TargetLanguage == LanguageCatalog.AutoOpposite
-                    ? "智能中英互换"
+                    ? "自动翻译"
                     : LanguageCatalog.GetDisplayName(request.TargetLanguage);
                 throw new ProviderException(
                     "translation_fallback_language_unsupported",
@@ -55,7 +56,7 @@ public static class TranslationFallback
                         fallbackAvailability.Message ?? "本地离线翻译不可用。");
                 }
 
-                var result = await offlineFallback.TranslateAsync(request, cancellationToken);
+                var result = await offlineFallback.TranslateAsync(fallbackRequest, cancellationToken);
                 return new TranslationExecution(result, offlineFallback.Metadata, UsedFallback: true);
             }
             catch (Exception fallbackFailure) when (fallbackFailure is not OperationCanceledException)
@@ -68,7 +69,16 @@ public static class TranslationFallback
         }
     }
 
-    private static bool SupportsLanguagePair(ProviderMetadata provider, TranslationRequest request) =>
-        provider.SupportedLanguages.Contains(request.SourceLanguage, StringComparer.OrdinalIgnoreCase) &&
-        provider.SupportedLanguages.Contains(request.TargetLanguage, StringComparer.OrdinalIgnoreCase);
+    private static TranslationRequest? ResolveFallbackRequest(
+        ProviderMetadata provider,
+        TranslationRequest request)
+    {
+        var sourceLanguage = request.SourceLanguage == LanguageCatalog.Auto
+            ? TextProcessing.DetectLanguage(request.Text)
+            : request.SourceLanguage;
+        return provider.SupportedLanguages.Contains(sourceLanguage, StringComparer.OrdinalIgnoreCase) &&
+               provider.SupportedLanguages.Contains(request.TargetLanguage, StringComparer.OrdinalIgnoreCase)
+            ? request with { SourceLanguage = sourceLanguage }
+            : null;
+    }
 }

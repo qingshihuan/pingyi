@@ -2,25 +2,41 @@ using PingYi.Core;
 
 namespace PingYi.App;
 
-public sealed class CaptureCoordinator(AppServices services)
+public sealed class CaptureCoordinator(AppServices services) : IDisposable
 {
     private readonly SemaphoreSlim _captureGate = new(1, 1);
+    private ResultWindow? _resultWindow;
+    private ImageFrame? _lastSelectedImage;
+    private IMainWindowShell? _mainWindow;
+    private bool _disposed;
 
     public async Task StartCaptureAsync(IMainWindowShell? mainWindow)
     {
+        if (_disposed)
+        {
+            return;
+        }
         if (!await _captureGate.WaitAsync(0))
         {
             mainWindow?.SetGlobalStatus("已有截图任务正在进行。", isError: true);
             return;
         }
 
+        _mainWindow = mainWindow;
         var restoreMainWindow = mainWindow?.IsVisible == true;
+        var restoreResultWindow = _resultWindow?.IsVisible == true;
         try
         {
             mainWindow?.Hide();
+            _resultWindow?.Hide();
             await Task.Delay(140);
             var desktop = await services.ScreenCaptureService.CaptureDesktopAsync();
-            var overlay = new CaptureOverlayWindow(desktop);
+            var displays = mainWindow?.GetCaptureDisplays();
+            if (displays is null || displays.Count == 0)
+            {
+                displays = [new CaptureDisplay(desktop.DesktopBounds, 1)];
+            }
+            var overlay = new CaptureOverlaySession(desktop, displays, services.ImageCropper);
             var selection = await overlay.ShowAndSelectAsync();
             if (selection is null)
             {
@@ -28,17 +44,16 @@ public sealed class CaptureCoordinator(AppServices services)
                 {
                     mainWindow?.Show();
                 }
+                if (restoreResultWindow)
+                {
+                    _resultWindow?.ShowCurrent();
+                }
                 return;
             }
 
             var selectedImage = services.ImageCropper.Crop(desktop, selection.Value);
-            var resultWindow = new ResultWindow();
-            resultWindow.RetryRequested += () => ProcessAsync(resultWindow, selectedImage);
-            resultWindow.OpenSettingsRequested += () =>
-            {
-                mainWindow?.Show();
-                mainWindow?.Activate();
-            };
+            _lastSelectedImage = selectedImage;
+            var resultWindow = GetResultWindow();
             resultWindow.ShowAt(selectedImage.DesktopBounds);
             await ProcessAsync(resultWindow, selectedImage);
         }
@@ -48,6 +63,10 @@ public sealed class CaptureCoordinator(AppServices services)
             {
                 mainWindow?.Show();
             }
+            if (restoreResultWindow)
+            {
+                _resultWindow?.ShowCurrent();
+            }
             mainWindow?.SetGlobalStatus(exception.Message, isError: true);
         }
         finally
@@ -55,6 +74,41 @@ public sealed class CaptureCoordinator(AppServices services)
             _captureGate.Release();
         }
     }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _resultWindow?.ClosePermanently();
+        _resultWindow = null;
+        _lastSelectedImage = null;
+    }
+
+    private ResultWindow GetResultWindow()
+    {
+        if (_resultWindow is not null)
+        {
+            return _resultWindow;
+        }
+
+        _resultWindow = new ResultWindow();
+        _resultWindow.RetryRequested += RetryLastSelectionAsync;
+        _resultWindow.OpenSettingsRequested += () =>
+        {
+            _mainWindow?.Show();
+            _mainWindow?.Activate();
+        };
+        return _resultWindow;
+    }
+
+    private Task RetryLastSelectionAsync() =>
+        _resultWindow is not null && _lastSelectedImage is not null
+            ? ProcessAsync(_resultWindow, _lastSelectedImage)
+            : Task.CompletedTask;
 
     private async Task ProcessAsync(ResultWindow window, ImageFrame image)
     {
@@ -118,19 +172,16 @@ public sealed class CaptureCoordinator(AppServices services)
 
         try
         {
-            var configuredTarget = settings.TargetLanguage;
-            var useModelLanguageDetection =
-                configuredTarget != LanguageCatalog.AutoOpposite &&
-                translationProvider.Metadata.SupportedLanguages.Count > 2;
-            var sourceLanguage = settings.SourceLanguage != LanguageCatalog.Auto
-                ? LanguageCatalog.NormalizeSource(settings.SourceLanguage)
-                : useModelLanguageDetection
-                    ? LanguageCatalog.Auto
-                    : ocrResult.DetectedLanguage is "zh" or "en"
-                        ? ocrResult.DetectedLanguage
-                        : TextProcessing.DetectLanguage(ocrResult.PlainText);
-            var targetLanguage = TextProcessing.ResolveTargetLanguage(sourceLanguage, settings.TargetLanguage);
-            var request = new TranslationRequest(ocrResult.PlainText, sourceLanguage, targetLanguage);
+            var route = TextProcessing.ResolveTranslationLanguages(
+                settings.SourceLanguage,
+                settings.TargetLanguage,
+                ocrResult.DetectedLanguage,
+                ocrResult.PlainText,
+                providerCanDetectSourceLanguage: translationProvider.Metadata.SupportedLanguages.Count > 2);
+            var request = new TranslationRequest(
+                ocrResult.PlainText,
+                route.SourceLanguage,
+                route.TargetLanguage);
             var execution = await TranslationFallback.ExecuteAsync(
                 translationProvider,
                 services.ArgosProvider,

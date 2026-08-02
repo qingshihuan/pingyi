@@ -173,6 +173,7 @@ public partial class App : Application
     {
         _isExiting = true;
         _trayIcon?.Dispose();
+        _captureCoordinator?.Dispose();
         if (_services is not null)
         {
             await _services.DisposeAsync();

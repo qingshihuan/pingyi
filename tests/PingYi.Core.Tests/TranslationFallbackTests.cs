@@ -37,6 +37,22 @@ public sealed class TranslationFallbackTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_DetectsAutomaticSourceBeforeOfflineFallback()
+    {
+        var external = new StubProvider("custom-chat", fail: true, "external");
+        var offline = new StubProvider("local-argos", fail: false, "offline");
+
+        var execution = await TranslationFallback.ExecuteAsync(
+            external,
+            offline,
+            new TranslationRequest("Hello", LanguageCatalog.Auto, "zh"));
+
+        Assert.True(execution.UsedFallback);
+        Assert.Equal("en", offline.LastRequest?.SourceLanguage);
+        Assert.Equal("zh", offline.LastRequest?.TargetLanguage);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_DoesNotSendUnsupportedLanguagePairToOfflineFallback()
     {
         var external = new StubProvider("custom-chat", fail: true, "external");
@@ -60,6 +76,7 @@ public sealed class TranslationFallbackTests
         bool cancel = false) : ITranslationProvider
     {
         public int TranslateCalls { get; private set; }
+        public TranslationRequest? LastRequest { get; private set; }
 
         public ProviderMetadata Metadata { get; } = new(
             id,
@@ -78,6 +95,7 @@ public sealed class TranslationFallbackTests
             CancellationToken cancellationToken = default)
         {
             TranslateCalls++;
+            LastRequest = request;
             if (cancel)
             {
                 throw new OperationCanceledException(cancellationToken);

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -12,31 +13,35 @@ public partial class CaptureOverlayWindow : Window
 {
     private readonly ImageFrame _capture;
     private readonly Bitmap _bitmap;
-    private readonly TaskCompletionSource<CorePixelRect?> _completion =
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private Point _start;
-    private bool _selecting;
+    private readonly CaptureOverlaySession? _session;
+    private readonly double _preferredScaling;
 
-    public CaptureOverlayWindow() : this(CreatePlaceholderCapture())
+    public CaptureOverlayWindow() : this(CreatePlaceholderCapture(), 1, session: null)
     {
     }
 
-    public CaptureOverlayWindow(ImageFrame capture)
+    internal CaptureOverlayWindow(
+        ImageFrame capture,
+        double preferredScaling,
+        CaptureOverlaySession? session)
     {
         _capture = capture;
+        _preferredScaling = preferredScaling > 0 ? preferredScaling : 1;
+        _session = session;
         InitializeComponent();
         _bitmap = new Bitmap(new MemoryStream(capture.PngBytes));
         ScreenshotImage.Source = _bitmap;
         Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);
+        Width = capture.Width / _preferredScaling;
+        Height = capture.Height / _preferredScaling;
 
         Opened += (_, _) =>
         {
-            var originScreen = Screens.ScreenFromPoint(
-                new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y));
-            var scale = RenderScaling > 0 ? RenderScaling : originScreen?.Scaling ?? 1;
+            var scale = RenderScaling > 0 ? RenderScaling : _preferredScaling;
             Width = capture.Width / scale;
             Height = capture.Height / scale;
             Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);
+            _session?.Refresh(this);
             Activate();
             Focus();
         };
@@ -44,109 +49,263 @@ public partial class CaptureOverlayWindow : Window
         {
             if (eventArgs.Key == Key.Escape)
             {
-                Complete(null);
+                _session?.Cancel();
             }
         };
         Closed += (_, _) =>
         {
-            _completion.TrySetResult(null);
             _bitmap.Dispose();
+            _session?.NotifyClosed();
         };
     }
 
-    public Task<CorePixelRect?> ShowAndSelectAsync()
+    internal void ShowOverlay() => Show();
+
+    internal void SetGlobalSelection(CorePixelRect? selection, bool showSize)
     {
-        Show();
-        return _completion.Task;
-    }
-
-    private void SelectionOverlay_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!e.GetCurrentPoint(SelectionOverlay).Properties.IsLeftButtonPressed)
-        {
-            return;
-        }
-
-        _start = ClampToOverlay(e.GetPosition(SelectionOverlay));
-        _selecting = true;
-        e.Pointer.Capture(SelectionOverlay);
-        SelectionOverlay.Selection = new Rect(_start, _start);
-        SelectionSizeBorder.IsVisible = true;
-        UpdateSelectionSize(SelectionOverlay.Selection.Value);
-    }
-
-    private void SelectionOverlay_OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (!_selecting)
-        {
-            return;
-        }
-
-        var selection = Normalize(_start, ClampToOverlay(e.GetPosition(SelectionOverlay)));
-        SelectionOverlay.Selection = selection;
-        UpdateSelectionSize(selection);
-    }
-
-    private void SelectionOverlay_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (!_selecting)
-        {
-            return;
-        }
-
-        _selecting = false;
-        e.Pointer.Capture(null);
-        var selection = Normalize(_start, ClampToOverlay(e.GetPosition(SelectionOverlay)));
-        SelectionOverlay.Selection = selection;
-        if (selection.Width < 8 || selection.Height < 8 || Bounds.Width <= 0 || Bounds.Height <= 0)
+        if (selection is null)
         {
             SelectionOverlay.Selection = null;
             SelectionSizeBorder.IsVisible = false;
             return;
         }
 
-        var x = (int)Math.Round(selection.X / Bounds.Width * _capture.Width);
-        var y = (int)Math.Round(selection.Y / Bounds.Height * _capture.Height);
-        var width = (int)Math.Round(selection.Width / Bounds.Width * _capture.Width);
-        var height = (int)Math.Round(selection.Height / Bounds.Height * _capture.Height);
-        Complete(new CorePixelRect(x, y, width, height));
-    }
-
-    private Point ClampToOverlay(Point point) =>
-        new(
-            Math.Clamp(point.X, 0, Math.Max(0, SelectionOverlay.Bounds.Width)),
-            Math.Clamp(point.Y, 0, Math.Max(0, SelectionOverlay.Bounds.Height)));
-
-    private void UpdateSelectionSize(Rect selection)
-    {
-        var width = Bounds.Width > 0
-            ? (int)Math.Round(selection.Width / Bounds.Width * _capture.Width)
-            : 0;
-        var height = Bounds.Height > 0
-            ? (int)Math.Round(selection.Height / Bounds.Height * _capture.Height)
-            : 0;
-        SelectionSizeText.Text = $"{width} × {height} px";
-    }
-
-    private void Complete(CorePixelRect? selection)
-    {
-        if (_completion.TrySetResult(selection))
+        var visibleSelection = ScreenSelectionGeometry.Intersect(selection.Value, _capture.DesktopBounds);
+        if (visibleSelection.IsEmpty)
         {
-            Close();
+            SelectionOverlay.Selection = null;
         }
+        else
+        {
+            var scale = RenderScaling > 0 ? RenderScaling : _preferredScaling;
+            SelectionOverlay.Selection = new Rect(
+                (visibleSelection.X - _capture.DesktopBounds.X) / scale,
+                (visibleSelection.Y - _capture.DesktopBounds.Y) / scale,
+                visibleSelection.Width / scale,
+                visibleSelection.Height / scale);
+        }
+
+        SelectionSizeBorder.IsVisible = showSize;
+        SelectionSizeText.Text = $"{selection.Value.Width} × {selection.Value.Height} px";
     }
 
-    private static Rect Normalize(Point first, Point second) =>
-        new(
-            Math.Min(first.X, second.X),
-            Math.Min(first.Y, second.Y),
-            Math.Abs(first.X - second.X),
-            Math.Abs(first.Y - second.Y));
+    private void SelectionOverlay_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_session is null ||
+            !e.GetCurrentPoint(SelectionOverlay).Properties.IsLeftButtonPressed ||
+            !_session.Begin(this, GetGlobalPointer(e.GetPosition(SelectionOverlay))))
+        {
+            return;
+        }
+
+        e.Pointer.Capture(SelectionOverlay);
+    }
+
+    private void SelectionOverlay_OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        _session?.Move(this, GetGlobalPointer(e.GetPosition(SelectionOverlay)));
+    }
+
+    private void SelectionOverlay_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        e.Pointer.Capture(null);
+        _session.End(this, GetGlobalPointer(e.GetPosition(SelectionOverlay)));
+    }
+
+    private PixelPoint GetGlobalPointer(Point localPosition)
+    {
+        if (OperatingSystem.IsWindows() && NativePointer.TryGetPosition(out var nativePosition))
+        {
+            return nativePosition;
+        }
+
+        var scale = RenderScaling > 0 ? RenderScaling : _preferredScaling;
+        return new PixelPoint(
+            Position.X + (int)Math.Round(localPosition.X * scale),
+            Position.Y + (int)Math.Round(localPosition.Y * scale));
+    }
 
     private static ImageFrame CreatePlaceholderCapture()
     {
         const string transparentPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-        return new ImageFrame(Convert.FromBase64String(transparentPng), 1, 1, new CorePixelRect(0, 0, 1, 1));
+        return new ImageFrame(
+            Convert.FromBase64String(transparentPng),
+            1,
+            1,
+            new CorePixelRect(0, 0, 1, 1));
+    }
+
+    private static class NativePointer
+    {
+        public static bool TryGetPosition(out PixelPoint position)
+        {
+            if (GetCursorPos(out var point))
+            {
+                position = new PixelPoint(point.X, point.Y);
+                return true;
+            }
+
+            position = default;
+            return false;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out NativePoint point);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativePoint
+        {
+            public int X;
+            public int Y;
+        }
+    }
+}
+
+internal sealed class CaptureOverlaySession(
+    ImageFrame desktop,
+    IReadOnlyList<CaptureDisplay> displays,
+    IImageCropper imageCropper)
+{
+    private readonly TaskCompletionSource<CorePixelRect?> _completion =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly List<CaptureOverlayWindow> _windows = [];
+    private PixelPoint _start;
+    private CaptureOverlayWindow? _selectionOwner;
+    private CorePixelRect? _selection;
+    private bool _selecting;
+    private bool _completing;
+    private int _openWindowCount;
+
+    public Task<CorePixelRect?> ShowAndSelectAsync()
+    {
+        foreach (var display in displays)
+        {
+            var displayCapture = ScreenSelectionGeometry.Intersect(display.Bounds, desktop.DesktopBounds);
+            if (displayCapture.IsEmpty)
+            {
+                continue;
+            }
+
+            var relativeCapture = ScreenSelectionGeometry.ToCaptureRelative(
+                displayCapture,
+                desktop.DesktopBounds);
+            var image = imageCropper.Crop(desktop, relativeCapture);
+            _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this));
+        }
+
+        if (_windows.Count == 0)
+        {
+            throw new InvalidOperationException("未找到可用于框选的显示器。");
+        }
+
+        _openWindowCount = _windows.Count;
+        foreach (var window in _windows)
+        {
+            window.ShowOverlay();
+        }
+
+        return _completion.Task;
+    }
+
+    public bool Begin(CaptureOverlayWindow owner, PixelPoint globalPosition)
+    {
+        if (_completing || _selecting)
+        {
+            return false;
+        }
+
+        _selectionOwner = owner;
+        _start = Clamp(globalPosition);
+        _selecting = true;
+        _selection = new CorePixelRect(_start.X, _start.Y, 0, 0);
+        RenderSelection();
+        return true;
+    }
+
+    public void Move(CaptureOverlayWindow owner, PixelPoint globalPosition)
+    {
+        if (!_selecting || !ReferenceEquals(owner, _selectionOwner))
+        {
+            return;
+        }
+
+        var current = Clamp(globalPosition);
+        _selection = ScreenSelectionGeometry.NormalizeAndClamp(
+            _start.X,
+            _start.Y,
+            current.X,
+            current.Y,
+            desktop.DesktopBounds);
+        RenderSelection();
+    }
+
+    public void End(CaptureOverlayWindow owner, PixelPoint globalPosition)
+    {
+        if (!_selecting || !ReferenceEquals(owner, _selectionOwner))
+        {
+            return;
+        }
+
+        Move(owner, globalPosition);
+        _selecting = false;
+        var selection = _selection;
+        if (selection is null || selection.Value.Width < 8 || selection.Value.Height < 8)
+        {
+            _selection = null;
+            _selectionOwner = null;
+            RenderSelection();
+            return;
+        }
+
+        Complete(ScreenSelectionGeometry.ToCaptureRelative(selection.Value, desktop.DesktopBounds));
+    }
+
+    public void Refresh(CaptureOverlayWindow window) =>
+        window.SetGlobalSelection(_selection, ReferenceEquals(window, _selectionOwner));
+
+    public void Cancel() => Complete(null);
+
+    public void NotifyClosed()
+    {
+        _openWindowCount--;
+        if (!_completing && _openWindowCount <= 0)
+        {
+            Complete(null);
+        }
+    }
+
+    private PixelPoint Clamp(PixelPoint point) =>
+        new(
+            Math.Clamp(point.X, desktop.DesktopBounds.X, desktop.DesktopBounds.X + desktop.DesktopBounds.Width),
+            Math.Clamp(point.Y, desktop.DesktopBounds.Y, desktop.DesktopBounds.Y + desktop.DesktopBounds.Height));
+
+    private void RenderSelection()
+    {
+        foreach (var window in _windows)
+        {
+            window.SetGlobalSelection(_selection, ReferenceEquals(window, _selectionOwner));
+        }
+    }
+
+    private void Complete(CorePixelRect? selection)
+    {
+        if (_completing)
+        {
+            return;
+        }
+
+        _completing = true;
+        foreach (var window in _windows)
+        {
+            window.Close();
+        }
+        _completion.TrySetResult(selection);
     }
 }
 
