@@ -34,7 +34,7 @@ def find_forbidden_files(root: Path) -> list[Path]:
         if not path.is_file():
             continue
 
-        relative_parts = tuple(part.lower() for part in path.relative_to(root).parts)
+        relative_parts = tuple(part.lower() for part in path.relative_to(root).parts[:-1])
         filename = path.name.lower()
         has_gpu_runtime_name = is_native_binary(path) and (
             any(token in filename for token in PROPRIETARY_GPU_TOKENS)

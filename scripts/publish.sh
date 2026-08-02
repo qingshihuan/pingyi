@@ -5,6 +5,7 @@ version="${1:-0.1.0}"
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 publish_dir="$project_root/artifacts/publish/linux-x64"
 engine_dir="$project_root/artifacts/engine-host/linux-x64/pingyi-engine"
+engine_python="$project_root/.venv-engine/bin/python"
 deb_root="$project_root/artifacts/deb-root"
 
 if [[ ! -x "$engine_dir/pingyi-engine" ]]; then

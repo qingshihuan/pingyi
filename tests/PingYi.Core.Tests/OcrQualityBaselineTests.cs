@@ -66,6 +66,36 @@ public sealed class OcrQualityBaselineTests(ITestOutputHelper output)
                 {
                     DrawLine(canvas, "PingYi v0.1.0 · Ctrl Alt D · localhost 8080", 38, 108, 46, SKColors.Black, true);
                     DrawLine(canvas, "隐私优先，不保存历史", 38, 230, 52, new SKColor(0, 92, 83), true);
+                }),
+            new BenchmarkCase(
+                "small-dark-terminal",
+                700,
+                130,
+                "PS C Users demo C Program Files GitHub CLI gh exe auth login Where do you use GitHub GitHub com What is your preferred protocol for Git operations on this host HTTPS Authenticate Git with your GitHub credentials Yes How would you like to authenticate GitHub CLI Login with a web browser",
+                0.90,
+                canvas =>
+                {
+                    canvas.Clear(new SKColor(12, 12, 12));
+                    DrawTerminalLine(canvas, 6, 25,
+                        ("PS C:\\Users\\demo> & ", new SKColor(220, 220, 220)),
+                        ("\"C:\\Program Files\\GitHub CLI\\gh.exe\"", new SKColor(41, 171, 226)),
+                        (" auth login", new SKColor(220, 220, 220)));
+                    DrawTerminalLine(canvas, 6, 45,
+                        ("? ", new SKColor(22, 235, 68)),
+                        ("Where do you use GitHub? ", SKColors.White),
+                        ("GitHub.com", new SKColor(41, 171, 226)));
+                    DrawTerminalLine(canvas, 6, 65,
+                        ("? ", new SKColor(22, 235, 68)),
+                        ("What is your preferred protocol for Git operations on this host? ", SKColors.White),
+                        ("HTTPS", new SKColor(41, 171, 226)));
+                    DrawTerminalLine(canvas, 6, 85,
+                        ("? ", new SKColor(22, 235, 68)),
+                        ("Authenticate Git with your GitHub credentials? ", SKColors.White),
+                        ("Yes", new SKColor(41, 171, 226)));
+                    DrawTerminalLine(canvas, 6, 105,
+                        ("? ", new SKColor(22, 235, 68)),
+                        ("How would you like to authenticate GitHub CLI? ", SKColors.White),
+                        ("Login with a web browser", new SKColor(41, 171, 226)));
                 })
         };
 
@@ -130,6 +160,23 @@ public sealed class OcrQualityBaselineTests(ITestOutputHelper output)
             IsAntialias = true
         };
         canvas.DrawText(text, x, baseline, SKTextAlign.Left, font, paint);
+    }
+
+    private static void DrawTerminalLine(
+        SKCanvas canvas,
+        float x,
+        float baseline,
+        params (string Text, SKColor Color)[] segments)
+    {
+        using var typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold);
+        using var font = new SKFont(typeface, 16);
+        using var paint = new SKPaint { IsAntialias = true };
+        foreach (var segment in segments)
+        {
+            paint.Color = segment.Color;
+            canvas.DrawText(segment.Text, x, baseline, SKTextAlign.Left, font, paint);
+            x += font.MeasureText(segment.Text, paint);
+        }
     }
 
     private static double NormalizedSimilarity(string expected, string actual)

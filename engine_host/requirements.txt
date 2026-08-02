@@ -1,1 +1,9 @@
-argostranslate>=1.11,<2
+# PingYi supplies lightweight runtime shims for Argos' optional Stanza,
+# MiniSBD, and spaCy sentence splitters. Keep this list explicit and install it
+# with --no-deps so a CPU-only build never downloads Torch/CUDA transitively.
+argostranslate==1.11.0
+ctranslate2==4.8.1
+numpy==2.5.1
+packaging==26.2
+PyYAML==6.0.3
+sentencepiece==0.2.2

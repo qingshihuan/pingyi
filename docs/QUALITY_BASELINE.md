@@ -6,7 +6,7 @@ reach the same score.
 
 ## OCR
 
-The test renders four deterministic Simplified Chinese and English desktop UI
+The test renders five deterministic Simplified Chinese and English desktop UI
 scenes, runs the bundled PP-OCRv5 mobile ONNX models, normalizes punctuation and
 whitespace, and calculates Levenshtein similarity.
 
@@ -16,6 +16,7 @@ whitespace, and calculates Levenshtein similarity.
 | Compact settings UI | 100.0% | 92% |
 | Dark result card | 100.0% | 92% |
 | Long mixed technical text | 97.5% | 90% |
+| Small dark terminal with colored text | 98.7% | 90% |
 
 Run the same gate with a prepared offline model directory:
 

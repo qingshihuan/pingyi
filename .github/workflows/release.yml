@@ -34,7 +34,10 @@ jobs:
           }
           ./scripts/setup-engine.ps1 -Python python
           python ./scripts/download-offline-models.py --destination ./artifacts/model-source
-          ./scripts/run-quality-baseline.ps1 -ModelDirectory ./artifacts/model-source
+          ./scripts/prepare-offline-models.ps1 `
+            -Source ./artifacts/model-source `
+            -Destination ./artifacts/quality-models
+          ./scripts/run-quality-baseline.ps1 -ModelDirectory ./artifacts/quality-models
           choco install innosetup --yes --no-progress
           $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `

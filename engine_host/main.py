@@ -13,6 +13,8 @@ import traceback
 from pathlib import Path
 from typing import Any
 
+import runtime_minimal  # noqa: F401 - installs optional-dependency shims
+
 
 MODEL_DIR = Path(
     os.environ.get(
