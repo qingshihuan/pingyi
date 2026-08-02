@@ -36,6 +36,23 @@ public sealed class TranslationFallbackTests
         Assert.Equal(0, offline.TranslateCalls);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_DoesNotSendUnsupportedLanguagePairToOfflineFallback()
+    {
+        var external = new StubProvider("custom-chat", fail: true, "external");
+        var offline = new StubProvider("local-argos", fail: false, "offline");
+
+        var exception = await Assert.ThrowsAsync<ProviderException>(() =>
+            TranslationFallback.ExecuteAsync(
+                external,
+                offline,
+                new TranslationRequest("Hello", "auto", "ja")));
+
+        Assert.Equal("translation_fallback_language_unsupported", exception.Code);
+        Assert.Contains("日语", exception.Message);
+        Assert.Equal(0, offline.TranslateCalls);
+    }
+
     private sealed class StubProvider(
         string id,
         bool fail,

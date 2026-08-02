@@ -27,7 +27,7 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 - **One-step screenshot translation:** select a region with a global hotkey and see the source text and translation immediately.
 - **OCR text extraction:** copy text from images, video subtitles, desktop applications, and non-selectable web pages.
 - **Real offline fallback:** bundled PaddleOCR ONNX and Argos Translate provide Chinese-English OCR and translation without network access.
-- **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints.
+- **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints, with automatic source-language detection and 34 common target languages.
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
 - **Optional cloud providers:** configure Baidu OCR, Baidu Translate, or a custom Chat Completions service when desired.
 - **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu X11 x64.
@@ -50,7 +50,7 @@ Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. The result
 | --- | --- | --- | --- |
 | Screenshot OCR | PaddleOCR + ONNX Runtime | No | CPU |
 | Basic zh-en/en-zh translation | Argos Translate | No | CPU |
-| Local LLM translation | llama.cpp / Ollama / LM Studio / vLLM | No | Chosen by the external server |
+| Local LLM translation | llama.cpp / Ollama / LM Studio / vLLM | No | Chosen by the external server; multilingual quality depends on the model |
 | Baidu OCR | Baidu position-aware OCR | Yes; selected image only | Cloud |
 | Baidu/custom translation | Baidu Translate or Chat Completions | Yes; recognized text only | Cloud |
 
@@ -73,7 +73,7 @@ The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GP
 
 - Windows 10/11 x64.
 - Ubuntu X11 x64; Wayland screenshot portals are outside the v1 scope.
-- Simplified Chinese and English OCR and bundled basic translation.
+- PaddleOCR and bundled Argos translation support Simplified Chinese and English; local/custom LLM translation offers 34 common target languages in Settings.
 - v1 does not include live overlay translation, PDF/image batch processing, specialized table/formula OCR, or history.
 
 ## Run from source

@@ -88,11 +88,17 @@ public sealed class CaptureCoordinator(AppServices services)
 
         try
         {
-            var sourceLanguage = settings.SourceLanguage is "zh" or "en"
-                ? settings.SourceLanguage
-                : ocrResult.DetectedLanguage is "zh" or "en"
-                    ? ocrResult.DetectedLanguage
-                    : TextProcessing.DetectLanguage(ocrResult.PlainText);
+            var configuredTarget = settings.TargetLanguage;
+            var useModelLanguageDetection =
+                configuredTarget != LanguageCatalog.AutoOpposite &&
+                translationProvider.Metadata.SupportedLanguages.Count > 2;
+            var sourceLanguage = settings.SourceLanguage != LanguageCatalog.Auto
+                ? LanguageCatalog.NormalizeSource(settings.SourceLanguage)
+                : useModelLanguageDetection
+                    ? LanguageCatalog.Auto
+                    : ocrResult.DetectedLanguage is "zh" or "en"
+                        ? ocrResult.DetectedLanguage
+                        : TextProcessing.DetectLanguage(ocrResult.PlainText);
             var targetLanguage = TextProcessing.ResolveTargetLanguage(sourceLanguage, settings.TargetLanguage);
             var request = new TranslationRequest(ocrResult.PlainText, sourceLanguage, targetLanguage);
             var execution = await TranslationFallback.ExecuteAsync(

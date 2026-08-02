@@ -31,6 +31,20 @@ public static class TranslationFallback
             !cancellationToken.IsCancellationRequested &&
             primary.Metadata.Id != offlineFallback.Metadata.Id)
         {
+            if (!SupportsLanguagePair(offlineFallback.Metadata, request))
+            {
+                var source = request.SourceLanguage == LanguageCatalog.Auto
+                    ? "自动检测语言"
+                    : LanguageCatalog.GetDisplayName(request.SourceLanguage);
+                var target = request.TargetLanguage == LanguageCatalog.AutoOpposite
+                    ? "智能中英互换"
+                    : LanguageCatalog.GetDisplayName(request.TargetLanguage);
+                throw new ProviderException(
+                    "translation_fallback_language_unsupported",
+                    $"{primaryFailure.Message}；{offlineFallback.Metadata.DisplayName} 不支持 {source} → {target}，无法离线回退。",
+                    primaryFailure);
+            }
+
             try
             {
                 var fallbackAvailability = await offlineFallback.GetAvailabilityAsync(cancellationToken);
@@ -53,4 +67,8 @@ public static class TranslationFallback
             }
         }
     }
+
+    private static bool SupportsLanguagePair(ProviderMetadata provider, TranslationRequest request) =>
+        provider.SupportedLanguages.Contains(request.SourceLanguage, StringComparer.OrdinalIgnoreCase) &&
+        provider.SupportedLanguages.Contains(request.TargetLanguage, StringComparer.OrdinalIgnoreCase);
 }

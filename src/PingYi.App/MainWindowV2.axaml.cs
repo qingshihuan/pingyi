@@ -52,7 +52,10 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         var translation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId).Metadata;
         ModeSummaryText.Text = DescribeMode(settings, ocr, translation);
         OcrSummaryText.Text = ocr.DisplayName;
-        TranslationSummaryText.Text = translation.DisplayName;
+        var targetLanguage = settings.TargetLanguage == LanguageCatalog.AutoOpposite
+            ? "智能中英互换"
+            : LanguageCatalog.GetDisplayName(settings.TargetLanguage);
+        TranslationSummaryText.Text = $"{translation.DisplayName} · → {targetLanguage}";
         PrivacySummaryText.Text = BuildPrivacyDescription(ocr, translation);
         CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
     }

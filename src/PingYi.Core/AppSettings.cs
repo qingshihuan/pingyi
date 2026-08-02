@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
     public const string DefaultHotkey = "Ctrl+Alt+D";
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -43,8 +43,8 @@ public sealed record AppSettings
             Hotkey = hotkey,
             OcrProviderId = string.IsNullOrWhiteSpace(OcrProviderId) ? "local-paddle" : OcrProviderId,
             TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId) ? "local-argos" : TranslationProviderId,
-            SourceLanguage = SourceLanguage is "zh" or "en" ? SourceLanguage : "auto",
-            TargetLanguage = TargetLanguage is "zh" or "en" ? TargetLanguage : "auto-opposite",
+            SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
+            TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = model,
             InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern"

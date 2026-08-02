@@ -140,7 +140,12 @@
                 <ComboBox x:Name="TranslationProviderCombo" MinHeight="42"
                           SelectionChanged="ProviderCombo_OnSelectionChanged"
                           AutomationProperties.Name="翻译提供商" />
-                <TextBlock Text="选择云端翻译时，只发送识别后的纯文字。"
+                <TextBlock Text="目标语言" FontWeight="SemiBold" FontSize="12" Margin="0,2,0,0" />
+                <ComboBox x:Name="TargetLanguageCombo" MinHeight="42"
+                          SelectionChanged="TargetLanguageCombo_OnSelectionChanged"
+                          AutomationProperties.Name="翻译目标语言" />
+                <TextBlock x:Name="TranslationLanguageHintText"
+                           Text="选择云端翻译时，只发送识别后的纯文字。"
                            Classes="tertiary" FontSize="11" TextWrapping="Wrap" />
               </StackPanel>
             </Border>

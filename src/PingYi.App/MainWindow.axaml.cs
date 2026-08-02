@@ -79,6 +79,7 @@ public partial class MainWindow : Window, IMainWindowShell
                 .FirstOrDefault(choice => choice.Id == settings.OcrProviderId);
             TranslationProviderCombo.SelectedItem = ((IEnumerable<ProviderChoice>)TranslationProviderCombo.ItemsSource)
                 .FirstOrDefault(choice => choice.Id == settings.TranslationProviderId);
+            LoadTargetLanguageChoices(settings.TranslationProviderId, settings.TargetLanguage);
             LocalServicePresetCombo.ItemsSource = LocalLlmPresets.All;
             LocalServicePresetCombo.SelectedItem =
                 LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint) ?? LocalLlmPresets.Default;
@@ -200,7 +201,36 @@ public partial class MainWindow : Window, IMainWindowShell
 
         try
         {
+            var translation = (ProviderChoice)TranslationProviderCombo.SelectedItem;
+            _isLoadingSettings = true;
+            try
+            {
+                LoadTargetLanguageChoices(translation.Id, _services.Settings.TargetLanguage);
+            }
+            finally
+            {
+                _isLoadingSettings = false;
+            }
             await ApplyProviderSelectionAsync(showStatus: true);
+        }
+        catch (Exception exception)
+        {
+            SetGlobalStatus(exception.Message, isError: true);
+        }
+    }
+
+    private async void TargetLanguageCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || _services is null ||
+            TargetLanguageCombo.SelectedItem is not LanguageChoice language)
+        {
+            return;
+        }
+
+        try
+        {
+            await _services.SaveSettingsAsync(_services.Settings with { TargetLanguage = language.Code });
+            SetGlobalStatus($"目标语言已切换为：{language.Name}。", isError: false);
         }
         catch (Exception exception)
         {
@@ -493,6 +523,7 @@ public partial class MainWindow : Window, IMainWindowShell
         {
             OcrProviderId = (OcrProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-paddle",
             TranslationProviderId = (TranslationProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-argos",
+            TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite,
             CustomTranslationEndpoint = CustomEndpointBox.Text ?? string.Empty,
             CustomTranslationModel = CustomModelBox.Text ?? string.Empty,
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
@@ -550,7 +581,8 @@ public partial class MainWindow : Window, IMainWindowShell
         await _services.SaveSettingsAsync(_services.Settings with
         {
             OcrProviderId = ocr.Id,
-            TranslationProviderId = translation.Id
+            TranslationProviderId = translation.Id,
+            TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite
         });
         if (showStatus)
         {
@@ -1054,6 +1086,38 @@ public partial class MainWindow : Window, IMainWindowShell
     }
 
     private sealed record ProviderChoice(string Id, string Name)
+    {
+        public override string ToString() => Name;
+    }
+
+    private void LoadTargetLanguageChoices(string providerId, string configuredLanguage)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var provider = _services.Providers.GetTranslationProvider(providerId);
+        var choices = new List<LanguageChoice>
+        {
+            new(LanguageCatalog.AutoOpposite, "智能中英互换")
+        };
+        choices.AddRange(
+            LanguageCatalog.All
+                .Where(language => provider.Metadata.SupportedLanguages.Contains(
+                    language.Code,
+                    StringComparer.OrdinalIgnoreCase))
+                .Select(language => new LanguageChoice(language.Code, language.DisplayName)));
+
+        TargetLanguageCombo.ItemsSource = choices;
+        TargetLanguageCombo.SelectedItem = choices.FirstOrDefault(
+            choice => string.Equals(choice.Code, configuredLanguage, StringComparison.OrdinalIgnoreCase)) ?? choices[0];
+        TranslationLanguageHintText.Text = providerId == "custom-chat"
+            ? "本机 / 自定义大模型支持多语言；实际效果取决于所选模型。"
+            : "该翻译引擎只显示当前已经适配的语言。";
+    }
+
+    private sealed record LanguageChoice(string Code, string Name)
     {
         public override string ToString() => Name;
     }

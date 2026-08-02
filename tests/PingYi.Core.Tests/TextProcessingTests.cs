@@ -18,6 +18,8 @@ public sealed class TextProcessingTests
     [InlineData("zh", "auto-opposite", "en")]
     [InlineData("en", "auto-opposite", "zh")]
     [InlineData("zh", "zh", "zh")]
+    [InlineData("auto", "ja", "ja")]
+    [InlineData("es", "de", "de")]
     public void ResolveTargetLanguage_RespectsExplicitAndOppositeTargets(
         string source,
         string configured,

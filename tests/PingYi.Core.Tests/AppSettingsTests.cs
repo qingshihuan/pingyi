@@ -13,8 +13,8 @@ public sealed class AppSettingsTests
             Hotkey = " ",
             OcrProviderId = "",
             TranslationProviderId = "",
-            SourceLanguage = "ja",
-            TargetLanguage = "de",
+            SourceLanguage = "not-a-language",
+            TargetLanguage = "xx",
             CustomTranslationEndpoint = "not a uri",
             CustomTranslationModel = "  model-name  ",
             InterfaceStyle = "unknown"
@@ -31,6 +31,21 @@ public sealed class AppSettingsTests
         Assert.Equal("model-name", normalized.CustomTranslationModel);
         Assert.Equal("modern", normalized.InterfaceStyle);
         Assert.True(Uri.TryCreate(normalized.CustomTranslationEndpoint, UriKind.Absolute, out _));
+    }
+
+    [Theory]
+    [InlineData("ja", "ja")]
+    [InlineData("ZH-hant", "zh-Hant")]
+    public void Normalize_PreservesKnownMultilingualLanguageCodes(string value, string expected)
+    {
+        var normalized = new AppSettings
+        {
+            SourceLanguage = value,
+            TargetLanguage = value
+        }.Normalize();
+
+        Assert.Equal(expected, normalized.SourceLanguage);
+        Assert.Equal(expected, normalized.TargetLanguage);
     }
 
     [Theory]

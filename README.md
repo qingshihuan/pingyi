@@ -27,7 +27,7 @@
 - **截图翻译一次完成**：全局快捷键框选，结果卡直接显示原文和译文。
 - **OCR 文字提取**：从图片、视频字幕、软件界面和不可复制网页中提取中英文文字。
 - **真正的离线保底**：内置 PaddleOCR ONNX 与 Argos Translate，中英识别和翻译无需联网。
-- **本地大模型增强**：支持 llama.cpp、Ollama、LM Studio、vLLM 和通用 OpenAI 兼容接口。
+- **本地大模型增强**：支持 llama.cpp、Ollama、LM Studio、vLLM 和通用 OpenAI 兼容接口，可自动识别源语言并选择 34 种常用目标语言。
 - **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
 - **云端服务可选**：可自行配置百度 OCR、百度翻译或自定义 Chat Completions 接口。
 - **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu X11 x64。
@@ -50,7 +50,7 @@
 | --- | --- | --- | --- |
 | 截图与文字识别 | PaddleOCR + ONNX Runtime | 否 | CPU |
 | 中英基础翻译 | Argos Translate | 否 | CPU |
-| 本机大模型翻译 | llama.cpp / Ollama / LM Studio / vLLM | 否 | 由外部服务决定 |
+| 本机大模型翻译 | llama.cpp / Ollama / LM Studio / vLLM | 否 | 由外部服务决定；多语言能力取决于模型 |
 | 百度 OCR | 百度含位置文字识别 | 是，上传所选图片 | 云端 |
 | 百度/自定义翻译 | 百度翻译或 Chat Completions | 是，仅上传识别文字 | 云端 |
 
@@ -73,7 +73,7 @@
 
 - Windows 10/11 x64。
 - Ubuntu X11 x64；v1 暂不支持 Wayland 截图门户。
-- OCR 与内置基础翻译支持简体中文和英文。
+- PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。
 - v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
 
 ## 从源码运行

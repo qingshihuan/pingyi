@@ -17,7 +17,7 @@ public sealed class ChatCompatibleTranslationProvider(
         ProviderExecutionLocation.Configurable,
         UploadsImage: false,
         RequiresSecret: false,
-        ["zh", "en"]);
+        LanguageCatalog.Codes);
 
     public async ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default)
     {
@@ -95,13 +95,22 @@ public sealed class ChatCompatibleTranslationProvider(
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         }
 
-        var sourceName = request.SourceLanguage == "zh" ? "简体中文" : "英文";
-        var targetName = request.TargetLanguage == "zh" ? "简体中文" : "英文";
+        if (!LanguageCatalog.IsKnown(request.TargetLanguage))
+        {
+            throw new ProviderException(
+                "custom_target_language_unsupported",
+                $"尚未配置有效的目标语言：{request.TargetLanguage}。");
+        }
+
+        var sourceInstruction = request.SourceLanguage == LanguageCatalog.Auto
+            ? "自动识别输入语言"
+            : $"识别输入为{LanguageCatalog.GetPromptName(request.SourceLanguage)}";
+        var targetName = LanguageCatalog.GetPromptName(request.TargetLanguage);
         var messages = new JsonArray();
         messages.Add((JsonNode)new JsonObject
         {
             ["role"] = "system",
-            ["content"] = $"你是翻译引擎。把输入从{sourceName}翻译为{targetName}。保留段落和换行，只输出译文，不解释。"
+            ["content"] = $"你是专业翻译引擎。{sourceInstruction}，翻译为{targetName}。保留原意、专有名词、段落和换行，只输出译文，不解释。"
         });
         messages.Add((JsonNode)new JsonObject
         {

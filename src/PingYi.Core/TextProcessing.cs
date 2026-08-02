@@ -30,9 +30,9 @@ public static class TextProcessing
 
     public static string ResolveTargetLanguage(string sourceLanguage, string configuredTarget)
     {
-        if (configuredTarget is "zh" or "en")
+        if (LanguageCatalog.IsKnown(configuredTarget))
         {
-            return configuredTarget;
+            return LanguageCatalog.NormalizeTarget(configuredTarget);
         }
 
         return sourceLanguage == "zh" ? "en" : "zh";

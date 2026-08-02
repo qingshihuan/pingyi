@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using PingYi.Core;
 using PingYi.Infrastructure;
 
@@ -107,6 +108,34 @@ public sealed class ChatCompatibleTranslationProviderTests
         var models = await provider.GetAvailableModelsAsync();
 
         Assert.Equal(["qwen3:8b", "gemma3:4b"], models);
+    }
+
+    [Fact]
+    public async Task Translate_AllowsModelDetectedSourceAndMultilingualTarget()
+    {
+        var handler = new StubHandler(request =>
+        {
+            var payload = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            using var document = JsonDocument.Parse(payload);
+            var prompt = document.RootElement
+                .GetProperty("messages")[0]
+                .GetProperty("content")
+                .GetString();
+            Assert.Contains("自动识别输入语言", prompt);
+            Assert.Contains("翻译为日语", prompt);
+            return Json("{\"choices\":[{\"message\":{\"content\":\"こんにちは\"}}]}");
+        });
+        var provider = new ChatCompatibleTranslationProvider(
+            new HttpClient(handler),
+            new StubSecretStore(),
+            () => new AppSettings());
+
+        var result = await provider.TranslateAsync(
+            new TranslationRequest("Good morning", LanguageCatalog.Auto, "ja"));
+
+        Assert.Equal("こんにちは", result.Text);
+        Assert.Contains("ja", provider.Metadata.SupportedLanguages);
+        Assert.Contains("de", provider.Metadata.SupportedLanguages);
     }
 
     private static HttpResponseMessage Json(string content) => new(HttpStatusCode.OK)
