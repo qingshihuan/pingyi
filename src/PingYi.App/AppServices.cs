@@ -29,6 +29,7 @@ public sealed class AppServices : IAsyncDisposable
         ImageCropper = imageCropper;
         _httpClient = httpClient;
 
+        ManagedModels = new ManagedModelService(paths);
         PaddleProvider = new PaddleOcrProvider(paths);
         ArgosProvider = new ArgosTranslationProvider(engine);
         BaiduOcrProvider = new BaiduOcrProvider(httpClient, secretStore);
@@ -63,6 +64,7 @@ public sealed class AppServices : IAsyncDisposable
     public IScreenCaptureService ScreenCaptureService { get; }
     public IImageCropper ImageCropper { get; }
     public ProviderRegistry Providers { get; }
+    public ManagedModelService ManagedModels { get; }
     public PaddleOcrProvider PaddleProvider { get; }
     public ArgosTranslationProvider ArgosProvider { get; }
     public BaiduOcrProvider BaiduOcrProvider { get; }
@@ -111,6 +113,7 @@ public sealed class AppServices : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await HotkeyService.DisposeAsync();
+        await ManagedModels.DisposeAsync();
         await Engine.DisposeAsync();
         PaddleProvider.Dispose();
         _httpClient.Dispose();

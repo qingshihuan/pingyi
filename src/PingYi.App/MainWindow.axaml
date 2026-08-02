@@ -232,6 +232,72 @@
                              Classes="muted" FontSize="11" />
                 </StackPanel>
 
+                <Expander x:Name="ManagedModelExpander"
+                          Header="完全版 · 一键本机多模态模型"
+                          IsExpanded="True" IsVisible="False">
+                  <StackPanel Margin="0,12,0,0" Spacing="10">
+                    <Border Classes="subtle-card" Padding="12">
+                      <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                          <StackPanel Spacing="3">
+                            <TextBlock Text="魔搭模型库" Classes="field-label" />
+                            <ComboBox x:Name="ManagedModelCombo"
+                                      SelectionChanged="ManagedModelCombo_OnSelectionChanged"
+                                      AutomationProperties.Name="选择一键安装的本机多模态模型" />
+                          </StackPanel>
+                          <Border Grid.Column="1" Classes="chip" VerticalAlignment="Bottom" Margin="0,0,0,4">
+                            <TextBlock Text="可选 CPU / 通用显卡" FontSize="10" FontWeight="SemiBold" />
+                          </Border>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                          <StackPanel Spacing="3">
+                            <TextBlock Text="运行后端" Classes="field-label" />
+                            <ComboBox x:Name="ManagedRuntimeBackendCombo"
+                                      SelectionChanged="ManagedRuntimeBackendCombo_OnSelectionChanged"
+                                      AutomationProperties.Name="选择本机模型使用 CPU 或通用显卡" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="1" x:Name="ManagedRuntimeBackendHintText"
+                                     Classes="tertiary" FontSize="10" TextWrapping="Wrap"
+                                     VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                        </Grid>
+                        <TextBlock x:Name="ManagedModelSummaryText"
+                                   Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                        <TextBlock x:Name="ManagedModelHardwareText"
+                                   Classes="tertiary" FontSize="10" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+
+                    <ProgressBar x:Name="ManagedModelProgressBar" Minimum="0" Maximum="100"
+                                 Height="7" Value="0" IsVisible="False" />
+                    <TextBlock x:Name="ManagedModelStatusText"
+                               Text="正在检查完整模型包…"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+
+                    <WrapPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                      <Button x:Name="ManagedModelSourceButton" Classes="ghost" Content="查看魔搭来源"
+                              Margin="0,0,8,8" Click="ManagedModelSourceButton_OnClick"
+                              AutomationProperties.Name="打开所选模型的魔搭页面" />
+                      <Button x:Name="ManagedModelFolderButton" Classes="ghost" Content="打开模型目录"
+                              Margin="0,0,8,8" Click="ManagedModelFolderButton_OnClick"
+                              AutomationProperties.Name="打开本机模型目录" />
+                      <Button x:Name="ManagedModelCancelButton" Classes="secondary" Content="取消"
+                              Margin="0,0,8,8" IsVisible="False" Click="ManagedModelCancelButton_OnClick"
+                              AutomationProperties.Name="取消模型下载或启动" />
+                      <Button x:Name="ManagedModelStartButton" Classes="secondary" Content="启动并应用"
+                              Margin="0,0,8,8" Click="ManagedModelStartButton_OnClick"
+                              AutomationProperties.Name="启动并应用已下载的本机多模态模型" />
+                      <Button x:Name="ManagedModelInstallButton" Classes="primary" Content="一键下载并配置"
+                              Margin="0,0,0,8" Click="ManagedModelInstallButton_OnClick"
+                              AutomationProperties.Name="从魔搭下载并自动配置本机多模态模型" />
+                    </WrapPanel>
+
+                    <TextBlock Text="只下载当前选择的 GGUF 与视觉投影文件；下载支持断点续传并强制校验 SHA-256。模型在本机端口 18080 运行，截图和文字不会离开设备。"
+                               Classes="tertiary" FontSize="10" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Expander>
+
                 <Expander Header="百度 OCR 与翻译凭据" IsExpanded="True">
                   <Grid Margin="0,12,0,0" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto"
                         ColumnSpacing="12" RowSpacing="10">

@@ -1,6 +1,19 @@
-#define MyAppName "屏译"
+#ifndef Edition
+#define Edition "Standard"
+#endif
 #ifndef MyAppVersion
 #define MyAppVersion "0.1.0"
+#endif
+#if Edition == "Complete"
+#define MyAppName "屏译 完全版"
+#define MyAppId "{{AD4A31EC-4A26-41B1-B86A-D4A7360C8687}"
+#define MyAppDirectory "PingYi Complete"
+#define MyOutputName "PingYi-Complete-" + MyAppVersion + "-win-x64-setup"
+#else
+#define MyAppName "屏译"
+#define MyAppId "{{CB72A4A2-277B-4763-9AC2-DF0B17107579}"
+#define MyAppDirectory "PingYi"
+#define MyOutputName "PingYi-" + MyAppVersion + "-win-x64-setup"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\..\artifacts\publish\win-x64-0.1.0"
@@ -9,13 +22,13 @@
 #define MyAppExeName "PingYi.App.exe"
 
 [Setup]
-AppId={{CB72A4A2-277B-4763-9AC2-DF0B17107579}
+AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\PingYi
+DefaultDirName={autopf}\{#MyAppDirectory}
 DefaultGroupName={#MyAppName}
-OutputBaseFilename=PingYi-{#MyAppVersion}-win-x64-setup
+OutputBaseFilename={#MyOutputName}
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible

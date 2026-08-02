@@ -4,6 +4,9 @@ param(
     [string]$Configuration = "Release",
     [string]$Version = "0.1.0",
     [string]$OfflineModelSource,
+    [ValidateSet("Standard", "Complete")]
+    [string]$Edition = "Standard",
+    [string]$LlamaRuntimeSource,
     [string]$InnoCompiler,
     [switch]$SkipEngine,
     [switch]$BuildInstaller
@@ -14,7 +17,8 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 if ($Version.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
     throw "Version contains characters that are invalid in a file name."
 }
-$output = Join-Path $projectRoot "artifacts\publish\$Runtime-$Version"
+$editionSuffix = if ($Edition -eq "Complete") { "-complete" } else { "" }
+$output = Join-Path $projectRoot "artifacts\publish\$Runtime-$Version$editionSuffix"
 $engineOutput = Join-Path $projectRoot "artifacts\engine-host\$Runtime"
 $engineVenv = Join-Path $projectRoot ".venv-engine"
 $engineExecutable = if ($Runtime -eq "win-x64") {
@@ -74,13 +78,28 @@ if ([string]::IsNullOrWhiteSpace($OfflineModelSource)) {
 }
 if ($LASTEXITCODE -ne 0) { throw "Failed to prepare offline baseline models." }
 
+if ($Edition -eq "Complete") {
+    if ([string]::IsNullOrWhiteSpace($LlamaRuntimeSource) -or
+        -not (Test-Path -LiteralPath $LlamaRuntimeSource -PathType Container)) {
+        throw "Complete edition requires -LlamaRuntimeSource with prepared Vulkan and CPU runtimes."
+    }
+    $llamaRuntimeTarget = Join-Path $output "llama-runtime"
+    New-Item -ItemType Directory -Path $llamaRuntimeTarget | Out-Null
+    Copy-Item (Join-Path $LlamaRuntimeSource "*") $llamaRuntimeTarget -Recurse -Force
+    [IO.File]::WriteAllText(
+        (Join-Path $output "pingyi-complete.edition"),
+        "PingYi Complete`n",
+        [Text.UTF8Encoding]::new($false))
+}
+
 Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE") -Destination $output -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $output -Force
 & (Join-Path $engineVenv "Scripts\python.exe") `
     (Join-Path $PSScriptRoot "audit-release-dependencies.py") $output
 if ($LASTEXITCODE -ne 0) { throw "The release dependency audit failed." }
 
-$archive = Join-Path $projectRoot "artifacts\PingYi-$Version-$Runtime.zip"
+$archivePrefix = if ($Edition -eq "Complete") { "PingYi-Complete" } else { "PingYi" }
+$archive = Join-Path $projectRoot "artifacts\$archivePrefix-$Version-$Runtime.zip"
 Compress-Archive -Path (Join-Path $output "*") -DestinationPath $archive -Force
 $publishBytes = (Get-ChildItem -LiteralPath $output -Recurse -File | Measure-Object Length -Sum).Sum
 $archiveBytes = (Get-Item -LiteralPath $archive).Length
@@ -99,7 +118,7 @@ if ($BuildInstaller -and $Runtime -eq "win-x64") {
         throw "ISCC.exe was not found. Set PINGYI_ISCC, install Inno Setup, or omit -BuildInstaller."
     }
     Write-Host "Inno Setup compiler: $isccPath"
-    & $isccPath "/DMyAppVersion=$Version" "/DSourceDir=$output" `
+    & $isccPath "/DMyAppVersion=$Version" "/DSourceDir=$output" "/DEdition=$Edition" `
         (Join-Path $projectRoot "packaging\windows\PingYi.iss")
     if ($LASTEXITCODE -ne 0) { throw "Failed to build the Windows installer." }
 }

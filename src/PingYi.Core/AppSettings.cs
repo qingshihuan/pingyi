@@ -2,10 +2,11 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
     public const string DefaultHotkey = "Ctrl+Alt+D";
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
+    public const string ManagedModelEndpoint = "http://127.0.0.1:18080/v1/chat/completions";
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string Hotkey { get; init; } = DefaultHotkey;
@@ -15,6 +16,9 @@ public sealed record AppSettings
     public string TargetLanguage { get; init; } = "auto-opposite";
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
     public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
+    public string ManagedModelPackageId { get; init; } = string.Empty;
+    public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Auto.Id;
+    public bool ManagedRuntimeEnabled { get; init; }
     public bool StartMinimized { get; init; }
     public bool CheckForUpdates { get; init; } = true;
     public string InterfaceStyle { get; init; } = "modern";
@@ -47,6 +51,13 @@ public sealed record AppSettings
             TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = model,
+            ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
+                ? ManagedModelPackageId.Trim()
+                : string.Empty,
+            ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
+            ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
+                                    ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
+                                    string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
             InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern"
         };
     }

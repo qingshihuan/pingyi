@@ -20,7 +20,7 @@
 
 屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、PaddleOCR 中英文识别、文字提取和翻译，并复制原文或译文。
 
-标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。需要更好的翻译质量时，可连接本机的 llama.cpp、Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的大模型服务。
+标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。
 
 ## 为什么选择屏译
 
@@ -36,10 +36,14 @@
 
 ## 下载与使用
 
-从 [GitHub Releases](https://github.com/qingshihuan/pingyi/releases) 下载对应系统的最新版本：
+从 [GitHub Releases](https://github.com/qingshihuan/pingyi/releases) 下载对应系统和版本：
 
-- Windows：优先下载 `PingYi-*-win-x64-setup.exe`；免安装使用可下载 ZIP。
-- Ubuntu X11：下载 `.deb` 安装包，或解压 `.tar.gz` 运行。
+| 版本 | 文件名前缀 | 适合谁 | 首次使用 |
+| --- | --- | --- | --- |
+| 标准版 | `PingYi-` | 需要最小体积和中英离线保底；已有 Ollama/llama.cpp 等服务 | 安装后即可离线 OCR 与中英基础翻译 |
+| 完全版 | `PingYi-Complete-` | 希望由屏译管理多模态模型和 llama.cpp | 基础功能立即可用；增强模型需联网从魔搭下载一次 |
+
+Windows 优先下载 `*-win-x64-setup.exe`，免安装可使用 ZIP；Ubuntu X11 可安装 `.deb` 或解压 `.tar.gz`。标准版与完全版使用不同安装目录和数据目录，可以同时安装，不会覆盖原版本。
 
 安装后启动屏译，按 `Ctrl+Alt+D`，拖动鼠标框选屏幕区域。识别完成后可以复制原文、复制译文、复制全部、重试或固定结果卡。快捷键、OCR/翻译提供商、本地模型和凭据均在“设置”中管理。
 
@@ -56,7 +60,25 @@
 | 百度 OCR | 百度含位置文字识别 | 是，上传所选图片 | 云端 |
 | 百度/自定义翻译 | 百度翻译或 Chat Completions | 是，仅上传识别文字 | 云端 |
 
-标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 运行库。外部本机大模型服务可以自行使用 NVIDIA、AMD 或 Intel 加速；屏译只访问用户配置的本机 HTTP 端点，因此没有显卡也不影响基础功能。
+标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 运行库。完全版只增加 llama.cpp 官方 MIT 许可的 Vulkan 与 CPU 运行时，不携带 CUDA、cuDNN 或 ROCm；Vulkan 可使用支持该接口的 AMD、NVIDIA 或 Intel 显卡。外部本机大模型服务也可独立使用自己的加速方案。没有显卡不影响基础功能或完全版的 CPU 模式。
+
+## 完全版一键本机模型
+
+在“设置 → 完全版 · 一键本机多模态模型”中先选模型，再选择运行后端并点击“一键下载并配置”。下载支持断点续传，完成后按固定文件大小和 SHA-256 校验；模型文件不会打进 Git 仓库或安装包。
+
+| 模型 | 下载量 | 建议设备 | 定位 |
+| --- | ---: | --- | --- |
+| Qwen3.5 2B Q4（推荐） | 约 1.82 GiB | 4 GB 显存可尝试，6 GB 更稳；也支持 CPU | 2026 新版，OCR、翻译和多语言能力均衡 |
+| Qwen3.5 2B Q8 | 约 2.50 GiB | 建议 6 GB 以上显存；也支持 CPU | 更重视语言精度与小字纠错 |
+| Gemma 4 E2B Q4 | 约 3.17 GiB | 建议 8 GB 显存；也支持 CPU | 2026-06 新模型，覆盖图像理解与 140+ 语言预训练 |
+
+运行后端有三种：
+
+- **自动检测（推荐）**：先尝试通用显卡 Vulkan，失败后自动回退 CPU。
+- **通用显卡 · Vulkan**：使用 AMD、NVIDIA 或 Intel 显卡；失败时明确报错，不回退 CPU。
+- **仅 CPU**：速度较慢，但兼容性和可移植性最高。
+
+完全版使用本机 `127.0.0.1:18080`，选择本机模式时不会上传截图或文字。模型来自魔搭的固定版本：[Qwen3.5 2B GGUF](https://modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF) 与 [Gemma 4 E2B GGUF](https://modelscope.cn/models/ggml-org/gemma-4-E2B-it-GGUF)。
 
 ## 已实现功能
 
@@ -111,6 +133,13 @@ Inno Setup 位于自定义目录时，可传入 `-InnoCompiler "D:\path\to\ISCC.
 
 ```powershell
 python scripts/download-offline-models.py --destination artifacts/model-source
+```
+
+构建完全版时还需准备固定版本的 llama.cpp CPU/Vulkan 运行时：
+
+```powershell
+py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version 0.2.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
 推送 `v*` 标签后，GitHub Actions 会分别生成 Windows 安装器/ZIP 与 Ubuntu `.deb`/`.tar.gz`，附带 SHA-256 校验文件并创建 GitHub Release。

@@ -1,4 +1,4 @@
-Package: pingyi
+Package: @PACKAGE@
 Version: @VERSION@
 Section: utils
 Priority: optional

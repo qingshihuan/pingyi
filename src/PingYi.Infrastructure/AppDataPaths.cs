@@ -8,7 +8,7 @@ public sealed class AppDataPaths
         {
             ConfigDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "PingYi");
+                AppEdition.DataDirectoryName);
             DataDirectory = ConfigDirectory;
         }
         else
@@ -18,10 +18,10 @@ public sealed class AppDataPaths
             var xdgData = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
             ConfigDirectory = Path.Combine(
                 string.IsNullOrWhiteSpace(xdgConfig) ? Path.Combine(userProfile, ".config") : xdgConfig,
-                "pingyi");
+                AppEdition.LinuxDataDirectoryName);
             DataDirectory = Path.Combine(
                 string.IsNullOrWhiteSpace(xdgData) ? Path.Combine(userProfile, ".local", "share") : xdgData,
-                "pingyi");
+                AppEdition.LinuxDataDirectoryName);
         }
 
         var modelOverride = Environment.GetEnvironmentVariable("PINGYI_MODEL_DIR");
@@ -35,15 +35,23 @@ public sealed class AppDataPaths
         ModelSearchDirectories = Directory.Exists(BundledModelDirectory)
             ? [ModelDirectory, BundledModelDirectory]
             : [ModelDirectory];
+        ManagedModelDirectory = Path.Combine(ModelDirectory, "managed-vlm");
+        var llamaRuntimeOverride = Environment.GetEnvironmentVariable("PINGYI_LLAMA_RUNTIME_DIR");
+        LlamaRuntimeDirectory = string.IsNullOrWhiteSpace(llamaRuntimeOverride)
+            ? Path.Combine(AppContext.BaseDirectory, "llama-runtime")
+            : Path.GetFullPath(llamaRuntimeOverride);
         Directory.CreateDirectory(ConfigDirectory);
         Directory.CreateDirectory(DataDirectory);
         Directory.CreateDirectory(ModelDirectory);
+        Directory.CreateDirectory(ManagedModelDirectory);
     }
 
     public string ConfigDirectory { get; }
     public string DataDirectory { get; }
     public string ModelDirectory { get; }
     public string BundledModelDirectory { get; }
+    public string ManagedModelDirectory { get; }
+    public string LlamaRuntimeDirectory { get; }
     public IReadOnlyList<string> ModelSearchDirectories { get; }
     public string SettingsFile => Path.Combine(ConfigDirectory, "settings.json");
     public string SecretsDirectory => Path.Combine(ConfigDirectory, "secrets");

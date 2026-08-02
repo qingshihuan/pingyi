@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.Markup.Xaml;
 using SkiaSharp;
 using PingYi.Core;
+using PingYi.Infrastructure;
 
 namespace PingYi.App;
 
@@ -101,7 +102,7 @@ public partial class App : Application
 
     private TrayIcon CreateTrayIcon()
     {
-        var showItem = new NativeMenuItem("打开屏译");
+        var showItem = new NativeMenuItem($"打开 {AppEdition.ProductName}");
         showItem.Click += (_, _) => ShowMainWindow();
         var captureItem = new NativeMenuItem("截图翻译");
         captureItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell);
@@ -116,7 +117,7 @@ public partial class App : Application
         var tray = new TrayIcon
         {
             Icon = CreateWindowIcon(),
-            ToolTipText = $"屏译 · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
+            ToolTipText = $"{AppEdition.ProductName} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
             Menu = menu,
             IsVisible = true
         };

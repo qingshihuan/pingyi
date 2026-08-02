@@ -72,8 +72,7 @@ public sealed class ChatCompatibleOcrProvider(
         }
 
         var prompt = BuildPrompt(draft?.PlainText);
-        var content = new JsonArray
-        {
+        var content = new JsonArray(
             new JsonObject
             {
                 ["type"] = "text",
@@ -87,15 +86,13 @@ public sealed class ChatCompatibleOcrProvider(
                     ["url"] = $"data:image/png;base64,{Convert.ToBase64String(image.PngBytes)}",
                     ["detail"] = "high"
                 }
-            }
-        };
+            });
         var payload = new JsonObject
         {
             ["model"] = settings.CustomTranslationModel,
             ["temperature"] = 0,
             ["max_tokens"] = 4096,
-            ["messages"] = new JsonArray
-            {
+            ["messages"] = new JsonArray(
                 new JsonObject
                 {
                     ["role"] = "system",
@@ -105,8 +102,7 @@ public sealed class ChatCompatibleOcrProvider(
                 {
                     ["role"] = "user",
                     ["content"] = content
-                }
-            }
+                })
         };
         message.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 

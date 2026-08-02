@@ -42,6 +42,12 @@ jobs:
           $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
             -OfflineModelSource ./artifacts/model-source -BuildInstaller
+          python ./scripts/prepare-llama-runtime.py `
+            --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
+          ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
+            -OfflineModelSource ./artifacts/model-source -Edition Complete `
+            -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 `
+            -SkipEngine -BuildInstaller
       - uses: actions/upload-artifact@v7
         with:
           name: windows-release
@@ -73,6 +79,11 @@ jobs:
           python scripts/download-offline-models.py --destination artifacts/model-source
           ./scripts/build-engine.sh
           PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" ./scripts/publish.sh "$version"
+          python scripts/prepare-llama-runtime.py \
+            --runtime linux-x64 --destination artifacts/llama-runtime/linux-x64
+          PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" \
+            PINGYI_LLAMA_RUNTIME_SOURCE="$PWD/artifacts/llama-runtime/linux-x64" \
+            ./scripts/publish.sh "$version" complete
       - uses: actions/upload-artifact@v7
         with:
           name: linux-release

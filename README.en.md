@@ -20,7 +20,7 @@
 
 PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get a screenshot, PaddleOCR Chinese/English recognition, extracted text, and translation in one compact result card.
 
-The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. For higher translation quality, connect PingYi to a local llama.cpp, Ollama, LM Studio, vLLM, or another Chat Completions-compatible model server.
+The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. The Complete edition additionally bundles the Vulkan and CPU llama.cpp runtimes and can download and configure newer lightweight multimodal models from ModelScope in one click. Existing Ollama, LM Studio, vLLM, llama.cpp, and generic Chat Completions services remain supported.
 
 ## Why PingYi
 
@@ -36,10 +36,14 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 
 ## Download and use
 
-Download the latest build for your system from [GitHub Releases](https://github.com/qingshihuan/pingyi/releases):
+Download the edition for your system from [GitHub Releases](https://github.com/qingshihuan/pingyi/releases):
 
-- Windows: use `PingYi-*-win-x64-setup.exe`, or download the ZIP for a portable installation.
-- Ubuntu X11: install the `.deb`, or extract and run the `.tar.gz` package.
+| Edition | File prefix | Best for | First run |
+| --- | --- | --- | --- |
+| Standard | `PingYi-` | Smallest package, offline zh-en fallback, or an existing Ollama/llama.cpp service | Offline OCR and basic zh-en translation work immediately |
+| Complete | `PingYi-Complete-` | PingYi-managed multimodal models and llama.cpp | Core features work immediately; the enhancement model is downloaded once from ModelScope |
+
+On Windows, prefer `*-win-x64-setup.exe` or use the portable ZIP. On Ubuntu X11, install the `.deb` or extract the `.tar.gz`. The two editions use separate installation and data directories, so they can coexist without overwriting the previous release.
 
 Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. The result card lets you copy the source text, translation, or both; retry processing; or pin the card. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings.
 
@@ -56,7 +60,25 @@ Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. The result
 | Baidu OCR | Baidu position-aware OCR | Yes; selected image only | Cloud |
 | Baidu/custom translation | Baidu Translate or Chat Completions | Yes; recognized text only | Cloud |
 
-The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GPU runtime. An external local model server may use NVIDIA, AMD, or Intel acceleration independently. PingYi only calls the local HTTP endpoint, so the core features still work without a GPU.
+The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GPU runtime. The Complete edition adds only the official MIT-licensed llama.cpp Vulkan and CPU runtimes; it does not bundle CUDA, cuDNN, or ROCm. Vulkan supports compatible AMD, NVIDIA, and Intel GPUs. An external local model server may use its own acceleration stack independently. Core features and Complete edition CPU mode work without a GPU.
+
+## Complete edition one-click local models
+
+Open **Settings → Complete edition · one-click local multimodal model**, select a model and runtime backend, then choose **Download and configure**. Downloads resume after interruption and are checked against pinned file sizes and SHA-256 hashes. Model weights are not stored in this Git repository or bundled in the installer.
+
+| Model | Download | Suggested hardware | Positioning |
+| --- | ---: | --- | --- |
+| Qwen3.5 2B Q4 (recommended) | about 1.82 GiB | 4 GB VRAM may work, 6 GB is safer; CPU supported | New 2026 model with balanced OCR, translation, and multilingual ability |
+| Qwen3.5 2B Q8 | about 2.50 GiB | 6 GB+ VRAM recommended; CPU supported | Higher language precision and small-text correction |
+| Gemma 4 E2B Q4 | about 3.17 GiB | 8 GB VRAM recommended; CPU supported | 2026-06 model with image understanding and 140+ pretraining languages |
+
+Runtime choices:
+
+- **Auto detect (recommended):** try the general Vulkan GPU backend first, then fall back to CPU.
+- **General GPU · Vulkan:** use an AMD, NVIDIA, or Intel GPU and report an error instead of falling back.
+- **CPU only:** slower, but maximizes compatibility and portability.
+
+The managed service listens only on local address `127.0.0.1:18080`; local mode does not upload screenshots or text. Pinned ModelScope sources: [Qwen3.5 2B GGUF](https://modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF) and [Gemma 4 E2B GGUF](https://modelscope.cn/models/ggml-org/gemma-4-E2B-it-GGUF).
 
 ## Implemented features
 
@@ -111,6 +133,13 @@ If Inno Setup is installed in a custom directory, pass `-InnoCompiler "D:\path\t
 
 ```powershell
 python scripts/download-offline-models.py --destination artifacts/model-source
+```
+
+To build the Complete edition, prepare the pinned llama.cpp CPU/Vulkan runtime as well:
+
+```powershell
+py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version 0.2.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
 Pushing a `v*` tag builds the Windows installer/ZIP and Ubuntu `.deb`/`.tar.gz`, generates SHA-256 checksums, and creates a GitHub Release.

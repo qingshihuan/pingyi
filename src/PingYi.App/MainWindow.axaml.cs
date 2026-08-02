@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using System.Diagnostics;
 using PingYi.Core;
 using PingYi.Infrastructure;
 using SkiaSharp;
@@ -22,6 +23,7 @@ public partial class MainWindow : Window, IMainWindowShell
     private DateTimeOffset _deleteConfirmationExpiresAt;
     private object? _deleteModelsDefaultContent;
     private bool _isLoadingSettings;
+    private CancellationTokenSource? _managedModelOperation;
 
     public MainWindow()
     {
@@ -44,6 +46,7 @@ public partial class MainWindow : Window, IMainWindowShell
         {
             await RefreshCredentialStatusAsync();
             await RefreshLocalModelStatusAsync();
+            await RefreshManagedModelStatusAsync(attemptConfiguredStart: true);
         };
     }
 
@@ -92,6 +95,20 @@ public partial class MainWindow : Window, IMainWindowShell
             HotkeyBox.Text = settings.Hotkey;
             StartMinimizedCheckBox.IsChecked = settings.StartMinimized;
             CheckForUpdatesCheckBox.IsChecked = settings.CheckForUpdates;
+            ManagedModelExpander.IsVisible = _services.ManagedModels.IsCompleteEdition;
+            if (ManagedModelExpander.IsVisible)
+            {
+                ManagedModelCombo.ItemsSource = ManagedMultimodalModels.All;
+                ManagedModelCombo.SelectedItem = ManagedMultimodalModels.TryGet(
+                    settings.ManagedModelPackageId,
+                    out var managedModel)
+                    ? managedModel
+                    : ManagedMultimodalModels.Recommended;
+                ManagedRuntimeBackendCombo.ItemsSource = ManagedRuntimeBackends.All;
+                ManagedRuntimeBackendCombo.SelectedItem = ManagedRuntimeBackends.Get(settings.ManagedRuntimeBackend);
+                UpdateManagedModelDescription();
+                UpdateManagedRuntimeBackendDescription();
+            }
         }
         finally
         {
@@ -396,6 +413,266 @@ public partial class MainWindow : Window, IMainWindowShell
         }
     }
 
+    private async void ManagedModelCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || _services is null || !ManagedModelExpander.IsVisible)
+        {
+            return;
+        }
+
+        UpdateManagedModelDescription();
+        await RefreshManagedModelStatusAsync(attemptConfiguredStart: false);
+    }
+
+    private void ManagedRuntimeBackendCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        UpdateManagedRuntimeBackendDescription();
+    }
+
+    private async void ManagedModelInstallButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model)
+        {
+            return;
+        }
+
+        _managedModelOperation?.Cancel();
+        _managedModelOperation?.Dispose();
+        _managedModelOperation = new CancellationTokenSource();
+        BeginButtonOperation(ManagedModelInstallButton, "正在下载并配置…");
+        SetManagedModelBusy(true);
+        SetGlobalStatus($"正在从魔搭下载 {model.DisplayName}…", isError: false);
+        try
+        {
+            var progress = new Progress<ManagedModelProgress>(UpdateManagedModelProgress);
+            await _services.ManagedModels.DownloadAsync(model, progress, _managedModelOperation.Token);
+            await ApplyAndStartManagedModelAsync(model, progress, _managedModelOperation.Token);
+            SetGlobalStatus($"{model.DisplayName} 已下载、校验、启动并应用。", isError: false);
+            _buttonDefaultEnabledStates[ManagedModelInstallButton] = false;
+            FinishButtonOperation(ManagedModelInstallButton, "已安装并应用", success: true, isEnabledAfterResult: false);
+        }
+        catch (OperationCanceledException)
+        {
+            SetInlineStatus(ManagedModelStatusText, "操作已取消；已下载部分会保留，下次可断点续传。", "WarningTextBrush");
+            SetGlobalStatus("模型操作已取消，可稍后继续。", isError: false);
+            FinishButtonOperation(ManagedModelInstallButton, "已取消，可继续", success: false);
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
+            SetGlobalStatus(exception.Message, isError: true);
+            FinishButtonOperation(ManagedModelInstallButton, "下载或配置失败", success: false);
+        }
+        finally
+        {
+            SetManagedModelBusy(false);
+            _managedModelOperation?.Dispose();
+            _managedModelOperation = null;
+            await RefreshManagedModelStatusAsync(attemptConfiguredStart: false);
+        }
+    }
+
+    private async void ManagedModelStartButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model)
+        {
+            return;
+        }
+
+        _managedModelOperation?.Cancel();
+        _managedModelOperation?.Dispose();
+        _managedModelOperation = new CancellationTokenSource();
+        BeginButtonOperation(ManagedModelStartButton, "正在启动…");
+        SetManagedModelBusy(true);
+        try
+        {
+            var progress = new Progress<ManagedModelProgress>(UpdateManagedModelProgress);
+            await ApplyAndStartManagedModelAsync(model, progress, _managedModelOperation.Token);
+            SetGlobalStatus($"{model.DisplayName} 已启动并设为 OCR 与翻译模型。", isError: false);
+            FinishButtonOperation(ManagedModelStartButton, "已启动并应用", success: true);
+        }
+        catch (OperationCanceledException)
+        {
+            SetInlineStatus(ManagedModelStatusText, "启动已取消。", "WarningTextBrush");
+            FinishButtonOperation(ManagedModelStartButton, "已取消", success: false);
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
+            SetGlobalStatus(exception.Message, isError: true);
+            FinishButtonOperation(ManagedModelStartButton, "启动失败", success: false);
+        }
+        finally
+        {
+            SetManagedModelBusy(false);
+            _managedModelOperation?.Dispose();
+            _managedModelOperation = null;
+            await RefreshManagedModelStatusAsync(attemptConfiguredStart: false);
+        }
+    }
+
+    private void ManagedModelCancelButton_OnClick(object? sender, RoutedEventArgs e) =>
+        _managedModelOperation?.Cancel();
+
+    private void ManagedModelFolderButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model)
+        {
+            return;
+        }
+
+        var directory = _services.ManagedModels.GetModelDirectory(model);
+        Directory.CreateDirectory(directory);
+        Process.Start(new ProcessStartInfo { FileName = directory, UseShellExecute = true });
+    }
+
+    private void ManagedModelSourceButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ManagedModelCombo.SelectedItem is ManagedMultimodalModel model)
+        {
+            Process.Start(new ProcessStartInfo { FileName = model.ModelScopePageUrl, UseShellExecute = true });
+        }
+    }
+
+    private async Task ApplyAndStartManagedModelAsync(
+        ManagedMultimodalModel model,
+        IProgress<ManagedModelProgress> progress,
+        CancellationToken cancellationToken)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        CustomEndpointBox.Text = AppSettings.ManagedModelEndpoint;
+        CustomModelBox.Text = model.ModelAlias;
+        SelectOcrProvider("local-vlm-corrected");
+        SelectTranslationProvider("custom-chat");
+        await _services.SaveSettingsAsync(BuildSettingsFromForm() with
+        {
+            OcrProviderId = "local-vlm-corrected",
+            TranslationProviderId = "custom-chat",
+            CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint,
+            CustomTranslationModel = model.ModelAlias,
+            ManagedModelPackageId = model.Id,
+            ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
+            ManagedRuntimeEnabled = true
+        }, cancellationToken);
+
+        var startResult = await _services.ManagedModels.EnsureStartedAsync(
+            model,
+            SelectedManagedRuntimeBackendId,
+            progress,
+            cancellationToken);
+        SetInlineStatus(ManagedModelStatusText, $"{startResult}，正在验证图片识别与翻译…", "SecondaryTextBrush");
+        await TestCustomVisionConnectionCoreAsync();
+        await TestCustomTranslationConnectionCoreAsync();
+    }
+
+    private async Task RefreshManagedModelStatusAsync(bool attemptConfiguredStart)
+    {
+        if (_services is null || !ManagedModelExpander.IsVisible ||
+            ManagedModelCombo.SelectedItem is not ManagedMultimodalModel selected)
+        {
+            return;
+        }
+
+        if (!_services.ManagedModels.HasBundledRuntime)
+        {
+            SetInlineStatus(ManagedModelStatusText, "完全版 llama.cpp 运行时缺失，请重新安装完全版。", "DangerTextBrush");
+            ManagedModelInstallButton.IsEnabled = false;
+            ManagedModelStartButton.IsEnabled = false;
+            return;
+        }
+
+        SetInlineStatus(ManagedModelStatusText, "正在校验已下载模型…", "SecondaryTextBrush");
+        try
+        {
+            var status = await _services.ManagedModels.GetStatusAsync(selected);
+            SetInlineStatus(
+                ManagedModelStatusText,
+                status.Message,
+                status.IsInstalled ? "SuccessTextBrush" : status.HasPartialDownload ? "WarningTextBrush" : "SecondaryTextBrush");
+            ManagedModelInstallButton.IsEnabled = !status.IsInstalled;
+            ManagedModelStartButton.IsEnabled = status.IsInstalled;
+
+            if (attemptConfiguredStart && status.IsInstalled &&
+                _services.Settings.ManagedRuntimeEnabled &&
+                string.Equals(_services.Settings.ManagedModelPackageId, selected.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                var progress = new Progress<ManagedModelProgress>(UpdateManagedModelProgress);
+                var result = await _services.ManagedModels.EnsureStartedAsync(
+                    selected,
+                    _services.Settings.ManagedRuntimeBackend,
+                    progress);
+                SetInlineStatus(ManagedModelStatusText, result, "SuccessTextBrush");
+            }
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
+        }
+    }
+
+    private void UpdateManagedModelDescription()
+    {
+        if (ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model)
+        {
+            return;
+        }
+
+        ManagedModelSummaryText.Text = $"{model.Summary} 量化：{model.Quantization} · 许可：{model.License} · 发布：{model.ReleaseDate}";
+        ManagedModelHardwareText.Text = model.HardwareHint;
+    }
+
+    private string SelectedManagedRuntimeBackendId =>
+        (ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Auto.Id;
+
+    private void UpdateManagedRuntimeBackendDescription()
+    {
+        var backend = ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend ?? ManagedRuntimeBackends.Auto;
+        ManagedRuntimeBackendHintText.Text = backend.Description;
+    }
+
+    private void UpdateManagedModelProgress(ManagedModelProgress progress)
+    {
+        ManagedModelProgressBar.IsVisible = true;
+        ManagedModelProgressBar.IsIndeterminate = progress.IsIndeterminate;
+        if (!progress.IsIndeterminate)
+        {
+            ManagedModelProgressBar.Value = progress.Percentage;
+        }
+
+        var transferred = progress.TotalBytes > 0
+            ? $" · {FormatGiB(progress.BytesCompleted)}/{FormatGiB(progress.TotalBytes)}"
+            : string.Empty;
+        SetInlineStatus(ManagedModelStatusText, progress.Message + transferred, "SecondaryTextBrush");
+    }
+
+    private void SetManagedModelBusy(bool isBusy)
+    {
+        ManagedModelCombo.IsEnabled = !isBusy;
+        ManagedRuntimeBackendCombo.IsEnabled = !isBusy;
+        ManagedModelSourceButton.IsEnabled = !isBusy;
+        ManagedModelFolderButton.IsEnabled = !isBusy;
+        ManagedModelInstallButton.IsEnabled = !isBusy;
+        ManagedModelStartButton.IsEnabled = !isBusy;
+        ManagedModelCancelButton.IsVisible = isBusy;
+        ManagedModelCancelButton.IsEnabled = isBusy;
+        ManagedModelProgressBar.IsVisible = isBusy;
+        if (!isBusy)
+        {
+            ManagedModelProgressBar.IsIndeterminate = false;
+        }
+    }
+
+    private static string FormatGiB(long bytes) => $"{bytes / 1024d / 1024d / 1024d:0.00} GiB";
+
     private async void TestCustomTranslationButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_services is null)
@@ -542,13 +819,21 @@ public partial class MainWindow : Window, IMainWindowShell
     private AppSettings BuildSettingsFromForm()
     {
         var current = _services?.Settings ?? new AppSettings();
+        var endpoint = AppSettings.NormalizeChatCompletionsEndpoint(CustomEndpointBox.Text);
+        var modelName = CustomModelBox.Text?.Trim() ?? string.Empty;
+        var keepManagedRuntime = current.ManagedRuntimeEnabled &&
+                                 ManagedMultimodalModels.TryGet(current.ManagedModelPackageId, out var managedModel) &&
+                                 string.Equals(endpoint, AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) &&
+                                 string.Equals(modelName, managedModel.ModelAlias, StringComparison.OrdinalIgnoreCase);
         return current with
         {
             OcrProviderId = (OcrProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-paddle",
             TranslationProviderId = (TranslationProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-argos",
             TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite,
-            CustomTranslationEndpoint = CustomEndpointBox.Text ?? string.Empty,
-            CustomTranslationModel = CustomModelBox.Text ?? string.Empty,
+            CustomTranslationEndpoint = endpoint,
+            CustomTranslationModel = modelName,
+            ManagedRuntimeEnabled = keepManagedRuntime,
+            ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked != false,
@@ -558,9 +843,10 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private void ConfigureWindowMode()
     {
+        Title = _settingsMode ? $"{AppEdition.ProductName}设置" : AppEdition.ProductName;
         if (_settingsMode)
         {
-            Title = "屏译设置";
+            Title = $"{AppEdition.ProductName}设置";
             WindowHeadingText.Text = "设置";
             WindowSubtitleText.Text = "处理、模型、服务、快捷键与外观";
             CaptureHero.IsVisible = false;
@@ -835,6 +1121,24 @@ public partial class MainWindow : Window, IMainWindowShell
         try
         {
             TranslationProviderCombo.SelectedItem = choices.FirstOrDefault(choice => choice.Id == providerId);
+        }
+        finally
+        {
+            _isLoadingSettings = false;
+        }
+    }
+
+    private void SelectOcrProvider(string providerId)
+    {
+        if (OcrProviderCombo.ItemsSource is not IEnumerable<ProviderChoice> choices)
+        {
+            return;
+        }
+
+        _isLoadingSettings = true;
+        try
+        {
+            OcrProviderCombo.SelectedItem = choices.FirstOrDefault(choice => choice.Id == providerId);
         }
         finally
         {

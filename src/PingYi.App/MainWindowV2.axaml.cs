@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using PingYi.Core;
+using PingYi.Infrastructure;
 
 namespace PingYi.App;
 
@@ -21,6 +22,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     {
         _services = services;
         _captureCoordinator = captureCoordinator;
+        Title = AppEdition.ProductName;
         LoadSettings();
         Opened += async (_, _) => await RefreshDashboardAsync();
         Activated += async (_, _) => await RefreshSettingsFromStoreAsync();
@@ -86,6 +88,23 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         try
         {
             var settings = _services.Settings;
+            string? managedStartupError = null;
+            if (settings.ManagedRuntimeEnabled &&
+                ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var managedModel))
+            {
+                LiveStatusDetailText.Text = $"正在加载 {managedModel.DisplayName}…";
+                try
+                {
+                    await _services.ManagedModels.EnsureStartedAsync(
+                        managedModel,
+                        settings.ManagedRuntimeBackend);
+                }
+                catch (Exception exception)
+                {
+                    managedStartupError = exception.Message;
+                }
+            }
+
             var selectedOcr = _services.Providers.GetOcrProvider(settings.OcrProviderId);
             var selectedTranslation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId);
 
@@ -120,9 +139,9 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             }
             else
             {
-                var detail = !baseModelsReady
+                var detail = managedStartupError ?? (!baseModelsReady
                     ? ModelStatusDetailText.Text ?? "离线基础模型不可用。"
-                    : $"OCR：{DescribeAvailability(ocr)}；翻译：{DescribeAvailability(translation)}";
+                    : $"OCR：{DescribeAvailability(ocr)}；翻译：{DescribeAvailability(translation)}");
                 SetGlobalStatus(detail, isError: true);
             }
         }
