@@ -61,10 +61,11 @@ public sealed class CaptureCoordinator(AppServices services)
         var settings = services.Settings;
         var ocrProvider = services.Providers.GetOcrProvider(settings.OcrProviderId);
         var translationProvider = services.Providers.GetTranslationProvider(settings.TranslationProviderId);
-        var privacy = BuildPrivacyDescription(ocrProvider.Metadata, translationProvider.Metadata);
+        var privacy = BuildPrivacyDescription(settings, ocrProvider.Metadata, translationProvider.Metadata);
         window.SetLoading($"正在使用 {ocrProvider.Metadata.DisplayName} 识别…", privacy);
 
         OcrResult ocrResult;
+        var ocrProviderLabel = ocrProvider.Metadata.DisplayName;
         try
         {
             var availability = await ocrProvider.GetAvailabilityAsync();
@@ -78,13 +79,42 @@ public sealed class CaptureCoordinator(AppServices services)
             {
                 throw new ProviderException("no_text", "所选区域中没有识别到文字。");
             }
-            window.SetSource(ocrResult, ocrProvider.Metadata.DisplayName);
+        }
+        catch (Exception primaryFailure) when (!ReferenceEquals(ocrProvider, services.PaddleProvider))
+        {
+            try
+            {
+                var fallbackAvailability = await services.PaddleProvider.GetAvailabilityAsync();
+                if (!fallbackAvailability.IsAvailable)
+                {
+                    throw new ProviderException(
+                        "ocr_fallback_unavailable",
+                        fallbackAvailability.Message ?? "本地 PaddleOCR 回退不可用。");
+                }
+
+                ocrResult = await services.PaddleProvider.RecognizeAsync(
+                    image,
+                    new OcrOptions(settings.SourceLanguage));
+                if (string.IsNullOrWhiteSpace(ocrResult.PlainText))
+                {
+                    throw new ProviderException("no_text", "PaddleOCR 回退也没有识别到文字。");
+                }
+
+                ocrProviderLabel = $"{services.PaddleProvider.Metadata.DisplayName}（所选 OCR 不可用，已回退）";
+            }
+            catch (Exception fallbackFailure)
+            {
+                window.SetError($"{primaryFailure.Message}；本地 OCR 回退也不可用：{fallbackFailure.Message}");
+                return;
+            }
         }
         catch (Exception exception)
         {
             window.SetError(exception.Message);
             return;
         }
+
+        window.SetSource(ocrResult, ocrProviderLabel);
 
         try
         {
@@ -116,8 +146,22 @@ public sealed class CaptureCoordinator(AppServices services)
         }
     }
 
-    private static string BuildPrivacyDescription(ProviderMetadata ocr, ProviderMetadata translation)
+    private static string BuildPrivacyDescription(
+        AppSettings settings,
+        ProviderMetadata ocr,
+        ProviderMetadata translation)
     {
+        var localModelEndpoint = Uri.TryCreate(
+            settings.CustomTranslationEndpoint,
+            UriKind.Absolute,
+            out var endpoint) && endpoint.IsLoopback;
+        var usesLocalVision = (ocr.Id is "local-vlm-ocr" or "local-vlm-corrected") && localModelEndpoint;
+        var usesSameLocalTranslation = translation.Id == "custom-chat" && localModelEndpoint;
+        if (usesLocalVision && (translation.Location == ProviderExecutionLocation.Local || usesSameLocalTranslation))
+        {
+            return "图片与文字发送到本机大模型服务 · 内容不离开设备";
+        }
+
         if (ocr.Location == ProviderExecutionLocation.Local && translation.Location == ProviderExecutionLocation.Local)
         {
             return "全程本地处理 · 内容不离开设备";

@@ -34,8 +34,19 @@ public sealed class AppServices : IAsyncDisposable
         BaiduOcrProvider = new BaiduOcrProvider(httpClient, secretStore);
         BaiduTranslationProvider = new BaiduTranslationProvider(httpClient, secretStore);
         CustomTranslationProvider = new ChatCompatibleTranslationProvider(httpClient, secretStore, () => Settings);
+        LocalVlmOcrProvider = new ChatCompatibleOcrProvider(
+            httpClient,
+            secretStore,
+            () => Settings,
+            CustomTranslationProvider);
+        CorrectedLocalOcrProvider = new ChatCompatibleOcrProvider(
+            httpClient,
+            secretStore,
+            () => Settings,
+            CustomTranslationProvider,
+            PaddleProvider);
         Providers = new ProviderRegistry(
-            [PaddleProvider, BaiduOcrProvider],
+            [PaddleProvider, CorrectedLocalOcrProvider, LocalVlmOcrProvider, BaiduOcrProvider],
             [
                 ArgosProvider,
                 BaiduTranslationProvider,
@@ -57,6 +68,8 @@ public sealed class AppServices : IAsyncDisposable
     public BaiduOcrProvider BaiduOcrProvider { get; }
     public BaiduTranslationProvider BaiduTranslationProvider { get; }
     public ChatCompatibleTranslationProvider CustomTranslationProvider { get; }
+    public ChatCompatibleOcrProvider LocalVlmOcrProvider { get; }
+    public ChatCompatibleOcrProvider CorrectedLocalOcrProvider { get; }
 
     public Task ClearDownloadedTranslationModelsAsync(CancellationToken cancellationToken = default) =>
         Engine.CallAsync(

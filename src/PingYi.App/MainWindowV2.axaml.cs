@@ -56,7 +56,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             ? "智能中英互换"
             : LanguageCatalog.GetDisplayName(settings.TargetLanguage);
         TranslationSummaryText.Text = $"{translation.DisplayName} · → {targetLanguage}";
-        PrivacySummaryText.Text = BuildPrivacyDescription(ocr, translation);
+        PrivacySummaryText.Text = BuildPrivacyDescription(settings, ocr, translation);
         CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
     }
 
@@ -161,6 +161,9 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     private async void LocalLlmMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
         await ApplyModeAsync("local-paddle", "custom-chat", "本机大模型");
 
+    private async void LocalMultimodalMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
+        await ApplyModeAsync("local-vlm-corrected", "custom-chat", "本机多模态");
+
     private async void CloudModeMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
         await ApplyModeAsync("baidu-ocr", "baidu-translate", "云端增强");
 
@@ -262,8 +265,22 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             : "自定义组合";
     }
 
-    private static string BuildPrivacyDescription(ProviderMetadata ocr, ProviderMetadata translation)
+    private static string BuildPrivacyDescription(
+        AppSettings settings,
+        ProviderMetadata ocr,
+        ProviderMetadata translation)
     {
+        var localModelEndpoint = Uri.TryCreate(
+            settings.CustomTranslationEndpoint,
+            UriKind.Absolute,
+            out var endpoint) && endpoint.IsLoopback;
+        var usesLocalVision = (ocr.Id is "local-vlm-ocr" or "local-vlm-corrected") && localModelEndpoint;
+        var usesSameLocalTranslation = translation.Id == "custom-chat" && localModelEndpoint;
+        if (usesLocalVision && (translation.Location == ProviderExecutionLocation.Local || usesSameLocalTranslation))
+        {
+            return "图片与文字只发送到本机大模型服务，不会离开设备。";
+        }
+
         if (ocr.Location == ProviderExecutionLocation.Local &&
             translation.Location == ProviderExecutionLocation.Local)
         {

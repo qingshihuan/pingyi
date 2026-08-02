@@ -26,6 +26,7 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 
 - **One-step screenshot translation:** select a region with a global hotkey and see the source text and translation immediately.
 - **OCR text extraction:** copy text from images, video subtitles, desktop applications, and non-selectable web pages.
+- **Local multimodal OCR:** use a vision model through llama.cpp, Ollama, LM Studio, or vLLM directly, or let it correct a PaddleOCR draft.
 - **Real offline fallback:** bundled PaddleOCR ONNX and Argos Translate provide Chinese-English OCR and translation without network access.
 - **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints, with automatic source-language detection and 34 common target languages.
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
@@ -49,6 +50,7 @@ Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. The result
 | Capability | Default implementation | Network | Compute |
 | --- | --- | --- | --- |
 | Screenshot OCR | PaddleOCR + ONNX Runtime | No | CPU |
+| Local multimodal OCR/correction | Vision model with compatible `image_url` input | No | Chosen by the external server; the model's vision components must be loaded |
 | Basic zh-en/en-zh translation | Argos Translate | No | CPU |
 | Local LLM translation | llama.cpp / Ollama / LM Studio / vLLM | No | Chosen by the external server; multilingual quality depends on the model |
 | Baidu OCR | Baidu position-aware OCR | Yes; selected image only | Cloud |
@@ -64,6 +66,7 @@ The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GP
 - Bundled Argos Chinese-English fallback with automatic recovery when a local LLM is unavailable.
 - Baidu position-aware OCR, Baidu general translation, and custom Chat Completions translation.
 - Presets for llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible services.
+- Local multimodal OCR plus a PaddleOCR + vision-model correction mode for small text, terminals, and unusual fonts.
 - Copy source/translation/all, retry, pin, tray mode, and light/dark themes.
 - Task-focused home screen, separate Settings window, contextual repair cards, and an optional classic interface.
 - Windows DPAPI and Linux Secret Service credential storage, with masked display, reveal, copy, and paste controls.

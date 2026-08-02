@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using PingYi.Core;
 using PingYi.Infrastructure;
+using SkiaSharp;
 
 namespace PingYi.App;
 
@@ -417,6 +418,28 @@ public partial class MainWindow : Window, IMainWindowShell
         }
     }
 
+    private async void TestCustomVisionButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var button = sender as Button;
+        BeginButtonOperation(button, "正在测试…");
+        try
+        {
+            await TestCustomVisionConnectionCoreAsync();
+            FinishButtonOperation(button, "图片可用", success: true);
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(CustomTranslationStatusText, exception.Message, "DangerTextBrush");
+            SetGlobalStatus(exception.Message, isError: true);
+            FinishButtonOperation(button, "图片不可用", success: false);
+        }
+    }
+
     private async void InstallOcrModelsButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_services is null)
@@ -654,6 +677,56 @@ public partial class MainWindow : Window, IMainWindowShell
 
         SetInlineStatus(CustomTranslationStatusText, "连接、模型名与翻译请求均验证通过", "SuccessTextBrush");
         SetGlobalStatus("本地 / 自定义大模型翻译已可用。", isError: false);
+    }
+
+    private async Task TestCustomVisionConnectionCoreAsync()
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        SetInlineStatus(CustomTranslationStatusText, "正在发送固定合成图片测试多模态能力…", "SecondaryTextBrush");
+        await PersistSecretFieldAsync(SecretKeys.CustomTranslationApiKey);
+        await _services.SaveSettingsAsync(BuildSettingsFromForm());
+        HideSecretFields(SecretKeys.CustomTranslationApiKey);
+
+        var availability = await _services.LocalVlmOcrProvider.GetAvailabilityAsync();
+        if (!availability.IsAvailable)
+        {
+            throw new ProviderException("custom_vision_unavailable", availability.Message ?? "多模态模型服务不可用。");
+        }
+
+        var result = await _services.LocalVlmOcrProvider.RecognizeAsync(
+            CreateVisionTestImage(),
+            new OcrOptions("en"));
+        if (!result.PlainText.Contains("PINGYI", StringComparison.OrdinalIgnoreCase) ||
+            !result.PlainText.Contains("2026", StringComparison.Ordinal))
+        {
+            throw new ProviderException(
+                "custom_vision_mismatch",
+                "服务可以接收图片，但未正确读出固定测试文字；请确认模型支持视觉并已加载 mmproj。"
+            );
+        }
+
+        SetInlineStatus(CustomTranslationStatusText, "连接、模型名与多模态图片识别均验证通过", "SuccessTextBrush");
+        SetGlobalStatus("本机 / 自定义大模型图片识别已可用。", isError: false);
+    }
+
+    private static ImageFrame CreateVisionTestImage()
+    {
+        const int width = 360;
+        const int height = 96;
+        using var bitmap = new SKBitmap(width, height);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(new SKColor(12, 20, 32));
+        using var typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold);
+        using var font = new SKFont(typeface, 28);
+        using var paint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        canvas.DrawText("PINGYI OCR 2026", 22, 58, SKTextAlign.Left, font, paint);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return new ImageFrame(data.ToArray(), width, height, new PingYi.Core.PixelRect(0, 0, width, height));
     }
 
     private async Task RefreshLocalModelStatusAsync()

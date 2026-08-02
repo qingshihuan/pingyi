@@ -191,8 +191,10 @@
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                       <MenuItem Header="本地优先 · PaddleOCR + Argos"
                                 Click="LocalFirstMenuItem_OnClick" />
-                      <MenuItem Header="本机大模型 · PaddleOCR + 兼容接口"
+                      <MenuItem Header="本机大模型翻译 · PaddleOCR + 兼容接口"
                                 Click="LocalLlmMenuItem_OnClick" />
+                      <MenuItem Header="本机多模态 · PaddleOCR + 大模型纠错"
+                                Click="LocalMultimodalMenuItem_OnClick" />
                       <MenuItem Header="云端增强 · 百度 OCR + 百度翻译"
                                 Click="CloudModeMenuItem_OnClick" />
                       <MenuItem Header="自定义组合…" Click="CustomModeMenuItem_OnClick" />

@@ -26,6 +26,7 @@
 
 - **截图翻译一次完成**：全局快捷键框选，结果卡直接显示原文和译文。
 - **OCR 文字提取**：从图片、视频字幕、软件界面和不可复制网页中提取中英文文字。
+- **本机多模态 OCR**：可使用 llama.cpp、Ollama、LM Studio、vLLM 等视觉模型直接识图，或用 PaddleOCR 初稿配合大模型纠错。
 - **真正的离线保底**：内置 PaddleOCR ONNX 与 Argos Translate，中英识别和翻译无需联网。
 - **本地大模型增强**：支持 llama.cpp、Ollama、LM Studio、vLLM 和通用 OpenAI 兼容接口，可自动识别源语言并选择 34 种常用目标语言。
 - **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
@@ -49,6 +50,7 @@
 | 能力 | 默认实现 | 是否联网 | 计算设备 |
 | --- | --- | --- | --- |
 | 截图与文字识别 | PaddleOCR + ONNX Runtime | 否 | CPU |
+| 本机多模态识别/纠错 | 兼容 `image_url` 的视觉大模型 | 否 | 由外部服务决定；需加载模型所需视觉组件 |
 | 中英基础翻译 | Argos Translate | 否 | CPU |
 | 本机大模型翻译 | llama.cpp / Ollama / LM Studio / vLLM | 否 | 由外部服务决定；多语言能力取决于模型 |
 | 百度 OCR | 百度含位置文字识别 | 是，上传所选图片 | 云端 |
@@ -64,6 +66,7 @@
 - Argos 中英双向基础翻译，以及本机大模型不可用时的自动离线回退。
 - 百度含位置 OCR、百度通用翻译和自定义 Chat Completions 翻译接口。
 - llama.cpp、Ollama、LM Studio、vLLM 与通用 OpenAI 兼容预设。
+- 本机多模态大模型 OCR，以及更适合小字、终端和特殊字体的 PaddleOCR + 视觉模型纠错模式。
 - 复制原文/译文/全部、重新处理、结果卡固定、托盘常驻和浅深色主题。
 - 任务优先的主界面、独立设置窗口、故障修复卡和可选经典界面。
 - Windows DPAPI 与 Linux Secret Service 密钥存储；凭据支持遮罩查看、明文切换、复制和粘贴。

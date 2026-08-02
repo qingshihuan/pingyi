@@ -13,6 +13,13 @@ public static class TextProcessing
 
         var cjk = 0;
         var latin = 0;
+        var kana = 0;
+        var hangul = 0;
+        var cyrillic = 0;
+        var arabic = 0;
+        var hebrew = 0;
+        var devanagari = 0;
+        var thai = 0;
         foreach (var rune in text.EnumerateRunes())
         {
             if (rune.Value is >= 0x3400 and <= 0x9FFF)
@@ -23,8 +30,43 @@ public static class TextProcessing
             {
                 latin++;
             }
+            else if (rune.Value is >= 0x3040 and <= 0x30FF)
+            {
+                kana++;
+            }
+            else if (rune.Value is >= 0xAC00 and <= 0xD7AF)
+            {
+                hangul++;
+            }
+            else if (rune.Value is >= 0x0400 and <= 0x052F)
+            {
+                cyrillic++;
+            }
+            else if (rune.Value is >= 0x0600 and <= 0x06FF)
+            {
+                arabic++;
+            }
+            else if (rune.Value is >= 0x0590 and <= 0x05FF)
+            {
+                hebrew++;
+            }
+            else if (rune.Value is >= 0x0900 and <= 0x097F)
+            {
+                devanagari++;
+            }
+            else if (rune.Value is >= 0x0E00 and <= 0x0E7F)
+            {
+                thai++;
+            }
         }
 
+        if (kana > 0) return "ja";
+        if (hangul > 0) return "ko";
+        if (cyrillic > 0) return "ru";
+        if (arabic > 0) return "ar";
+        if (hebrew > 0) return "he";
+        if (devanagari > 0) return "hi";
+        if (thai > 0) return "th";
         return cjk > 0 && cjk * 5 >= latin ? "zh" : "en";
     }
 

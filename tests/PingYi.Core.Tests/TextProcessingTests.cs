@@ -8,6 +8,12 @@ public sealed class TextProcessingTests
     [InlineData("这是中文界面", "zh")]
     [InlineData("Screenshot translation", "en")]
     [InlineData("版本 version", "zh")]
+    [InlineData("画面を翻訳します", "ja")]
+    [InlineData("화면 번역", "ko")]
+    [InlineData("Перевод экрана", "ru")]
+    [InlineData("ترجمة الشاشة", "ar")]
+    [InlineData("स्क्रीन अनुवाद", "hi")]
+    [InlineData("แปลหน้าจอ", "th")]
     [InlineData("", "unknown")]
     public void DetectLanguage_ReturnsExpectedLanguage(string text, string expected)
     {
