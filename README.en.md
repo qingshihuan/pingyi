@@ -13,14 +13,21 @@
 <p align="center">
   <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/qingshihuan/pingyi/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag&include_prereleases"></a>
+  <a href="https://github.com/qingshihuan/pingyi/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/qingshihuan/pingyi?style=flat"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0f766e"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
   <img alt="Ubuntu X11" src="https://img.shields.io/badge/Ubuntu-X11-e95420">
 </p>
 
-PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get a screenshot, PaddleOCR Chinese/English recognition, extracted text, and translation in one compact result card.
+<p align="center">
+  <img src="docs/social-preview.png" width="920" alt="PingYi: an offline-first screenshot OCR and translation desktop app">
+</p>
 
-The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. The Complete edition additionally bundles the Vulkan and CPU llama.cpp runtimes and can download and configure newer lightweight multimodal models from ModelScope in one click. Existing Ollama, LM Studio, vLLM, llama.cpp, and generic Chat Completions services remain supported.
+PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get OCR text extraction and translation in one compact result card. The interface is available in English and Simplified Chinese and can follow the operating-system language automatically.
+
+The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. The Complete edition additionally bundles the Vulkan and CPU llama.cpp runtimes and can download and configure newer lightweight multimodal models from ModelScope in one click. Existing Ollama, LM Studio, vLLM, llama.cpp, and generic Chat Completions services remain supported. For broader cloud language coverage, you can supply your own Google Cloud or Baidu credentials.
+
+If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
 
 ## Why PingYi
 
@@ -30,7 +37,8 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 - **Real offline fallback:** bundled PaddleOCR ONNX and Argos Translate provide Chinese-English OCR and translation without network access.
 - **Local LLM enhancement:** supports llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible endpoints. The default automatically detects the source, translates foreign text to Simplified Chinese and Chinese to English, and still offers 34 explicit target languages.
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
-- **Optional cloud providers:** configure Baidu OCR, Baidu Translate, or a custom Chat Completions service when desired.
+- **Optional cloud providers:** configure Google Cloud Vision OCR, Google Cloud Translation, Baidu services, or a custom Chat Completions endpoint when desired.
+- **English and Chinese UI:** follow the system language or explicitly choose English or Simplified Chinese in Settings.
 - **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu X11 x64.
 - **Self-contained releases:** Windows installer/portable ZIP and Ubuntu `.deb`/`.tar.gz`, with no separate runtime installation.
 
@@ -59,8 +67,19 @@ On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP
 | Local LLM translation | llama.cpp / Ollama / LM Studio / vLLM | No | Chosen by the external server; multilingual quality depends on the model |
 | Baidu OCR | Baidu position-aware OCR | Yes; selected image only | Cloud |
 | Baidu/custom translation | Baidu Translate or Chat Completions | Yes; recognized text only | Cloud |
+| Google OCR | Cloud Vision API | Yes; selected image only | Cloud |
+| Google translation | Cloud Translation Basic v2 | Yes; recognized text only | Cloud |
 
 The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GPU runtime. The Complete edition adds only the official MIT-licensed llama.cpp Vulkan and CPU runtimes; it does not bundle CUDA, cuDNN, or ROCm. Vulkan supports compatible AMD, NVIDIA, and Intel GPUs. An external local model server may use its own acceleration stack independently. Core features and Complete edition CPU mode work without a GPU.
+
+## Configure Google Cloud OCR and translation
+
+1. Enable the [Cloud Vision API](https://cloud.google.com/vision/docs) and [Cloud Translation API](https://cloud.google.com/translate/docs/basic/translating-text) in your own Google Cloud project.
+2. Create an API key and restrict it to those two APIs. Add application or source restrictions when your deployment allows them.
+3. Open **Settings → Google Cloud OCR and Translation credentials**, select **Show**, paste the key, and choose **Save and verify Google credentials**.
+4. Select `Google Cloud Vision OCR` or `Google Cloud Translation` under Processing engines. Either can be combined with a local or another cloud provider.
+
+The key is stored with Windows DPAPI or Linux Secret Service and is never written to `settings.json`. OCR validation sends only a built-in transparent 1×1 test image; translation validation sends the fixed word `test`. During real use, a screenshot is uploaded only when Google OCR is selected, while Google Translation receives recognized text only. Enablement, quotas, and charges remain under your Google Cloud project.
 
 ## Complete edition one-click local models
 
@@ -86,11 +105,12 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 - Ubuntu X11 screenshot and global-hotkey implementation through Xlib.
 - PP-OCRv5 mobile Chinese/English models, ONNX Runtime CPU inference, and SHA-256 model integrity verification.
 - Bundled Argos Chinese-English fallback with automatic recovery when a local LLM is unavailable.
-- Baidu position-aware OCR, Baidu general translation, and custom Chat Completions translation.
+- Google Cloud Vision OCR, Google Cloud Translation Basic v2, Baidu position-aware OCR, Baidu general translation, and custom Chat Completions translation.
 - Presets for llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible services.
 - Local multimodal OCR plus a PaddleOCR + vision-model correction mode for small text, terminals, and unusual fonts.
 - Copy source/translation/all, retry, pin, tray mode, and light/dark themes.
 - Task-focused home screen, separate Settings window, contextual repair cards, and an optional classic interface.
+- English and Simplified Chinese interfaces with automatic system-language selection.
 - Windows DPAPI and Linux Secret Service credential storage, with masked display, reveal, copy, and paste controls.
 - Zero history by default; logs exclude screenshots, recognized text, translations, and secrets.
 
@@ -139,7 +159,7 @@ To build the Complete edition, prepare the pinned llama.cpp CPU/Vulkan runtime a
 
 ```powershell
 py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
-.\scripts\publish.ps1 -Runtime win-x64 -Version 0.2.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
 Pushing a `v*` tag builds the Windows installer/ZIP and Ubuntu `.deb`/`.tar.gz`, generates SHA-256 checksums, and creates a GitHub Release.

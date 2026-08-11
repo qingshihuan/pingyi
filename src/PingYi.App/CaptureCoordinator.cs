@@ -116,10 +116,13 @@ public sealed class CaptureCoordinator(AppServices services) : IDisposable
         var ocrProvider = services.Providers.GetOcrProvider(settings.OcrProviderId);
         var translationProvider = services.Providers.GetTranslationProvider(settings.TranslationProviderId);
         var privacy = BuildPrivacyDescription(settings, ocrProvider.Metadata, translationProvider.Metadata);
-        window.SetLoading($"正在使用 {ocrProvider.Metadata.DisplayName} 识别…", privacy);
+        var selectedOcrName = UiText.ProviderName(ocrProvider.Metadata.Id, ocrProvider.Metadata.DisplayName);
+        window.SetLoading(
+            UiText.IsEnglish ? $"Recognizing with {selectedOcrName}…" : $"正在使用 {selectedOcrName} 识别…",
+            privacy);
 
         OcrResult ocrResult;
-        var ocrProviderLabel = ocrProvider.Metadata.DisplayName;
+        var ocrProviderLabel = selectedOcrName;
         try
         {
             var availability = await ocrProvider.GetAvailabilityAsync();
@@ -154,7 +157,9 @@ public sealed class CaptureCoordinator(AppServices services) : IDisposable
                     throw new ProviderException("no_text", "PaddleOCR 回退也没有识别到文字。");
                 }
 
-                ocrProviderLabel = $"{services.PaddleProvider.Metadata.DisplayName}（所选 OCR 不可用，已回退）";
+                ocrProviderLabel = UiText.IsEnglish
+                    ? $"{UiText.ProviderName(services.PaddleProvider.Metadata.Id, services.PaddleProvider.Metadata.DisplayName)} (selected OCR unavailable; fallback used)"
+                    : $"{services.PaddleProvider.Metadata.DisplayName}（所选 OCR 不可用，已回退）";
             }
             catch (Exception fallbackFailure)
             {
@@ -186,9 +191,12 @@ public sealed class CaptureCoordinator(AppServices services) : IDisposable
                 translationProvider,
                 services.ArgosProvider,
                 request);
+            var executionProviderName = UiText.ProviderName(execution.Provider.Id, execution.Provider.DisplayName);
             var providerLabel = execution.UsedFallback
-                ? $"{execution.Provider.DisplayName}（外部服务不可用，已自动回退）"
-                : execution.Provider.DisplayName;
+                ? UiText.IsEnglish
+                    ? $"{executionProviderName} (cloud service unavailable; offline fallback used)"
+                    : $"{executionProviderName}（外部服务不可用，已自动回退）"
+                : executionProviderName;
             window.SetTranslation(execution.Result, providerLabel);
         }
         catch (Exception exception)
@@ -210,19 +218,23 @@ public sealed class CaptureCoordinator(AppServices services) : IDisposable
         var usesSameLocalTranslation = translation.Id == "custom-chat" && localModelEndpoint;
         if (usesLocalVision && (translation.Location == ProviderExecutionLocation.Local || usesSameLocalTranslation))
         {
-            return "图片与文字发送到本机大模型服务 · 内容不离开设备";
+            return UiText.T("图片与文字发送到本机大模型服务 · 内容不离开设备");
         }
 
         if (ocr.Location == ProviderExecutionLocation.Local && translation.Location == ProviderExecutionLocation.Local)
         {
-            return "全程本地处理 · 内容不离开设备";
+            return UiText.T("全程本地处理 · 内容不离开设备");
         }
 
         if (ocr.UploadsImage)
         {
-            return $"所选图片将发送给 {ocr.DisplayName}；文字将发送给 {translation.DisplayName}";
+            return UiText.IsEnglish
+                ? $"The selected image is sent to {UiText.ProviderName(ocr.Id, ocr.DisplayName)}; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
+                : $"所选图片将发送给 {ocr.DisplayName}；文字将发送给 {translation.DisplayName}";
         }
 
-        return $"图片在本地识别；文字将发送给 {translation.DisplayName}";
+        return UiText.IsEnglish
+            ? $"The image is recognized locally; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
+            : $"图片在本地识别；文字将发送给 {translation.DisplayName}";
     }
 }

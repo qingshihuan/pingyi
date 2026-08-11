@@ -16,13 +16,14 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     public MainWindowV2()
     {
         InitializeComponent();
+        UiText.Attach(this);
     }
 
     public MainWindowV2(AppServices services, CaptureCoordinator captureCoordinator) : this()
     {
         _services = services;
         _captureCoordinator = captureCoordinator;
-        Title = AppEdition.ProductName;
+        Title = UiText.IsEnglish ? "PingYi" : AppEdition.ProductName;
         LoadSettings();
         Opened += async (_, _) => await RefreshDashboardAsync();
         Activated += async (_, _) => await RefreshSettingsFromStoreAsync();
@@ -33,12 +34,12 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         TopStatusText.Text = isError ? "需要处理" : "运行正常";
         TopStatusDot.Background = Brush.Parse(isError ? "#B42318" : "#009E8A");
         LiveStatusTitleText.Text = isError ? "操作未完成" : "运行正常";
-        LiveStatusDetailText.Text = message;
+        LiveStatusDetailText.Text = UiText.T(message);
         LiveStatusDot.Background = Brush.Parse(isError ? "#B42318" : "#009E8A");
         RecoveryBorder.IsVisible = isError;
         if (isError)
         {
-            RecoveryDetailText.Text = message;
+            RecoveryDetailText.Text = UiText.T(message);
         }
     }
 
@@ -55,11 +56,9 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         var ocr = _services.Providers.GetOcrProvider(settings.OcrProviderId).Metadata;
         var translation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId).Metadata;
         ModeSummaryText.Text = DescribeMode(settings, ocr, translation);
-        OcrSummaryText.Text = ocr.DisplayName;
-        var targetLanguage = settings.TargetLanguage == LanguageCatalog.AutoOpposite
-            ? "自动翻译"
-            : LanguageCatalog.GetDisplayName(settings.TargetLanguage);
-        TranslationSummaryText.Text = $"{translation.DisplayName} · → {targetLanguage}";
+        OcrSummaryText.Text = UiText.ProviderName(ocr.Id, ocr.DisplayName);
+        var targetLanguage = UiText.LanguageName(settings.TargetLanguage);
+        TranslationSummaryText.Text = $"{UiText.ProviderName(translation.Id, translation.DisplayName)} · → {targetLanguage}";
         PrivacySummaryText.Text = BuildPrivacyDescription(settings, ocr, translation);
         CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
     }
@@ -136,7 +135,9 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             if (baseModelsReady && currentModeReady)
             {
                 SetGlobalStatus(
-                    $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，按 {settings.Hotkey} 开始截图。",
+                    UiText.IsEnglish
+                        ? $"{UiText.ProviderName(selectedOcr.Metadata.Id, selectedOcr.Metadata.DisplayName)} · {UiText.ProviderName(selectedTranslation.Metadata.Id, selectedTranslation.Metadata.DisplayName)} is ready. Press {settings.Hotkey} to capture."
+                        : $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，按 {settings.Hotkey} 开始截图。",
                     isError: false);
             }
             else
@@ -260,7 +261,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     }
 
     private static string DescribeAvailability(ProviderAvailability availability) =>
-        availability.IsAvailable ? "可用" : availability.Message ?? "不可用";
+        availability.IsAvailable ? UiText.T("可用") : availability.Message ?? UiText.T("不可用");
 
     private static string DescribeMode(
         AppSettings settings,
@@ -271,19 +272,20 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         {
             return Uri.TryCreate(settings.CustomTranslationEndpoint, UriKind.Absolute, out var endpoint) &&
                    endpoint.IsLoopback
-                ? "本机大模型"
-                : "自定义服务";
+                ? UiText.T("本机大模型")
+                : UiText.T("自定义服务");
         }
 
-        if (settings.OcrProviderId == "baidu-ocr" || settings.TranslationProviderId == "baidu-translate")
+        if (ocr.Location == ProviderExecutionLocation.Cloud ||
+            translation.Location == ProviderExecutionLocation.Cloud)
         {
-            return "云端增强";
+            return UiText.T("云端增强");
         }
 
         return ocr.Location == ProviderExecutionLocation.Local &&
                translation.Location == ProviderExecutionLocation.Local
-            ? "本地优先"
-            : "自定义组合";
+            ? UiText.T("本地优先")
+            : UiText.T("自定义组合");
     }
 
     private static string BuildPrivacyDescription(
@@ -299,20 +301,24 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         var usesSameLocalTranslation = translation.Id == "custom-chat" && localModelEndpoint;
         if (usesLocalVision && (translation.Location == ProviderExecutionLocation.Local || usesSameLocalTranslation))
         {
-            return "图片与文字只发送到本机大模型服务，不会离开设备。";
+            return UiText.T("图片与文字只发送到本机大模型服务，不会离开设备。");
         }
 
         if (ocr.Location == ProviderExecutionLocation.Local &&
             translation.Location == ProviderExecutionLocation.Local)
         {
-            return "全程在本机处理；截图、原文和译文不会离开设备。";
+            return UiText.T("全程在本机处理；截图、原文和译文不会离开设备。");
         }
 
         if (ocr.UploadsImage)
         {
-            return $"所选图片发送给 {ocr.DisplayName}；识别文字发送给 {translation.DisplayName}。";
+            return UiText.IsEnglish
+                ? $"The selected image is sent to {UiText.ProviderName(ocr.Id, ocr.DisplayName)}; recognized text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}."
+                : $"所选图片发送给 {ocr.DisplayName}；识别文字发送给 {translation.DisplayName}。";
         }
 
-        return $"图片在本地识别；只有识别文字会发送给 {translation.DisplayName}。";
+        return UiText.IsEnglish
+            ? $"The image is recognized locally; only recognized text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}."
+            : $"图片在本地识别；只有识别文字会发送给 {translation.DisplayName}。";
     }
 }

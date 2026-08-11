@@ -34,6 +34,8 @@ public sealed class AppServices : IAsyncDisposable
         ArgosProvider = new ArgosTranslationProvider(engine);
         BaiduOcrProvider = new BaiduOcrProvider(httpClient, secretStore);
         BaiduTranslationProvider = new BaiduTranslationProvider(httpClient, secretStore);
+        GoogleOcrProvider = new GoogleCloudVisionOcrProvider(httpClient, secretStore);
+        GoogleTranslationProvider = new GoogleCloudTranslationProvider(httpClient, secretStore);
         CustomTranslationProvider = new ChatCompatibleTranslationProvider(httpClient, secretStore, () => Settings);
         LocalVlmOcrProvider = new ChatCompatibleOcrProvider(
             httpClient,
@@ -47,10 +49,11 @@ public sealed class AppServices : IAsyncDisposable
             CustomTranslationProvider,
             PaddleProvider);
         Providers = new ProviderRegistry(
-            [PaddleProvider, CorrectedLocalOcrProvider, LocalVlmOcrProvider, BaiduOcrProvider],
+            [PaddleProvider, CorrectedLocalOcrProvider, LocalVlmOcrProvider, BaiduOcrProvider, GoogleOcrProvider],
             [
                 ArgosProvider,
                 BaiduTranslationProvider,
+                GoogleTranslationProvider,
                 CustomTranslationProvider
             ]);
     }
@@ -69,6 +72,8 @@ public sealed class AppServices : IAsyncDisposable
     public ArgosTranslationProvider ArgosProvider { get; }
     public BaiduOcrProvider BaiduOcrProvider { get; }
     public BaiduTranslationProvider BaiduTranslationProvider { get; }
+    public GoogleCloudVisionOcrProvider GoogleOcrProvider { get; }
+    public GoogleCloudTranslationProvider GoogleTranslationProvider { get; }
     public ChatCompatibleTranslationProvider CustomTranslationProvider { get; }
     public ChatCompatibleOcrProvider LocalVlmOcrProvider { get; }
     public ChatCompatibleOcrProvider CorrectedLocalOcrProvider { get; }

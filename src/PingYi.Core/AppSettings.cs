@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
     public const string DefaultHotkey = "Ctrl+Alt+D";
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -22,6 +22,7 @@ public sealed record AppSettings
     public bool StartMinimized { get; init; }
     public bool CheckForUpdates { get; init; } = true;
     public string InterfaceStyle { get; init; } = "modern";
+    public string UiLanguage { get; init; } = "auto";
 
     public AppSettings Normalize()
     {
@@ -58,7 +59,8 @@ public sealed record AppSettings
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
                                     ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
                                     string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
-            InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern"
+            InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern",
+            UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
     }
 
@@ -96,5 +98,6 @@ public static class SecretKeys
     public const string BaiduOcrSecretKey = "baidu-ocr-secret-key";
     public const string BaiduTranslateAppId = "baidu-translate-app-id";
     public const string BaiduTranslateSecret = "baidu-translate-secret";
+    public const string GoogleCloudApiKey = "google-cloud-api-key";
     public const string CustomTranslationApiKey = "custom-translation-api-key";
 }

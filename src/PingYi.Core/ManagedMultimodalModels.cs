@@ -5,7 +5,26 @@ public sealed record ManagedRuntimeBackend(
     string DisplayName,
     string Description)
 {
-    public override string ToString() => DisplayName;
+    public string LocalizedDisplayName => IsEnglishCulture ? Id switch
+    {
+        "auto" => "Auto detect (recommended)",
+        "vulkan" => "GPU · Vulkan",
+        "cpu" => "CPU only",
+        _ => DisplayName
+    } : DisplayName;
+
+    public string LocalizedDescription => IsEnglishCulture ? Id switch
+    {
+        "auto" => "Prefer Vulkan for AMD, NVIDIA, or Intel GPUs, then fall back to CPU automatically.",
+        "vulkan" => "Use the Vulkan GPU backend only. Supports AMD, NVIDIA, and Intel; does not fall back to CPU.",
+        "cpu" => "Do not use a discrete GPU. Slower, but offers the broadest compatibility and portability.",
+        _ => Description
+    } : Description;
+
+    public override string ToString() => LocalizedDisplayName;
+
+    private static bool IsEnglishCulture =>
+        !string.Equals(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh", StringComparison.OrdinalIgnoreCase);
 }
 
 public static class ManagedRuntimeBackends
@@ -63,7 +82,34 @@ public sealed record ManagedMultimodalModel(
     public Uri BuildDownloadUri(ManagedModelFile file) => new(
         $"https://modelscope.cn/models/{ModelScopeRepository}/resolve/{Revision}/{Uri.EscapeDataString(file.FileName)}");
 
-    public override string ToString() => DisplayName;
+    public string LocalizedDisplayName => IsEnglishCulture ? Id switch
+    {
+        "qwen35-2b-q4" => "Qwen3.5 2B · Q4 balanced (recommended)",
+        "qwen35-2b-q8" => "Qwen3.5 2B · Q8 quality",
+        "gemma4-e2b-q4" => "Gemma 4 E2B · Q4 latest",
+        _ => DisplayName
+    } : DisplayName;
+
+    public string LocalizedSummary => IsEnglishCulture ? Id switch
+    {
+        "qwen35-2b-q4" => "A 2026 native multimodal model with balanced OCR, translation, and multilingual quality.",
+        "qwen35-2b-q8" => "Higher language-model fidelity for translation and small-text correction.",
+        "gemma4-e2b-q4" => "Released in June 2026 with image understanding, OCR, translation, and 140+ language pretraining.",
+        _ => Summary
+    } : Summary;
+
+    public string LocalizedHardwareHint => IsEnglishCulture ? Id switch
+    {
+        "qwen35-2b-q4" => "About 1.82 GiB; 4 GB VRAM may work, 6 GB is safer, and CPU-only mode is supported.",
+        "qwen35-2b-q8" => "About 2.50 GiB; 6 GB or more VRAM is recommended, with CPU-only mode also supported.",
+        "gemma4-e2b-q4" => "About 3.17 GiB; 8 GB VRAM is recommended, with automatic CPU fallback on low-memory devices.",
+        _ => HardwareHint
+    } : HardwareHint;
+
+    public override string ToString() => LocalizedDisplayName;
+
+    private static bool IsEnglishCulture =>
+        !string.Equals(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh", StringComparison.OrdinalIgnoreCase);
 }
 
 public static class ManagedMultimodalModels

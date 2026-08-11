@@ -5,12 +5,12 @@
 #define MyAppVersion "0.1.0"
 #endif
 #if Edition == "Complete"
-#define MyAppName "屏译 完全版"
+#define MyAppName "PingYi Complete"
 #define MyAppId "{{AD4A31EC-4A26-41B1-B86A-D4A7360C8687}"
 #define MyAppDirectory "PingYi Complete"
 #define MyOutputName "PingYi-Complete-" + MyAppVersion + "-win-x64-setup"
 #else
-#define MyAppName "屏译"
+#define MyAppName "PingYi"
 #define MyAppId "{{CB72A4A2-277B-4763-9AC2-DF0B17107579}"
 #define MyAppDirectory "PingYi"
 #define MyOutputName "PingYi-" + MyAppVersion + "-win-x64-setup"
@@ -42,4 +42,4 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingD
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
