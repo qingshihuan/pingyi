@@ -373,6 +373,46 @@
                   </Grid>
                 </Expander>
 
+                <Expander Header="Google Cloud OCR 与翻译凭据">
+                  <Grid Margin="0,12,0,0" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
+                        ColumnSpacing="12" RowSpacing="10">
+                    <StackPanel Spacing="5">
+                      <TextBlock Text="Google Cloud API Key" Classes="field-label" />
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBox x:Name="GoogleCloudApiKeyBox" IsReadOnly="True"
+                                 PlaceholderText="尚未保存"
+                                 AutomationProperties.Name="Google Cloud API Key" />
+                        <Button Grid.Column="1" x:Name="GoogleCloudApiKeyRevealButton"
+                                Classes="ghost secret-action" Content="显示" MinWidth="54"
+                                Tag="google-cloud-api-key" Click="ToggleSecretVisibility_OnClick"
+                                ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 Google Cloud API Key" />
+                      </Grid>
+                    </StackPanel>
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                               Text="该密钥由你自己的 Google Cloud 项目提供；建议只允许调用 Cloud Vision API 与 Cloud Translation API。截图仅在选择 Google OCR 时上传，翻译只上传识别后的文字。"
+                               Classes="tertiary" FontSize="11" TextWrapping="Wrap" />
+                    <Border Grid.Row="2" Classes="inline-status">
+                      <StackPanel Spacing="4">
+                        <TextBlock x:Name="GoogleOcrCredentialStatusText"
+                                   Text="Google OCR 凭据：正在检查安全存储…"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   AutomationProperties.LiveSetting="Polite" />
+                        <TextBlock x:Name="GoogleTranslationCredentialStatusText"
+                                   Text="Google 翻译凭据：正在检查安全存储…"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   AutomationProperties.LiveSetting="Polite" />
+                      </StackPanel>
+                    </Border>
+                    <Button Grid.Row="2" Grid.Column="1" x:Name="ValidateGoogleCredentialsButton"
+                            Classes="secondary" Content="保存并验证 Google 凭据"
+                            VerticalAlignment="Center"
+                            Click="ValidateGoogleCredentialsButton_OnClick"
+                            AutomationProperties.Name="保存并验证 Google Cloud 凭据" />
+                  </Grid>
+                </Expander>
+
                 <Expander Header="本机 / 自定义大模型接口">
                   <Grid Margin="0,12,0,0" ColumnDefinitions="2*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                         ColumnSpacing="12" RowSpacing="10">
@@ -431,7 +471,7 @@
 
                 <Expander Header="外观、快捷键与启动">
                   <Grid Margin="0,12,0,0" ColumnDefinitions="*,*"
-                        RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                        RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
                     <StackPanel Spacing="5">
                       <TextBlock Text="主界面样式" Classes="field-label" />
                       <ComboBox x:Name="InterfaceStyleCombo"
@@ -446,13 +486,20 @@
                       <TextBlock Text="保存后立即重新注册；冲突时会在当前窗口提示。"
                                  Classes="tertiary" FontSize="10" TextWrapping="Wrap" />
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="8">
+                    <StackPanel Grid.Row="1" Spacing="5">
+                      <TextBlock Text="界面语言" Classes="field-label" />
+                      <ComboBox x:Name="UiLanguageCombo"
+                                AutomationProperties.Name="选择界面语言" />
+                      <TextBlock Text="跟随系统会在中文系统使用简体中文，其他系统使用 English；重新启动后生效。"
+                                 Classes="tertiary" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8">
                       <CheckBox x:Name="StartMinimizedCheckBox" Content="启动后最小化到托盘"
                                 AutomationProperties.Name="启动后最小化到托盘" />
                       <CheckBox x:Name="CheckForUpdatesCheckBox" Content="检查并提示可用的新版本"
                                 AutomationProperties.Name="检查应用更新" />
                     </StackPanel>
-                    <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="inline-status">
+                    <Border Grid.Row="3" Grid.ColumnSpan="2" Classes="inline-status">
                       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <StackPanel Spacing="3" VerticalAlignment="Center">
                           <TextBlock Text="经典完整界面" FontWeight="SemiBold" FontSize="12" />

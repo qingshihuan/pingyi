@@ -18,6 +18,7 @@ public partial class ResultWindow : Window
     public ResultWindow()
     {
         InitializeComponent();
+        UiText.Attach(this);
         KeyDown += (_, eventArgs) =>
         {
             if (eventArgs.Key == Key.Escape && PinButton.IsChecked != true)
@@ -99,7 +100,7 @@ public partial class ResultWindow : Window
         {
             SourceTextBox.Text = string.Empty;
         }
-        TranslationTextBox.Text = keepSource ? "翻译暂不可用，可复制上方原文或重新处理。" : string.Empty;
+        TranslationTextBox.Text = keepSource ? UiText.T("翻译暂不可用，可复制上方原文或重新处理。") : string.Empty;
         RepairButton.IsVisible = true;
     }
 
@@ -111,7 +112,9 @@ public partial class ResultWindow : Window
 
     private async void CopyAllButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        var text = $"原文{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}译文{Environment.NewLine}{TranslationTextBox.Text}";
+        var sourceLabel = UiText.T("原文");
+        var translationLabel = UiText.T("译文");
+        var text = $"{sourceLabel}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{translationLabel}{Environment.NewLine}{TranslationTextBox.Text}";
         await CopyAsync(text, "原文与译文已复制");
     }
 
@@ -150,7 +153,7 @@ public partial class ResultWindow : Window
     private void PinButton_OnClick(object? sender, RoutedEventArgs e)
     {
         Topmost = PinButton.IsChecked == true;
-        PinButtonLabel.Text = Topmost ? "已固定" : "固定";
+        PinButtonLabel.Text = UiText.T(Topmost ? "已固定" : "固定");
     }
 
     private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Hide();
@@ -159,7 +162,7 @@ public partial class ResultWindow : Window
 
     private void SetStatusVisual(string message, string foregroundKey, string indicatorKey, bool isProcessing)
     {
-        StatusText.Text = message;
+        StatusText.Text = UiText.T(message);
         StatusText.Foreground = Application.Current?.FindResource(foregroundKey) as IBrush;
         ResultStatusIndicator.Background = Application.Current?.FindResource(indicatorKey) as IBrush;
         ProcessingProgress.IsVisible = isProcessing;

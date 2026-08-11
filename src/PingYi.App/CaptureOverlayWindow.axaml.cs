@@ -29,6 +29,7 @@ public partial class CaptureOverlayWindow : Window
         _preferredScaling = preferredScaling > 0 ? preferredScaling : 1;
         _session = session;
         InitializeComponent();
+        UiText.Attach(this);
         _bitmap = new Bitmap(new MemoryStream(capture.PngBytes));
         ScreenshotImage.Source = _bitmap;
         Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);

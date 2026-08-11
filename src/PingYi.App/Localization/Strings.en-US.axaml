@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:String x:Key="String.AppName">PingYi</x:String>
+  <x:String x:Key="String.AppTagline">Capture, recognize, and translate in one step</x:String>
+  <x:String x:Key="String.StartCapture">Start capture</x:String>
+  <x:String x:Key="String.ResultTitle">Recognition results</x:String>
+  <x:String x:Key="String.CopySource">Copy source</x:String>
+  <x:String x:Key="String.CopyTranslation">Copy translation</x:String>
+  <x:String x:Key="String.CopyAll">Copy all</x:String>
+  <x:String x:Key="String.Retry">Process again</x:String>
+  <x:String x:Key="String.OpenSettings">Open settings</x:String>
+  <x:String x:Key="String.Close">Close</x:String>
+</ResourceDictionary>

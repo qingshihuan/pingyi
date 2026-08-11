@@ -6,7 +6,13 @@ public sealed record LocalLlmPreset(
     string ChatCompletionsEndpoint,
     string SuggestedModel = "")
 {
-    public override string ToString() => DisplayName;
+    public string LocalizedDisplayName =>
+        !string.Equals(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh", StringComparison.OrdinalIgnoreCase) &&
+        Id == "vllm"
+            ? "vLLM / other compatible service"
+            : DisplayName;
+
+    public override string ToString() => LocalizedDisplayName;
 }
 
 public static class LocalLlmPresets

@@ -41,6 +41,7 @@ public partial class App : Application
         try
         {
             _services = await AppServices.CreateAsync();
+            UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
             _mainWindow = openSettings
@@ -102,11 +103,11 @@ public partial class App : Application
 
     private TrayIcon CreateTrayIcon()
     {
-        var showItem = new NativeMenuItem($"打开 {AppEdition.ProductName}");
+        var showItem = new NativeMenuItem(UiText.IsEnglish ? "Open PingYi" : $"打开 {AppEdition.ProductName}");
         showItem.Click += (_, _) => ShowMainWindow();
-        var captureItem = new NativeMenuItem("截图翻译");
+        var captureItem = new NativeMenuItem(UiText.T("截图翻译"));
         captureItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell);
-        var exitItem = new NativeMenuItem("退出");
+        var exitItem = new NativeMenuItem(UiText.T("退出"));
         exitItem.Click += async (_, _) => await ExitAsync();
 
         var menu = new NativeMenu();
@@ -117,7 +118,7 @@ public partial class App : Application
         var tray = new TrayIcon
         {
             Icon = CreateWindowIcon(),
-            ToolTipText = $"{AppEdition.ProductName} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
+            ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
             Menu = menu,
             IsVisible = true
         };

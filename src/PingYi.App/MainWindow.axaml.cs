@@ -27,6 +27,7 @@ public partial class MainWindow : Window, IMainWindowShell
     public MainWindow()
     {
         InitializeComponent();
+        UiText.Attach(this);
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
     }
@@ -51,7 +52,7 @@ public partial class MainWindow : Window, IMainWindowShell
 
     public void SetGlobalStatus(string message, bool isError)
     {
-        GlobalStatusText.Text = message;
+        GlobalStatusText.Text = UiText.T(message);
         GlobalStatusText.Foreground = isError
             ? Application.Current?.FindResource("DangerTextBrush") as IBrush
             : Application.Current?.FindResource("SecondaryTextBrush") as IBrush;
@@ -73,10 +74,14 @@ public partial class MainWindow : Window, IMainWindowShell
         {
             var settings = _services.Settings;
             OcrProviderCombo.ItemsSource = _services.Providers.OcrProviders
-                .Select(provider => new ProviderChoice(provider.Metadata.Id, provider.Metadata.DisplayName))
+                .Select(provider => new ProviderChoice(
+                    provider.Metadata.Id,
+                    UiText.ProviderName(provider.Metadata.Id, provider.Metadata.DisplayName)))
                 .ToArray();
             TranslationProviderCombo.ItemsSource = _services.Providers.TranslationProviders
-                .Select(provider => new ProviderChoice(provider.Metadata.Id, provider.Metadata.DisplayName))
+                .Select(provider => new ProviderChoice(
+                    provider.Metadata.Id,
+                    UiText.ProviderName(provider.Metadata.Id, provider.Metadata.DisplayName)))
                 .ToArray();
             OcrProviderCombo.SelectedItem = ((IEnumerable<ProviderChoice>)OcrProviderCombo.ItemsSource)
                 .FirstOrDefault(choice => choice.Id == settings.OcrProviderId);
@@ -91,6 +96,10 @@ public partial class MainWindow : Window, IMainWindowShell
             InterfaceStyleCombo.ItemsSource = UiStyleChoice.All;
             InterfaceStyleCombo.SelectedItem = UiStyleChoice.All
                 .First(choice => choice.Id == settings.InterfaceStyle);
+            var languageChoices = UiLanguageChoice.Create();
+            UiLanguageCombo.ItemsSource = languageChoices;
+            UiLanguageCombo.SelectedItem = languageChoices
+                .First(choice => choice.Id == settings.UiLanguage);
             HotkeyBox.Text = settings.Hotkey;
             StartMinimizedCheckBox.IsChecked = settings.StartMinimized;
             CheckForUpdatesCheckBox.IsChecked = settings.CheckForUpdates;
@@ -278,10 +287,16 @@ public partial class MainWindow : Window, IMainWindowShell
             var ocrStatus = await ProbeOcrProviderAsync(ocr);
             var translationStatus = await ProbeTranslationProviderAsync(translation);
             var ready = ocrStatus.IsAvailable && translationStatus.IsAvailable;
+            var ocrName = UiText.ProviderName(ocr.Metadata.Id, ocr.Metadata.DisplayName);
+            var translationName = UiText.ProviderName(translation.Metadata.Id, translation.Metadata.DisplayName);
             SetGlobalStatus(
                 ready
-                    ? $"{ocr.Metadata.DisplayName}、{translation.Metadata.DisplayName}均可用。"
-                    : $"OCR：{ocrStatus.Message ?? "可用"}  翻译：{translationStatus.Message ?? "可用"}",
+                    ? UiText.IsEnglish
+                        ? $"{ocrName} and {translationName} are available."
+                        : $"{ocrName}、{translationName}均可用。"
+                    : UiText.IsEnglish
+                        ? $"OCR: {ocrStatus.Message ?? "Available"}  Translation: {translationStatus.Message ?? "Available"}"
+                        : $"OCR：{ocrStatus.Message ?? "可用"}  翻译：{translationStatus.Message ?? "可用"}",
                 isError: !ready);
             FinishButtonOperation(button, ready ? "状态正常" : "检查未通过", success: ready);
         }
@@ -371,6 +386,67 @@ public partial class MainWindow : Window, IMainWindowShell
         }
     }
 
+    private async void ValidateGoogleCredentialsButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var button = sender as Button;
+        BeginButtonOperation(button, "正在验证…");
+        SetGlobalStatus("正在安全保存并验证 Google Cloud 凭据…", isError: false);
+        try
+        {
+            await PersistSecretFieldAsync(SecretKeys.GoogleCloudApiKey);
+            HideSecretFields(SecretKeys.GoogleCloudApiKey);
+            var configured = await _services.GoogleOcrProvider.GetAvailabilityAsync();
+            if (!configured.IsAvailable)
+            {
+                SetInlineStatus(GoogleOcrCredentialStatusText, "Google OCR 凭据：尚未配置", "WarningTextBrush");
+                SetInlineStatus(GoogleTranslationCredentialStatusText, "Google 翻译凭据：尚未配置", "WarningTextBrush");
+                SetGlobalStatus("尚未填写 Google Cloud API Key。", isError: true);
+                FinishButtonOperation(button, "验证未通过", success: false);
+                return;
+            }
+
+            var allValid = true;
+            try
+            {
+                await _services.GoogleOcrProvider.ValidateCredentialsAsync();
+                SetInlineStatus(GoogleOcrCredentialStatusText, "Google OCR 凭据：验证通过", "SuccessTextBrush");
+            }
+            catch (Exception exception)
+            {
+                allValid = false;
+                SetInlineStatus(GoogleOcrCredentialStatusText, $"Google OCR 凭据：{exception.Message}", "DangerTextBrush");
+            }
+
+            try
+            {
+                await _services.GoogleTranslationProvider.ValidateCredentialsAsync();
+                SetInlineStatus(GoogleTranslationCredentialStatusText, "Google 翻译凭据：验证通过", "SuccessTextBrush");
+            }
+            catch (Exception exception)
+            {
+                allValid = false;
+                SetInlineStatus(GoogleTranslationCredentialStatusText, $"Google 翻译凭据：{exception.Message}", "DangerTextBrush");
+            }
+
+            SetGlobalStatus(
+                allValid
+                    ? "Google Cloud Vision 与 Translation 均验证通过。"
+                    : "部分 Google Cloud API 验证失败，请确认项目已启用对应 API 并检查密钥限制。",
+                isError: !allValid);
+            FinishButtonOperation(button, allValid ? "验证通过" : "验证未通过", success: allValid);
+        }
+        catch (Exception exception)
+        {
+            SetGlobalStatus(exception.Message, isError: true);
+            FinishButtonOperation(button, "验证失败", success: false);
+        }
+    }
+
     private async void UseLocalLlamaPresetButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_services is null)
@@ -389,8 +465,12 @@ public partial class MainWindow : Window, IMainWindowShell
             SelectTranslationProvider("custom-chat");
             await _services.SaveSettingsAsync(BuildSettingsFromForm());
             presetSaved = true;
-            SetInlineStatus(CustomTranslationStatusText, $"{preset.DisplayName} 预设已保存，正在发现可用模型…", "SecondaryTextBrush");
-            SetGlobalStatus($"{preset.DisplayName} 配置已应用，正在检查服务…", isError: false);
+            SetInlineStatus(CustomTranslationStatusText, UiText.IsEnglish
+                ? $"{preset.LocalizedDisplayName} preset saved; discovering available models…"
+                : $"{preset.DisplayName} 预设已保存，正在发现可用模型…", "SecondaryTextBrush");
+            SetGlobalStatus(UiText.IsEnglish
+                ? $"{preset.LocalizedDisplayName} configuration applied; checking the service…"
+                : $"{preset.DisplayName} 配置已应用，正在检查服务…", isError: false);
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
@@ -451,13 +531,17 @@ public partial class MainWindow : Window, IMainWindowShell
         _managedModelOperation = new CancellationTokenSource();
         BeginButtonOperation(ManagedModelInstallButton, "正在下载并配置…");
         SetManagedModelBusy(true);
-        SetGlobalStatus($"正在从魔搭下载 {model.DisplayName}…", isError: false);
+        SetGlobalStatus(UiText.IsEnglish
+            ? $"Downloading {model.LocalizedDisplayName} from ModelScope…"
+            : $"正在从魔搭下载 {model.DisplayName}…", isError: false);
         try
         {
             var progress = new Progress<ManagedModelProgress>(UpdateManagedModelProgress);
             await _services.ManagedModels.DownloadAsync(model, progress, _managedModelOperation.Token);
             await ApplyAndStartManagedModelAsync(model, progress, _managedModelOperation.Token);
-            SetGlobalStatus($"{model.DisplayName} 已下载、校验、启动并应用。", isError: false);
+            SetGlobalStatus(UiText.IsEnglish
+                ? $"{model.LocalizedDisplayName} was downloaded, verified, started, and applied."
+                : $"{model.DisplayName} 已下载、校验、启动并应用。", isError: false);
             _buttonDefaultEnabledStates[ManagedModelInstallButton] = false;
             FinishButtonOperation(ManagedModelInstallButton, "已安装并应用", success: true, isEnabledAfterResult: false);
         }
@@ -498,7 +582,9 @@ public partial class MainWindow : Window, IMainWindowShell
         {
             var progress = new Progress<ManagedModelProgress>(UpdateManagedModelProgress);
             await ApplyAndStartManagedModelAsync(model, progress, _managedModelOperation.Token);
-            SetGlobalStatus($"{model.DisplayName} 已启动并设为 OCR 与翻译模型。", isError: false);
+            SetGlobalStatus(UiText.IsEnglish
+                ? $"{model.LocalizedDisplayName} is running and selected for OCR and translation."
+                : $"{model.DisplayName} 已启动并设为 OCR 与翻译模型。", isError: false);
             FinishButtonOperation(ManagedModelStartButton, "已启动并应用", success: true);
         }
         catch (OperationCanceledException)
@@ -631,8 +717,10 @@ public partial class MainWindow : Window, IMainWindowShell
             return;
         }
 
-        ManagedModelSummaryText.Text = $"{model.Summary} 量化：{model.Quantization} · 许可：{model.License} · 发布：{model.ReleaseDate}";
-        ManagedModelHardwareText.Text = model.HardwareHint;
+        ManagedModelSummaryText.Text = UiText.IsEnglish
+            ? $"{model.LocalizedSummary} Quantization: {model.Quantization} · License: {model.License} · Released: {model.ReleaseDate}"
+            : $"{model.Summary} 量化：{model.Quantization} · 许可：{model.License} · 发布：{model.ReleaseDate}";
+        ManagedModelHardwareText.Text = model.LocalizedHardwareHint;
     }
 
     private string SelectedManagedRuntimeBackendId =>
@@ -641,7 +729,7 @@ public partial class MainWindow : Window, IMainWindowShell
     private void UpdateManagedRuntimeBackendDescription()
     {
         var backend = ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend ?? ManagedRuntimeBackends.Auto;
-        ManagedRuntimeBackendHintText.Text = backend.Description;
+        ManagedRuntimeBackendHintText.Text = backend.LocalizedDescription;
     }
 
     private void UpdateManagedModelProgress(ManagedModelProgress progress)
@@ -842,16 +930,19 @@ public partial class MainWindow : Window, IMainWindowShell
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked != false,
-            InterfaceStyle = (InterfaceStyleCombo.SelectedItem as UiStyleChoice)?.Id ?? "modern"
+            InterfaceStyle = (InterfaceStyleCombo.SelectedItem as UiStyleChoice)?.Id ?? "modern",
+            UiLanguage = (UiLanguageCombo.SelectedItem as UiLanguageChoice)?.Id ?? "auto"
         };
     }
 
     private void ConfigureWindowMode()
     {
-        Title = _settingsMode ? $"{AppEdition.ProductName}设置" : AppEdition.ProductName;
+        Title = UiText.IsEnglish
+            ? _settingsMode ? "PingYi Settings" : "PingYi"
+            : _settingsMode ? $"{AppEdition.ProductName}设置" : AppEdition.ProductName;
         if (_settingsMode)
         {
-            Title = $"{AppEdition.ProductName}设置";
+            Title = UiText.IsEnglish ? "PingYi Settings" : $"{AppEdition.ProductName}设置";
             WindowHeadingText.Text = "设置";
             WindowSubtitleText.Text = "处理、模型、服务、快捷键与外观";
             CaptureHero.IsVisible = false;
@@ -913,6 +1004,10 @@ public partial class MainWindow : Window, IMainWindowShell
             {
                 await baidu.ValidateCredentialsAsync();
             }
+            else if (availability.IsAvailable && provider is GoogleCloudVisionOcrProvider google)
+            {
+                await google.ValidateCredentialsAsync();
+            }
 
             return availability;
         }
@@ -930,6 +1025,10 @@ public partial class MainWindow : Window, IMainWindowShell
             if (availability.IsAvailable && provider is BaiduTranslationProvider baidu)
             {
                 await baidu.ValidateCredentialsAsync();
+            }
+            else if (availability.IsAvailable && provider is GoogleCloudTranslationProvider google)
+            {
+                await google.ValidateCredentialsAsync();
             }
 
             return availability;
@@ -1076,11 +1175,13 @@ public partial class MainWindow : Window, IMainWindowShell
             var ocrSecret = await _services.SecretStore.GetAsync(SecretKeys.BaiduOcrSecretKey);
             var translationAppId = await _services.SecretStore.GetAsync(SecretKeys.BaiduTranslateAppId);
             var translationSecret = await _services.SecretStore.GetAsync(SecretKeys.BaiduTranslateSecret);
+            var googleApiKey = await _services.SecretStore.GetAsync(SecretKeys.GoogleCloudApiKey);
             var customApiKey = await _services.SecretStore.GetAsync(SecretKeys.CustomTranslationApiKey);
             SetSecretFieldValue(SecretKeys.BaiduOcrApiKey, ocrApiKey);
             SetSecretFieldValue(SecretKeys.BaiduOcrSecretKey, ocrSecret);
             SetSecretFieldValue(SecretKeys.BaiduTranslateAppId, translationAppId);
             SetSecretFieldValue(SecretKeys.BaiduTranslateSecret, translationSecret);
+            SetSecretFieldValue(SecretKeys.GoogleCloudApiKey, googleApiKey);
             SetSecretFieldValue(SecretKeys.CustomTranslationApiKey, customApiKey);
             var ocrReady = !string.IsNullOrWhiteSpace(ocrApiKey) && !string.IsNullOrWhiteSpace(ocrSecret);
             var translationReady = !string.IsNullOrWhiteSpace(translationAppId) && !string.IsNullOrWhiteSpace(translationSecret);
@@ -1093,17 +1194,29 @@ public partial class MainWindow : Window, IMainWindowShell
                 BaiduTranslationCredentialStatusText,
                 translationReady ? "翻译凭据：已安全保存" : "翻译凭据：未配置或缺少一项",
                 translationReady ? "SuccessTextBrush" : "WarningTextBrush");
+            var googleReady = !string.IsNullOrWhiteSpace(googleApiKey);
+            SetInlineStatus(
+                GoogleOcrCredentialStatusText,
+                googleReady ? "Google OCR 凭据：已安全保存" : "Google OCR 凭据：未配置",
+                googleReady ? "SuccessTextBrush" : "WarningTextBrush");
+            SetInlineStatus(
+                GoogleTranslationCredentialStatusText,
+                googleReady ? "Google 翻译凭据：已安全保存" : "Google 翻译凭据：未配置",
+                googleReady ? "SuccessTextBrush" : "WarningTextBrush");
         }
         catch (Exception exception)
         {
             SetInlineStatus(BaiduOcrCredentialStatusText, $"读取凭据失败：{exception.Message}", "DangerTextBrush");
             SetInlineStatus(BaiduTranslationCredentialStatusText, "翻译凭据状态未知", "DangerTextBrush");
+            SetInlineStatus(GoogleOcrCredentialStatusText, "Google OCR 凭据状态未知", "DangerTextBrush");
+            SetInlineStatus(GoogleTranslationCredentialStatusText, "Google 翻译凭据状态未知", "DangerTextBrush");
         }
     }
 
     private async Task SaveAllEnteredSecretsAsync()
     {
         await SaveBaiduSecretInputsAsync();
+        await PersistSecretFieldAsync(SecretKeys.GoogleCloudApiKey);
         await PersistSecretFieldAsync(SecretKeys.CustomTranslationApiKey);
     }
 
@@ -1153,7 +1266,7 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private static void SetInlineStatus(TextBlock textBlock, string message, string brushKey)
     {
-        textBlock.Text = message;
+        textBlock.Text = UiText.T(message);
         textBlock.Foreground = Application.Current?.FindResource(brushKey) as IBrush;
     }
 
@@ -1321,6 +1434,11 @@ public partial class MainWindow : Window, IMainWindowShell
             BaiduTranslateSecretBox,
             BaiduTranslateSecretRevealButton);
         RegisterSecretField(
+            SecretKeys.GoogleCloudApiKey,
+            "Google Cloud API Key",
+            GoogleCloudApiKeyBox,
+            GoogleCloudApiKeyRevealButton);
+        RegisterSecretField(
             SecretKeys.CustomTranslationApiKey,
             "兼容接口 API Key",
             CustomApiKeyBox,
@@ -1466,7 +1584,9 @@ public partial class MainWindow : Window, IMainWindowShell
                 .Where(language => provider.Metadata.SupportedLanguages.Contains(
                     language.Code,
                     StringComparer.OrdinalIgnoreCase))
-                .Select(language => new LanguageChoice(language.Code, language.DisplayName)));
+                .Select(language => new LanguageChoice(
+                    language.Code,
+                    UiText.IsEnglish ? language.EnglishDisplayName : language.DisplayName)));
 
         TargetLanguageCombo.ItemsSource = choices;
         TargetLanguageCombo.SelectedItem = choices.FirstOrDefault(
@@ -1488,6 +1608,15 @@ public partial class MainWindow : Window, IMainWindowShell
             new("modern", "新版精简主界面"),
             new("classic", "经典完整界面")
         ];
+
+        public override string ToString() => Name;
+    }
+
+    private sealed record UiLanguageChoice(string Id, string Name)
+    {
+        public static IReadOnlyList<UiLanguageChoice> Create() => UiText.IsEnglish
+            ? [new("auto", "Follow system"), new("zh-CN", "简体中文"), new("en-US", "English")]
+            : [new("auto", "跟随系统 / Follow system"), new("zh-CN", "简体中文"), new("en-US", "English")];
 
         public override string ToString() => Name;
     }

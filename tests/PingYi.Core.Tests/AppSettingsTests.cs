@@ -59,6 +59,26 @@ public sealed class AppSettingsTests
         Assert.Equal(expected, normalized.InterfaceStyle);
     }
 
+    [Theory]
+    [InlineData("auto", "auto")]
+    [InlineData("zh-CN", "zh-CN")]
+    [InlineData("en-US", "en-US")]
+    [InlineData("fr-FR", "auto")]
+    [InlineData("", "auto")]
+    public void Normalize_PreservesOnlySupportedUiLanguages(string value, string expected)
+    {
+        var normalized = new AppSettings { UiLanguage = value }.Normalize();
+
+        Assert.Equal(expected, normalized.UiLanguage);
+    }
+
+    [Fact]
+    public void LanguageCatalog_ProvidesEnglishNamesForEveryTargetLanguage()
+    {
+        Assert.All(LanguageCatalog.All, language => Assert.False(string.IsNullOrWhiteSpace(language.EnglishDisplayName)));
+        Assert.Equal(LanguageCatalog.All.Count, LanguageCatalog.All.Select(language => language.EnglishDisplayName).Distinct().Count());
+    }
+
     [Fact]
     public void Normalize_MigratesLegacyHotkeyAndLocalLlamaSettings()
     {

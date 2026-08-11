@@ -1,0 +1,68 @@
+name: OCR quality sample
+description: Help improve recognition with a privacy-safe, reproducible sample
+title: "[OCR]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve PingYi OCR. Remove names, accounts, keys, private conversations, and other sensitive data before attaching an image.
+
+        感谢帮助改进屏译。上传样本前请遮挡姓名、账号、密钥、私人对话及其他敏感信息。
+  - type: input
+    id: version
+    attributes:
+      label: PingYi version / 屏译版本
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: OCR provider / OCR 提供商
+      options:
+        - Local PaddleOCR
+        - PaddleOCR + local LLM correction
+        - Local multimodal LLM OCR
+        - Google Cloud Vision OCR
+        - Baidu Cloud OCR
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform / 平台
+      options:
+        - Windows 11 x64
+        - Windows 10 x64
+        - Ubuntu X11 x64
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected text / 预期文字
+      description: Paste only privacy-safe expected text.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Recognized text / 实际识别结果
+      description: Paste only privacy-safe recognized text.
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Redacted sample image / 已脱敏样本图
+      description: Drag in a cropped, redacted image if it is safe to publish under this repository's issue history.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation / 隐私确认
+      options:
+        - label: I removed credentials and private information from all attached material. / 我已移除凭据和私人信息。
+          required: true

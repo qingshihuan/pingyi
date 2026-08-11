@@ -29,4 +29,10 @@ The download catalog pins each repository revision, file size, and SHA-256 hash.
 Users remain responsible for reviewing model terms and acceptable-use
 requirements applicable to their jurisdiction and use case.
 
+PingYi can optionally call Google Cloud Vision API and Google Cloud Translation
+Basic v2 with an API key supplied from the user's own Google Cloud project.
+Google services and credentials are not bundled with PingYi. Their use remains
+subject to Google's terms, project configuration, quotas, and billing. Source:
+https://cloud.google.com/vision and https://cloud.google.com/translate
+
 The upstream projects and authors retain all rights granted by their respective licenses. This notice does not replace the full upstream license texts.

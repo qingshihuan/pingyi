@@ -13,14 +13,21 @@
 <p align="center">
   <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/qingshihuan/pingyi/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag&include_prereleases"></a>
+  <a href="https://github.com/qingshihuan/pingyi/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/qingshihuan/pingyi?style=flat"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0f766e"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
   <img alt="Ubuntu X11" src="https://img.shields.io/badge/Ubuntu-X11-e95420">
 </p>
 
-屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、PaddleOCR 中英文识别、文字提取和翻译，并复制原文或译文。
+<p align="center">
+  <img src="docs/social-preview.png" width="920" alt="屏译：离线优先的截图 OCR 与翻译桌面工具">
+</p>
 
-标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。
+屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
+
+标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。需要更广语言覆盖时，可使用自己的 Google Cloud 或百度凭据。
+
+如果屏译解决了你的截图取词或翻译需求，欢迎点一个 [Star](https://github.com/qingshihuan/pingyi)；它能帮助更多需要离线 OCR 与隐私截图翻译的人找到这个项目。
 
 ## 为什么选择屏译
 
@@ -30,7 +37,8 @@
 - **真正的离线保底**：内置 PaddleOCR ONNX 与 Argos Translate，中英识别和翻译无需联网。
 - **本地大模型增强**：支持 llama.cpp、Ollama、LM Studio、vLLM 和通用 OpenAI 兼容接口；默认自动识别原文，外语译成简体中文、中文译成英文，也可指定 34 种常用目标语言。
 - **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
-- **云端服务可选**：可自行配置百度 OCR、百度翻译或自定义 Chat Completions 接口。
+- **云端服务可选**：可自行配置 Google Cloud Vision OCR、Google Cloud Translation、百度服务或自定义 Chat Completions 接口。
+- **中英文界面**：可跟随系统，也可在设置中固定为简体中文或 English。
 - **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu X11 x64。
 - **开箱运行**：Windows 自包含安装包/便携 ZIP，Ubuntu 提供 `.deb`/`.tar.gz`，无需另装运行时。
 
@@ -59,8 +67,19 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 | 本机大模型翻译 | llama.cpp / Ollama / LM Studio / vLLM | 否 | 由外部服务决定；多语言能力取决于模型 |
 | 百度 OCR | 百度含位置文字识别 | 是，上传所选图片 | 云端 |
 | 百度/自定义翻译 | 百度翻译或 Chat Completions | 是，仅上传识别文字 | 云端 |
+| Google OCR | Cloud Vision API | 是，上传所选图片 | 云端 |
+| Google 翻译 | Cloud Translation Basic v2 | 是，仅上传识别文字 | 云端 |
 
 标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 运行库。完全版只增加 llama.cpp 官方 MIT 许可的 Vulkan 与 CPU 运行时，不携带 CUDA、cuDNN 或 ROCm；Vulkan 可使用支持该接口的 AMD、NVIDIA 或 Intel 显卡。外部本机大模型服务也可独立使用自己的加速方案。没有显卡不影响基础功能或完全版的 CPU 模式。
+
+## 配置 Google Cloud OCR 与翻译
+
+1. 在自己的 Google Cloud 项目中启用 [Cloud Vision API](https://cloud.google.com/vision/docs) 与 [Cloud Translation API](https://cloud.google.com/translate/docs/basic/translating-text)。
+2. 创建 API Key，并按 Google 的建议限制其只能访问这两个 API；如果平台条件允许，再增加应用或来源限制。
+3. 打开“设置 → Google Cloud OCR 与翻译凭据”，点击“显示”后粘贴 Key，再选择“保存并验证 Google 凭据”。
+4. 在处理引擎中分别选择 `Google Cloud Vision OCR` 或 `Google Cloud Translation`。两者可以与本地或其他云端提供商自由组合。
+
+Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `settings.json`。验证 OCR 时只上传内置的 1×1 透明测试图，验证翻译时只发送固定单词 `test`。实际使用中，只有选择 Google OCR 才会上传所选截图；Google 翻译只接收识别后的文字。Google Cloud 的启用、配额和费用由用户自己的项目承担。
 
 ## 完全版一键本机模型
 
@@ -86,11 +105,12 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 - Ubuntu X11 的 Xlib 截图与全局快捷键实现。
 - PaddleOCR PP-OCRv5 中英移动模型、ONNX Runtime CPU 推理和 SHA-256 完整性校验。
 - Argos 中英双向基础翻译，以及本机大模型不可用时的自动离线回退。
-- 百度含位置 OCR、百度通用翻译和自定义 Chat Completions 翻译接口。
+- Google Cloud Vision OCR、Google Cloud Translation Basic v2、百度含位置 OCR、百度通用翻译和自定义 Chat Completions 翻译接口。
 - llama.cpp、Ollama、LM Studio、vLLM 与通用 OpenAI 兼容预设。
 - 本机多模态大模型 OCR，以及更适合小字、终端和特殊字体的 PaddleOCR + 视觉模型纠错模式。
 - 复制原文/译文/全部、重新处理、结果卡固定、托盘常驻和浅深色主题。
 - 任务优先的主界面、独立设置窗口、故障修复卡和可选经典界面。
+- 简体中文与 English 界面，可跟随操作系统语言自动选择。
 - Windows DPAPI 与 Linux Secret Service 密钥存储；凭据支持遮罩查看、明文切换、复制和粘贴。
 - 默认零历史记录；日志禁止记录截图、识别正文、译文和密钥。
 
@@ -139,7 +159,7 @@ python scripts/download-offline-models.py --destination artifacts/model-source
 
 ```powershell
 py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
-.\scripts\publish.ps1 -Runtime win-x64 -Version 0.2.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
 推送 `v*` 标签后，GitHub Actions 会分别生成 Windows 安装器/ZIP 与 Ubuntu `.deb`/`.tar.gz`，附带 SHA-256 校验文件并创建 GitHub Release。

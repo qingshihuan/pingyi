@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8f7f3"/>
+      <stop offset="0.55" stop-color="#f8fbfa"/>
+      <stop offset="1" stop-color="#fff1e6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#153b39" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="1165" cy="-24" r="190" fill="#0d9488" opacity="0.08"/>
+  <circle cx="80" cy="690" r="230" fill="#c2410c" opacity="0.06"/>
+
+  <g transform="translate(74 70)">
+    <rect width="74" height="74" rx="21" fill="#0d9488"/>
+    <path d="M20 31V21a2 2 0 0 1 2-2h10M42 19h10a2 2 0 0 1 2 2v10M54 43v10a2 2 0 0 1-2 2H42M32 55H22a2 2 0 0 1-2-2V43" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <path d="M28 31h18M28 39h18M28 47h12" fill="none" stroke="#ccfbf1" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <text x="174" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="52" font-weight="750" fill="#123b39">PingYi</text>
+  <text x="176" y="145" font-family="Microsoft YaHei UI, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#58706e">屏译 · OPEN SOURCE DESKTOP TOOL</text>
+
+  <text x="74" y="235" font-family="Segoe UI, Arial, sans-serif" font-size="50" font-weight="760" fill="#102f2e">Screenshot OCR &amp;</text>
+  <text x="74" y="291" font-family="Segoe UI, Arial, sans-serif" font-size="50" font-weight="760" fill="#102f2e">translation, your way.</text>
+  <text x="77" y="340" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#58706e">Offline by default. Google Cloud when you choose.</text>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#153b39">
+    <g transform="translate(74 389)"><rect width="150" height="40" rx="20" fill="#d8f3ed"/><text x="75" y="26" text-anchor="middle">OFFLINE READY</text></g>
+    <g transform="translate(236 389)"><rect width="158" height="40" rx="20" fill="#fff0e7"/><text x="79" y="26" text-anchor="middle">GOOGLE CLOUD</text></g>
+    <g transform="translate(406 389)"><rect width="134" height="40" rx="20" fill="#e8efee"/><text x="67" y="26" text-anchor="middle">LOCAL LLM</text></g>
+    <g transform="translate(552 389)"><rect width="120" height="40" rx="20" fill="#d8f3ed"/><text x="60" y="26" text-anchor="middle">EN / 中文</text></g>
+  </g>
+
+  <text x="76" y="514" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0d9488">CTRL + ALT + D</text>
+  <text x="76" y="546" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#58706e">Select an area · Copy text · Translate instantly</text>
+  <text x="76" y="590" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#718684">Windows 10/11 · Ubuntu X11 · MIT</text>
+
+  <g transform="translate(730 78)" filter="url(#shadow)">
+    <rect width="478" height="490" rx="30" fill="#ffffff" stroke="#d8e5e3" stroke-width="2"/>
+    <rect x="28" y="28" width="44" height="44" rx="13" fill="#0d9488"/>
+    <path d="M40 47v-7h7M57 40h7v7M64 57v7h-7M47 64h-7v-7" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="88" y="57" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#153b39">Recognition results</text>
+    <circle cx="91" cy="75" r="4" fill="#0d9488"/>
+
+    <rect x="28" y="96" width="422" height="142" rx="20" fill="#f0f5f4" stroke="#d8e5e3"/>
+    <text x="52" y="128" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#153b39">SOURCE</text>
+    <text x="52" y="168" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#153b39">Privacy-first OCR that works</text>
+    <text x="52" y="198" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#153b39">even when you are offline.</text>
+
+    <rect x="28" y="254" width="422" height="142" rx="20" fill="#f0f5f4" stroke="#d8e5e3"/>
+    <text x="52" y="286" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#153b39">TRANSLATION</text>
+    <text x="52" y="326" font-family="Microsoft YaHei UI, Segoe UI, sans-serif" font-size="21" fill="#153b39">隐私优先的 OCR，即使离线也能使用。</text>
+
+    <rect x="28" y="420" width="196" height="42" rx="21" fill="#edf5f3"/>
+    <circle cx="49" cy="441" r="6" fill="#15803d"/>
+    <text x="64" y="447" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="650" fill="#3f5e5b">Content stays local</text>
+    <rect x="300" y="414" width="150" height="54" rx="16" fill="#0d9488"/>
+    <text x="375" y="448" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#fff">Copy all</text>
+  </g>
+</svg>
