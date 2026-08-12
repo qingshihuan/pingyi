@@ -29,6 +29,14 @@
 
 如果屏译解决了你的截图取词或翻译需求，欢迎点一个 [Star](https://github.com/qingshihuan/pingyi)；它能帮助更多需要离线 OCR 与隐私截图翻译的人找到这个项目。
 
+## 24 秒了解屏译
+
+<p align="center">
+  <img src="docs/demo.gif" width="800" alt="屏译截图 OCR 与翻译工作流演示">
+</p>
+
+演示展示了快捷键框选、OCR 结果、翻译和本地隐私状态。可直接下载 [v0.3.0](https://github.com/qingshihuan/pingyi/releases/tag/v0.3.0)；标准版安装后即可离线使用中英基础功能。
+
 ## 为什么选择屏译
 
 - **截图翻译一次完成**：全局快捷键框选，结果卡直接显示原文和译文。

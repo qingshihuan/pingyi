@@ -29,6 +29,14 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 
 If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
 
+## PingYi in 24 seconds
+
+<p align="center">
+  <img src="docs/demo.gif" width="800" alt="PingYi screenshot OCR and translation workflow demo">
+</p>
+
+The demo covers region capture, OCR results, translation, and local privacy status. Download [v0.3.0](https://github.com/qingshihuan/pingyi/releases/tag/v0.3.0); the Standard edition provides offline Chinese-English essentials immediately after installation.
+
 ## Why PingYi
 
 - **One-step screenshot translation:** select a region with a global hotkey and see the source text and translation immediately.
