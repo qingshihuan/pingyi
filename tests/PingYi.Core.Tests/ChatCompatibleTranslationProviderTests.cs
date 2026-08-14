@@ -138,6 +138,34 @@ public sealed class ChatCompatibleTranslationProviderTests
         Assert.Contains("de", provider.Metadata.SupportedLanguages);
     }
 
+    [Fact]
+    public async Task RemoteHttpEndpoint_IsRejectedBeforeCredentialsOrTextCanBeSent()
+    {
+        var requestSent = false;
+        var handler = new StubHandler(_ =>
+        {
+            requestSent = true;
+            return Json("{}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "http://api.example.com/v1/chat/completions",
+            CustomTranslationModel = "remote-model"
+        };
+        var provider = new ChatCompatibleTranslationProvider(
+            new HttpClient(handler),
+            new StubSecretStore(),
+            () => settings);
+
+        var availability = await provider.GetAvailabilityAsync();
+        var exception = await Assert.ThrowsAsync<ProviderException>(() =>
+            provider.TranslateAsync(new TranslationRequest("private text", "en", "zh")));
+
+        Assert.False(availability.IsAvailable);
+        Assert.Equal("custom_endpoint_insecure_transport", exception.Code);
+        Assert.False(requestSent);
+    }
+
     private static HttpResponseMessage Json(string content) => new(HttpStatusCode.OK)
     {
         Content = new StringContent(content, Encoding.UTF8, "application/json")

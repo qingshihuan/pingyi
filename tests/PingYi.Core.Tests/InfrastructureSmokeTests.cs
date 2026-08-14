@@ -56,6 +56,82 @@ public sealed class InfrastructureSmokeTests
     }
 
     [Fact]
+    public async Task EngineHost_ReportsRequestTimeoutWithStableErrorCode()
+    {
+        await using var client = new EngineProcessClient(
+            new AppDataPaths(),
+            TimeSpan.FromTicks(1));
+
+        var exception = await Assert.ThrowsAsync<ProviderException>(
+            () => client.CallAsync("health"));
+
+        Assert.Equal("engine_timeout", exception.Code);
+    }
+
+    [Fact]
+    public async Task EngineHost_CanceledInFlightRequestDoesNotPoisonNextRequest()
+    {
+        await using var client = new EngineProcessClient(new AppDataPaths());
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => client.CallAsync("health", cancellationToken: cancellation.Token));
+
+        var result = await client.CallAsync("health");
+        Assert.True(result.TryGetProperty("paddleocr", out _));
+    }
+
+    [Fact]
+    public async Task ManagedModelService_DisposeCancelsOperationWaitingForGate()
+    {
+        var service = new ManagedModelService(new AppDataPaths());
+        var gate = Assert.IsType<SemaphoreSlim>(
+            typeof(ManagedModelService)
+                .GetField("_operationGate", System.Reflection.BindingFlags.Instance |
+                                             System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(service));
+        await gate.WaitAsync();
+
+        var pendingOperation = service.StopAsync();
+        var dispose = service.DisposeAsync().AsTask();
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pendingOperation);
+        }
+        finally
+        {
+            gate.Release();
+        }
+
+        await dispose.WaitAsync(TimeSpan.FromSeconds(2));
+        await service.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task PaddleOcrProvider_DisposeWaitsForActiveNativeInferenceGate()
+    {
+        var provider = new PaddleOcrProvider(new AppDataPaths());
+        var gate = Assert.IsType<SemaphoreSlim>(
+            typeof(PaddleOcrProvider)
+                .GetField("_inferenceGate", System.Reflection.BindingFlags.Instance |
+                                            System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(provider));
+        await gate.WaitAsync();
+
+        var dispose = provider.DisposeAsync().AsTask();
+        Assert.False(dispose.IsCompleted);
+
+        gate.Release();
+        await dispose.WaitAsync(TimeSpan.FromSeconds(2));
+        await provider.DisposeAsync();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(
+            () => provider.RecognizeAsync(
+                new ImageFrame([], 0, 0, new PixelRect(0, 0, 0, 0)),
+                new OcrOptions("auto")));
+    }
+
+    [Fact]
     public async Task ScreenCaptureAndCrop_ReturnValidInMemoryPng()
     {
         if (!OperatingSystem.IsWindows())

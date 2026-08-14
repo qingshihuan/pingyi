@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -11,6 +12,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
 {
     private AppServices? _services;
     private CaptureCoordinator? _captureCoordinator;
+    private Func<Task>? _openSettings;
     private bool _isRefreshing;
 
     public MainWindowV2()
@@ -19,10 +21,14 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         UiText.Attach(this);
     }
 
-    public MainWindowV2(AppServices services, CaptureCoordinator captureCoordinator) : this()
+    public MainWindowV2(
+        AppServices services,
+        CaptureCoordinator captureCoordinator,
+        Func<Task>? openSettings = null) : this()
     {
         _services = services;
         _captureCoordinator = captureCoordinator;
+        _openSettings = openSettings;
         Title = UiText.IsEnglish ? "PingYi" : AppEdition.ProductName;
         LoadSettings();
         Opened += async (_, _) => await RefreshDashboardAsync();
@@ -32,10 +38,10 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     public void SetGlobalStatus(string message, bool isError)
     {
         TopStatusText.Text = isError ? "需要处理" : "运行正常";
-        TopStatusDot.Background = Brush.Parse(isError ? "#B42318" : "#009E8A");
+        TopStatusDot.Background = FindBrush(isError ? "DangerBrushV2" : "TealBrush");
         LiveStatusTitleText.Text = isError ? "操作未完成" : "运行正常";
         LiveStatusDetailText.Text = UiText.T(message);
-        LiveStatusDot.Background = Brush.Parse(isError ? "#B42318" : "#009E8A");
+        LiveStatusDot.Background = FindBrush(isError ? "DangerBrushV2" : "TealBrush");
         RecoveryBorder.IsVisible = isError;
         if (isError)
         {
@@ -44,6 +50,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     }
 
     public IReadOnlyList<CaptureDisplay> GetCaptureDisplays() => CaptureDisplay.From(this);
+
+    public void OpenSettings() => _ = OpenSettingsWindowAsync();
 
     private void LoadSettings()
     {
@@ -83,7 +91,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
 
         _isRefreshing = true;
         TopStatusText.Text = "正在检查";
-        TopStatusDot.Background = Brush.Parse("#D94A13");
+        TopStatusDot.Background = FindBrush("OrangeBrush");
         ModelStatusTitleText.Text = "正在校验基础模型";
         ModelStatusDetailText.Text = "确认无网络环境下仍可执行 OCR 与翻译";
         try
@@ -93,16 +101,16 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             if (settings.ManagedRuntimeEnabled &&
                 ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var managedModel))
             {
-                LiveStatusDetailText.Text = $"正在加载 {managedModel.DisplayName}…";
+                LiveStatusDetailText.Text = UiText.IsEnglish
+                    ? $"Loading {managedModel.LocalizedDisplayName}…"
+                    : $"正在加载 {managedModel.DisplayName}…";
                 try
                 {
-                    await _services.ManagedModels.EnsureStartedAsync(
-                        managedModel,
-                        settings.ManagedRuntimeBackend);
+                    await _services.WaitForManagedRuntimeAsync();
                 }
                 catch (Exception exception)
                 {
-                    managedStartupError = exception.Message;
+                    managedStartupError = UiText.Error(exception);
                 }
             }
 
@@ -125,7 +133,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             var translation = await selectedTranslationTask;
 
             var baseModelsReady = paddle.IsAvailable && argos.IsAvailable;
-            ModelStatusDot.Background = Brush.Parse(baseModelsReady ? "#0D7A4B" : "#D94A13");
+            ModelStatusDot.Background = FindBrush(baseModelsReady ? "SuccessBrushV2" : "OrangeBrush");
             ModelStatusTitleText.Text = baseModelsReady ? "离线基础功能就绪" : "基础模型需要处理";
             ModelStatusDetailText.Text = baseModelsReady
                 ? "PaddleOCR 与中英离线翻译均已校验"
@@ -150,7 +158,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
         }
         finally
         {
@@ -181,10 +189,10 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         await ApplyModeAsync("local-paddle", "local-argos", "本地优先");
 
     private async void LocalLlmMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyModeAsync("local-paddle", "custom-chat", "本机大模型");
+        await ApplyLocalModelModeAsync("local-paddle", "本机大模型");
 
     private async void LocalMultimodalMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyModeAsync("local-vlm-corrected", "custom-chat", "本机多模态");
+        await ApplyLocalModelModeAsync("local-vlm-corrected", "本机多模态");
 
     private async void CloudModeMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
         await ApplyModeAsync("baidu-ocr", "baidu-translate", "云端增强");
@@ -212,7 +220,28 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
+        }
+    }
+
+    private async Task ApplyLocalModelModeAsync(string ocrProviderId, string modeName)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var localSettings = LocalLlmPresets.ApplyLocalMode(_services.Settings, ocrProviderId);
+            await _services.SaveSettingsAsync(localSettings);
+            LoadSettings();
+            SetGlobalStatus($"已切换到“{modeName}”，正在检查可用性。", isError: false);
+            await RefreshDashboardAsync();
+        }
+        catch (Exception exception)
+        {
+            SetGlobalStatus(UiText.Error(exception), isError: true);
         }
     }
 
@@ -224,6 +253,14 @@ public partial class MainWindowV2 : Window, IMainWindowShell
 
     private async Task OpenSettingsWindowAsync()
     {
+        if (_openSettings is not null)
+        {
+            await _openSettings();
+            LoadSettings();
+            await RefreshDashboardAsync();
+            return;
+        }
+
         if (_services is null || _captureCoordinator is null)
         {
             SetGlobalStatus("设置服务尚未初始化。", isError: true);
@@ -244,7 +281,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            return new ProviderAvailability(false, exception.Message);
+            return new ProviderAvailability(false, UiText.Error(exception));
         }
     }
 
@@ -256,12 +293,12 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            return new ProviderAvailability(false, exception.Message);
+            return new ProviderAvailability(false, UiText.Error(exception));
         }
     }
 
     private static string DescribeAvailability(ProviderAvailability availability) =>
-        availability.IsAvailable ? UiText.T("可用") : availability.Message ?? UiText.T("不可用");
+        availability.IsAvailable ? UiText.T("可用") : UiText.T(availability.Message ?? "不可用");
 
     private static string DescribeMode(
         AppSettings settings,
@@ -321,4 +358,9 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             ? $"The image is recognized locally; only recognized text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}."
             : $"图片在本地识别；只有识别文字会发送给 {translation.DisplayName}。";
     }
+
+    private IBrush FindBrush(string key) =>
+        TryGetResource(key, ActualThemeVariant, out var resource) && resource is IBrush brush
+            ? brush
+            : Brushes.Gray;
 }

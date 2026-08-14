@@ -4,7 +4,8 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: PingYi contributors
-Depends: libx11-6, libfontconfig1, libice6, libsm6, libsecret-tools
+Depends: libc6, libx11-6, libfontconfig1, libice6, libsm6, libstdc++6, libgcc-s1, libgomp1, libvulkan1, libssl3 | libssl3t64
+Recommends: libsecret-tools
 Description: Screenshot OCR and translation utility
  PingYi captures a selected screen region, recognizes Chinese or English text,
  and translates it using local or user-configured cloud providers.

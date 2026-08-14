@@ -3,6 +3,11 @@
 # with --no-deps so a CPU-only build never downloads Torch/CUDA transitively.
 argostranslate==1.11.0
 ctranslate2==4.8.1
+# The Windows CTranslate2 wheel carries Intel OpenMP. Install the matching
+# official package so its exact EULA and OpenMP third-party notices are
+# available to the release-license collector.
+intel-openmp==2025.3.0; platform_system == "Windows"
+onemkl-license==2025.3.0
 numpy==2.5.1
 packaging==26.2
 PyYAML==6.0.3

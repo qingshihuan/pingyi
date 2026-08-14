@@ -1,6 +1,6 @@
-# PingYi v0.1 quality baseline
+# PingYi quality baseline
 
-This baseline was run on 2026-08-02 before the first public release. It is a
+This baseline was most recently rerun on 2026-08-13. It is a
 repeatable regression gate, not a claim that every real-world screenshot will
 reach the same score.
 
@@ -13,10 +13,10 @@ whitespace, and calculates Levenshtein similarity.
 | Scene | Result | Required |
 | --- | ---: | ---: |
 | Clean bilingual text | 100.0% | 95% |
-| Compact settings UI | 100.0% | 92% |
+| Compact settings UI | 95.9% | 92% |
 | Dark result card | 100.0% | 92% |
-| Long mixed technical text | 97.5% | 90% |
-| Small dark terminal with colored text | 98.7% | 90% |
+| Long mixed technical text | 100.0% | 90% |
+| Small dark terminal with colored text | 99.2% | 90% |
 
 Run the same gate with a prepared offline model directory:
 
@@ -27,8 +27,11 @@ Run the same gate with a prepared offline model directory:
 
 The regression test lives in
 `tests/PingYi.Core.Tests/OcrQualityBaselineTests.cs`. The recognition pipeline
-uses a dynamic input width for long text lines and normalizes dark-background
-text before inference.
+uses a dynamic input width for long text lines. Detection tiles large captures,
+upscales small captures by as much as 2×, uses the model-declared BGR channel
+order, and detects dark-background text through a single inverted pass to avoid
+duplicate or cross-line boxes. Recognition compares normal and inverted crops
+and discards very low-confidence output.
 
 ## Translation
 

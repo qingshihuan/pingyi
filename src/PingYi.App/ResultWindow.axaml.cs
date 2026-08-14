@@ -23,7 +23,7 @@ public partial class ResultWindow : Window
         {
             if (eventArgs.Key == Key.Escape && PinButton.IsChecked != true)
             {
-                Hide();
+                Dismiss();
             }
         };
         Closing += (_, eventArgs) =>
@@ -35,12 +35,14 @@ public partial class ResultWindow : Window
 
             eventArgs.Cancel = true;
             Hide();
+            Dismissed?.Invoke(this);
         };
         Opened += (_, _) => ClampToScreen();
     }
 
     public event Func<Task>? RetryRequested;
     public event Action? OpenSettingsRequested;
+    public event Action<ResultWindow>? Dismissed;
     public bool IsPinned => PinButton.IsChecked == true;
 
     public void ShowAt(CorePixelRect anchor)
@@ -65,6 +67,8 @@ public partial class ResultWindow : Window
         Activate();
         Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
     }
+
+    public void HideTemporarily() => Hide();
 
     public void ClosePermanently()
     {
@@ -156,9 +160,15 @@ public partial class ResultWindow : Window
         PinButtonLabel.Text = UiText.T(Topmost ? "已固定" : "固定");
     }
 
-    private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Hide();
+    private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Dismiss();
 
     private void RepairButton_OnClick(object? sender, RoutedEventArgs e) => OpenSettingsRequested?.Invoke();
+
+    private void Dismiss()
+    {
+        Hide();
+        Dismissed?.Invoke(this);
+    }
 
     private void SetStatusVisual(string message, string foregroundKey, string indicatorKey, bool isProcessing)
     {

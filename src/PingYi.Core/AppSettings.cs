@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
     public const string DefaultHotkey = "Ctrl+Alt+D";
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -20,7 +20,7 @@ public sealed record AppSettings
     public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Auto.Id;
     public bool ManagedRuntimeEnabled { get; init; }
     public bool StartMinimized { get; init; }
-    public bool CheckForUpdates { get; init; } = true;
+    public bool CheckForUpdates { get; init; }
     public string InterfaceStyle { get; init; } = "modern";
     public string UiLanguage { get; init; } = "auto";
 
@@ -59,6 +59,7 @@ public sealed record AppSettings
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
                                     ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
                                     string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
+            CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
             InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern",
             UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
@@ -66,13 +67,24 @@ public sealed record AppSettings
 
     public static string NormalizeChatCompletionsEndpoint(string? value)
     {
-        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var endpoint) ||
-            endpoint.Scheme is not ("http" or "https"))
+        if (!TryParseChatCompletionsEndpoint(value, out var endpoint))
         {
             return DefaultCustomTranslationEndpoint;
         }
 
-        var path = endpoint.AbsolutePath.TrimEnd('/');
+        return endpoint.AbsoluteUri.TrimEnd('/');
+    }
+
+    public static bool TryParseChatCompletionsEndpoint(string? value, out Uri endpoint)
+    {
+        endpoint = null!;
+        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var parsedEndpoint) ||
+            parsedEndpoint.Scheme is not ("http" or "https"))
+        {
+            return false;
+        }
+
+        var path = parsedEndpoint.AbsolutePath.TrimEnd('/');
         if (string.IsNullOrEmpty(path))
         {
             path = "/v1/chat/completions";
@@ -82,14 +94,18 @@ public sealed record AppSettings
             path = "/v1/chat/completions";
         }
 
-        var builder = new UriBuilder(endpoint)
+        var builder = new UriBuilder(parsedEndpoint)
         {
             Path = path,
             Query = string.Empty,
             Fragment = string.Empty
         };
-        return builder.Uri.AbsoluteUri.TrimEnd('/');
+        endpoint = builder.Uri;
+        return true;
     }
+
+    public static bool IsChatCompletionsTransportAllowed(Uri endpoint) =>
+        endpoint.IsLoopback || string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
 }
 
 public static class SecretKeys

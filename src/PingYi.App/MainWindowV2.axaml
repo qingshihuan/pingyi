@@ -7,51 +7,71 @@
         Height="640"
         MinWidth="820"
         MinHeight="560"
-        WindowStartupLocation="CenterScreen"
-        FontFamily="Satoshi, Segoe UI Variable Text, Segoe UI">
+        WindowStartupLocation="CenterScreen">
   <Window.Resources>
-    <SolidColorBrush x:Key="PageBrush">#F2F4EF</SolidColorBrush>
-    <SolidColorBrush x:Key="SurfaceBrush">#FFFFFF</SolidColorBrush>
-    <SolidColorBrush x:Key="SoftBrush">#E8EFEC</SolidColorBrush>
-    <SolidColorBrush x:Key="InkBrush">#0A1B27</SolidColorBrush>
-    <SolidColorBrush x:Key="MutedBrush">#60727A</SolidColorBrush>
-    <SolidColorBrush x:Key="BorderBrushV2">#D5DFDB</SolidColorBrush>
-    <SolidColorBrush x:Key="NavyBrush">#071A31</SolidColorBrush>
-    <SolidColorBrush x:Key="TealBrush">#009E8A</SolidColorBrush>
-    <SolidColorBrush x:Key="TealDarkBrush">#007B6C</SolidColorBrush>
-    <SolidColorBrush x:Key="OrangeBrush">#D94A13</SolidColorBrush>
-    <SolidColorBrush x:Key="SuccessBrushV2">#0D7A4B</SolidColorBrush>
-    <SolidColorBrush x:Key="DangerBrushV2">#B42318</SolidColorBrush>
-    <SolidColorBrush x:Key="DangerSoftBrush">#FDE7E4</SolidColorBrush>
-    <LinearGradientBrush x:Key="HeroBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-      <GradientStop Color="#071A31" Offset="0" />
-      <GradientStop Color="#0B2838" Offset="0.58" />
-      <GradientStop Color="#075B57" Offset="1" />
-    </LinearGradientBrush>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="PageBrush">#F2F4EF</SolidColorBrush>
+          <SolidColorBrush x:Key="SurfaceBrush">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="NavBrush">#FAFFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="SoftBrush">#E8EFEC</SolidColorBrush>
+          <SolidColorBrush x:Key="InkBrush">#0A1B27</SolidColorBrush>
+          <SolidColorBrush x:Key="MutedBrush">#60727A</SolidColorBrush>
+          <SolidColorBrush x:Key="BorderBrushV2">#D5DFDB</SolidColorBrush>
+          <SolidColorBrush x:Key="DangerSoftBrush">#FDE7E4</SolidColorBrush>
+          <SolidColorBrush x:Key="DangerBorderBrushV2">#F0B4AD</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="PageBrush">#0C1718</SolidColorBrush>
+          <SolidColorBrush x:Key="SurfaceBrush">#122223</SolidColorBrush>
+          <SolidColorBrush x:Key="NavBrush">#F2172A2B</SolidColorBrush>
+          <SolidColorBrush x:Key="SoftBrush">#1B3333</SolidColorBrush>
+          <SolidColorBrush x:Key="InkBrush">#EAF6F4</SolidColorBrush>
+          <SolidColorBrush x:Key="MutedBrush">#AAC0BD</SolidColorBrush>
+          <SolidColorBrush x:Key="BorderBrushV2">#2B4646</SolidColorBrush>
+          <SolidColorBrush x:Key="DangerSoftBrush">#3B2020</SolidColorBrush>
+          <SolidColorBrush x:Key="DangerBorderBrushV2">#7F3B38</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <SolidColorBrush x:Key="NavyBrush">#071A31</SolidColorBrush>
+      <SolidColorBrush x:Key="TealBrush">#009E8A</SolidColorBrush>
+      <SolidColorBrush x:Key="TealDarkBrush">#007B6C</SolidColorBrush>
+      <SolidColorBrush x:Key="OrangeBrush">#D94A13</SolidColorBrush>
+      <SolidColorBrush x:Key="OrangeHoverBrush">#B93A0B</SolidColorBrush>
+      <SolidColorBrush x:Key="SuccessBrushV2">#0D7A4B</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerBrushV2">#E05D54</SolidColorBrush>
+      <LinearGradientBrush x:Key="HeroBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#071A31" Offset="0" />
+        <GradientStop Color="#0B2838" Offset="0.58" />
+        <GradientStop Color="#075B57" Offset="1" />
+      </LinearGradientBrush>
+    </ResourceDictionary>
   </Window.Resources>
 
   <Window.Styles>
     <Style Selector="Window">
-      <Setter Property="Background" Value="{StaticResource PageBrush}" />
-      <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+      <Setter Property="Background" Value="{DynamicResource PageBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
     </Style>
     <Style Selector="Border.nav">
-      <Setter Property="Background" Value="#FAFFFFFF" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrushV2}" />
+      <Setter Property="Background" Value="{DynamicResource NavBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
       <Setter Property="BoxShadow" Value="0 8 24 0 #10071A31" />
     </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrushV2}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="18" />
       <Setter Property="Padding" Value="20" />
       <Setter Property="BoxShadow" Value="0 10 28 0 #0D071A31" />
     </Style>
     <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
     </Style>
     <Style Selector="TextBlock.display">
       <Setter Property="FontSize" Value="38" />
@@ -70,22 +90,22 @@
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="{StaticResource OrangeBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource OrangeBrush}" />
+      <Setter Property="Background" Value="{DynamicResource OrangeBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource OrangeBrush}" />
       <Setter Property="Foreground" Value="White" />
       <Setter Property="MinHeight" Value="56" />
       <Setter Property="FontSize" Value="16" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#B93A0B" />
+      <Setter Property="Background" Value="{DynamicResource OrangeHoverBrush}" />
     </Style>
     <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource BorderBrushV2}" />
-      <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
     </Style>
     <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="{StaticResource SoftBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SoftBrush}" />
     </Style>
     <Style Selector="Button.dark">
       <Setter Property="Background" Value="#18FFFFFF" />
@@ -113,15 +133,15 @@
                  Width="40" Height="40" Stretch="Uniform" />
           <StackPanel VerticalAlignment="Center" Spacing="0">
             <TextBlock Text="屏译" FontSize="18" FontWeight="Bold" />
-            <TextBlock Text="截图、识别、翻译，一次完成" Classes="muted" FontSize="11" />
+            <TextBlock Text="截图、识别、翻译，一次完成" Classes="muted" FontSize="12" />
           </StackPanel>
         </StackPanel>
 
         <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{StaticResource SoftBrush}" CornerRadius="999" Padding="13,7">
+                Background="{DynamicResource SoftBrush}" CornerRadius="999" Padding="13,7">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Border x:Name="TopStatusDot" Width="8" Height="8" CornerRadius="4"
-                    Background="{StaticResource TealBrush}" VerticalAlignment="Center" />
+                    Background="{DynamicResource TealBrush}" VerticalAlignment="Center" />
             <TextBlock x:Name="TopStatusText" Text="正在检查" FontSize="12"
                        FontWeight="SemiBold" VerticalAlignment="Center" />
           </StackPanel>
@@ -139,7 +159,7 @@
 
     <Grid Grid.Row="1" RowDefinitions="*,Auto" RowSpacing="12">
       <Grid ColumnDefinitions="7*,5*" ColumnSpacing="16">
-        <Border Background="{StaticResource HeroBrush}" CornerRadius="24" Padding="30"
+        <Border Background="{DynamicResource HeroBrush}" CornerRadius="24" Padding="30"
                 ClipToBounds="True" BoxShadow="0 18 46 0 #26071A31">
           <Grid RowDefinitions="Auto,*,Auto">
             <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon.png"
@@ -149,7 +169,7 @@
                         HorizontalAlignment="Left">
               <StackPanel Spacing="9">
                 <TextBlock Text="框选一次，读懂屏幕" Classes="display"
-                           Foreground="White" TextWrapping="NoWrap" />
+                           Foreground="White" TextWrapping="Wrap" />
                 <TextBlock Text="从屏幕画面到可复制原文，再到自然译文。默认本地处理，不保存历史。"
                            Foreground="#C7D8DE" FontSize="14" LineHeight="22"
                            TextWrapping="Wrap" MaxWidth="430" />
@@ -163,7 +183,7 @@
                             Data="M4 8V5A1 1 0 0 1 5 4H8 M16 4H19A1 1 0 0 1 20 5V8 M20 16V19A1 1 0 0 1 19 20H16 M8 20H5A1 1 0 0 1 4 19V16" />
                   <TextBlock Grid.Column="1" Text="开始截图" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="2" x:Name="CaptureHotkeyText" Text="Ctrl  Alt  D"
-                             FontFamily="Consolas" FontSize="11" VerticalAlignment="Center" />
+                             FontFamily="Consolas" FontSize="12" VerticalAlignment="Center" />
                 </Grid>
               </Button>
             </StackPanel>
@@ -172,7 +192,7 @@
               <PathIcon Classes="icon" Foreground="#9FE2D9"
                         Data="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3 M8 12L11 15L16 9" />
               <TextBlock Grid.Column="1" Text="本地优先时，截图与文字不会离开设备"
-                         Foreground="#A9C4CA" FontSize="11" VerticalAlignment="Center" />
+                         Foreground="#A9C4CA" FontSize="12" VerticalAlignment="Center" />
             </Grid>
           </Grid>
         </Border>
@@ -183,7 +203,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <StackPanel Spacing="2">
                   <TextBlock Text="当前方案" Classes="card-title" />
-                  <TextBlock Text="常用模式可快速切换" Classes="muted" FontSize="10" />
+                  <TextBlock Text="常用模式可快速切换" Classes="muted" FontSize="12" />
                 </StackPanel>
                 <Button Grid.Column="1" Classes="secondary" Content="快速切换"
                         AutomationProperties.Name="快速切换处理方案">
@@ -207,19 +227,19 @@
                          FontSize="23" FontWeight="Bold" TextWrapping="Wrap" />
 
               <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Border Background="{StaticResource SoftBrush}" CornerRadius="12" Padding="12,9">
+                <Border Background="{DynamicResource SoftBrush}" CornerRadius="12" Padding="12,9">
                   <StackPanel Spacing="3">
-                    <TextBlock Text="文字识别" Classes="muted" FontSize="10" />
+                    <TextBlock Text="文字识别" Classes="muted" FontSize="12" />
                     <TextBlock x:Name="OcrSummaryText" Text="本地 PaddleOCR"
-                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" />
+                               FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
                   </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Background="{StaticResource SoftBrush}"
+                <Border Grid.Column="1" Background="{DynamicResource SoftBrush}"
                         CornerRadius="12" Padding="12,9">
                   <StackPanel Spacing="3">
-                    <TextBlock Text="翻译方式" Classes="muted" FontSize="10" />
+                    <TextBlock Text="翻译方式" Classes="muted" FontSize="12" />
                     <TextBlock x:Name="TranslationSummaryText" Text="本地 Argos"
-                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" />
+                               FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
                   </StackPanel>
                 </Border>
               </Grid>
@@ -232,14 +252,14 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Text="本地模型" Classes="card-title" />
                   <Border Grid.Column="1" x:Name="ModelStatusDot" Width="9" Height="9"
-                          CornerRadius="5" Background="{StaticResource TealBrush}"
+                          CornerRadius="5" Background="{DynamicResource TealBrush}"
                           VerticalAlignment="Center" />
                 </Grid>
                 <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="5">
                   <TextBlock x:Name="ModelStatusTitleText" Text="正在检查"
                              FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" />
                   <TextBlock x:Name="ModelStatusDetailText" Text="启动时校验离线模型"
-                             Classes="muted" FontSize="10" LineHeight="16" TextWrapping="Wrap" />
+                             Classes="muted" FontSize="12" LineHeight="18" TextWrapping="Wrap" />
                 </StackPanel>
               </Grid>
             </Border>
@@ -249,12 +269,12 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Text="隐私边界" Classes="card-title" />
                   <PathIcon Grid.Column="1" Width="17" Height="17"
-                            Foreground="{StaticResource SuccessBrushV2}"
+                            Foreground="{DynamicResource SuccessBrushV2}"
                             Data="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3 M8 12L11 15L16 9" />
                 </Grid>
                 <TextBlock Grid.Row="1" x:Name="PrivacySummaryText"
                            Text="正在读取当前方案的数据范围"
-                           Classes="muted" FontSize="10" LineHeight="16"
+                           Classes="muted" FontSize="12" LineHeight="18"
                            TextWrapping="Wrap" VerticalAlignment="Center" />
               </Grid>
             </Border>
@@ -263,16 +283,16 @@
       </Grid>
 
       <Border Grid.Row="1" x:Name="RecoveryBorder" IsVisible="False"
-              Background="{StaticResource DangerSoftBrush}"
-              BorderBrush="#F0B4AD" BorderThickness="1" CornerRadius="14" Padding="14,11">
+              Background="{DynamicResource DangerSoftBrush}"
+              BorderBrush="{DynamicResource DangerBorderBrushV2}" BorderThickness="1" CornerRadius="14" Padding="14,11">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-          <PathIcon Width="19" Height="19" Foreground="{StaticResource DangerBrushV2}"
+          <PathIcon Width="19" Height="19" Foreground="{DynamicResource DangerBrushV2}"
                     VerticalAlignment="Center"
                     Data="M12 3L22 20H2L12 3 M12 9V14 M12 17V18" />
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
             <TextBlock Text="当前方案需要处理" FontWeight="Bold" FontSize="12" />
             <TextBlock x:Name="RecoveryDetailText" Text="请检查模型或服务配置。"
-                       Classes="muted" FontSize="10" TextWrapping="Wrap"
+                       Classes="muted" FontSize="12" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
           </StackPanel>
           <Button Grid.Column="2" Classes="secondary" Content="立即修复"
@@ -284,12 +304,12 @@
     <Border Grid.Row="2" Classes="nav" Padding="14,10">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
         <Border x:Name="LiveStatusDot" Width="9" Height="9" CornerRadius="5"
-                Background="{StaticResource TealBrush}" VerticalAlignment="Center" />
+                Background="{DynamicResource TealBrush}" VerticalAlignment="Center" />
         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
           <TextBlock x:Name="LiveStatusTitleText" Text="准备就绪"
                      FontSize="12" FontWeight="Bold" />
           <TextBlock x:Name="LiveStatusDetailText" Text="按 Ctrl+Alt+D 或点击“开始截图”。"
-                     Classes="muted" FontSize="10" TextWrapping="Wrap"
+                     Classes="muted" FontSize="12" TextWrapping="Wrap"
                      AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
       </Grid>

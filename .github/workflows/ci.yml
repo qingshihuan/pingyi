@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     strategy:
@@ -11,12 +14,16 @@ jobs:
         os: [windows-latest, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
       - run: dotnet restore PingYi.slnx
       - run: dotnet build PingYi.slnx -c Release --no-restore
       - run: dotnet test PingYi.slnx -c Release --no-build
       - run: python -m py_compile engine_host/main.py
       - run: python -m unittest discover -s engine_host -p "test_*.py"
+      - run: python -m unittest discover -s scripts -p "test_*.py"

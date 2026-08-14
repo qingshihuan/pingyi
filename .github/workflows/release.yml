@@ -11,19 +11,55 @@ on:
         default: 0.1.0
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.x
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
+      - name: Run full test suite
+        shell: pwsh
+        run: |
+          dotnet restore PingYi.slnx
+          dotnet build PingYi.slnx -c Release --no-restore
+          dotnet test PingYi.slnx -c Release --no-build
+          python -m py_compile engine_host/main.py
+          python -m unittest discover -s engine_host -p "test_*.py"
+          python -m unittest discover -s scripts -p "test_*.py"
+      - name: Import optional Authenticode certificate
+        id: signing
+        shell: pwsh
+        env:
+          SIGNING_CERTIFICATE_BASE64: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_BASE64 }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_BASE64)) {
+            "thumbprint=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "No signing certificate configured; producing unsigned Windows artifacts."
+            exit 0
+          }
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_PASSWORD)) {
+            throw "PINGYI_SIGNING_CERTIFICATE_PASSWORD is required when a signing certificate is configured."
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "pingyi-signing-certificate.pfx"
+          [IO.File]::WriteAllBytes(
+            $certificatePath,
+            [Convert]::FromBase64String($env:SIGNING_CERTIFICATE_BASE64))
+          $password = ConvertTo-SecureString $env:SIGNING_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $imported = @(Import-PfxCertificate `
+            -FilePath $certificatePath `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -Password $password)
+          $certificate = $imported | Where-Object HasPrivateKey | Select-Object -First 1
+          if (-not $certificate) { throw "The PFX did not contain a code-signing certificate with a private key." }
+          "thumbprint=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Build Windows release
         shell: pwsh
         run: |
@@ -32,23 +68,38 @@ jobs:
           } else {
             "${{ github.ref_name }}".TrimStart("v")
           }
+          $signingArguments = @{}
+          $signingThumbprint = "${{ steps.signing.outputs.thumbprint }}"
+          if (-not [string]::IsNullOrWhiteSpace($signingThumbprint)) {
+            $signingArguments.SigningCertificateThumbprint = $signingThumbprint
+          }
           ./scripts/setup-engine.ps1 -Python python
           python ./scripts/download-offline-models.py --destination ./artifacts/model-source
           ./scripts/prepare-offline-models.ps1 `
             -Source ./artifacts/model-source `
             -Destination ./artifacts/quality-models
           ./scripts/run-quality-baseline.ps1 -ModelDirectory ./artifacts/quality-models
-          choco install innosetup --yes --no-progress
+          choco install innosetup --version 6.7.1 --yes --no-progress
           $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
-            -OfflineModelSource ./artifacts/model-source -BuildInstaller
+            -OfflineModelSource ./artifacts/model-source -BuildInstaller @signingArguments
           python ./scripts/prepare-llama-runtime.py `
             --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
             -OfflineModelSource ./artifacts/model-source -Edition Complete `
             -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 `
-            -SkipEngine -BuildInstaller
-      - uses: actions/upload-artifact@v7
+            -SkipEngine -BuildInstaller @signingArguments
+      - name: Remove optional Authenticode certificate
+        if: always()
+        shell: pwsh
+        run: |
+          $thumbprint = "${{ steps.signing.outputs.thumbprint }}"
+          if (-not [string]::IsNullOrWhiteSpace($thumbprint)) {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$thumbprint" -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "pingyi-signing-certificate.pfx") `
+            -Force -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-release
           path: |
@@ -58,13 +109,21 @@ jobs:
   linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.x
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
+      - name: Run full test suite
+        run: |
+          dotnet restore PingYi.slnx
+          dotnet build PingYi.slnx -c Release --no-restore
+          dotnet test PingYi.slnx -c Release --no-build
+          python -m py_compile engine_host/main.py
+          python -m unittest discover -s engine_host -p "test_*.py"
+          python -m unittest discover -s scripts -p "test_*.py"
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y python3-venv dpkg-dev
       - name: Build Linux release
@@ -81,10 +140,45 @@ jobs:
           PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" ./scripts/publish.sh "$version"
           python scripts/prepare-llama-runtime.py \
             --runtime linux-x64 --destination artifacts/llama-runtime/linux-x64
+          for backend in cpu vulkan; do
+            server="artifacts/llama-runtime/linux-x64/$backend/llama-server"
+            if ldd "$server" | grep -q "not found"; then
+              echo "Missing shared-library dependency for $server" >&2
+              ldd "$server" >&2
+              exit 1
+            fi
+            "$server" --version
+          done
           PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" \
             PINGYI_LLAMA_RUNTIME_SOURCE="$PWD/artifacts/llama-runtime/linux-x64" \
             ./scripts/publish.sh "$version" complete
-      - uses: actions/upload-artifact@v7
+      - name: Verify Debian packages on clean Ubuntu systems
+        run: |
+          for image in ubuntu:22.04 ubuntu:24.04; do
+            docker run --rm \
+              --volume "$PWD/artifacts:/artifacts:ro" \
+              "$image" \
+              bash -euo pipefail -c '
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y /artifacts/PingYi-*-linux-x64.deb
+                for executable in \
+                  /opt/pingyi/PingYi.App \
+                  /opt/pingyi-complete/PingYi.App \
+                  /opt/pingyi-complete/llama-runtime/cpu/llama-server \
+                  /opt/pingyi-complete/llama-runtime/vulkan/llama-server; do
+                  test -x "$executable"
+                  if ldd "$executable" | grep -q "not found"; then
+                    echo "Missing shared-library dependency for $executable" >&2
+                    ldd "$executable" >&2
+                    exit 1
+                  fi
+                done
+                /opt/pingyi-complete/llama-runtime/cpu/llama-server --version
+                /opt/pingyi-complete/llama-runtime/vulkan/llama-server --version
+              '
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: linux-release
           path: |
@@ -95,8 +189,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [windows, linux]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: release-files
           merge-multiple: true
@@ -110,7 +207,7 @@ jobs:
       - name: Generate checksums
         working-directory: release-assets
         run: sha256sum ./* > SHA256SUMS.txt
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           generate_release_notes: true
           fail_on_unmatched_files: true

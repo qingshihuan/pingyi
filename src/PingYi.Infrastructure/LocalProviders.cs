@@ -56,5 +56,8 @@ public sealed class ArgosTranslationProvider(EngineProcessClient engine) : ITran
     }
 
     public Task InstallModelsAsync(CancellationToken cancellationToken = default) =>
-        engine.CallAsync("install_translation_models", cancellationToken: cancellationToken);
+        engine.CallAsync(
+            "install_translation_models",
+            cancellationToken: cancellationToken,
+            timeout: TimeSpan.FromMinutes(30));
 }

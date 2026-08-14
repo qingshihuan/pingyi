@@ -496,8 +496,20 @@
                     <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8">
                       <CheckBox x:Name="StartMinimizedCheckBox" Content="启动后最小化到托盘"
                                 AutomationProperties.Name="启动后最小化到托盘" />
-                      <CheckBox x:Name="CheckForUpdatesCheckBox" Content="检查并提示可用的新版本"
+                      <CheckBox x:Name="CheckForUpdatesCheckBox" Content="启动时检查更新（会访问 GitHub）"
                                 AutomationProperties.Name="检查应用更新" />
+                      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                        <Button x:Name="CheckUpdatesNowButton" Classes="secondary" Content="立即检查更新"
+                                Click="CheckUpdatesNowButton_OnClick"
+                                AutomationProperties.Name="立即检查 GitHub 更新" />
+                        <Button Grid.Column="1" x:Name="OpenLatestReleaseButton" Classes="secondary"
+                                Content="打开下载页" IsVisible="False"
+                                Click="OpenLatestReleaseButton_OnClick"
+                                AutomationProperties.Name="在 GitHub 打开最新版本" />
+                        <TextBlock Grid.Column="2" x:Name="UpdateStatusText"
+                                   Classes="tertiary" FontSize="12" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                      </Grid>
                     </StackPanel>
                     <Border Grid.Row="3" Grid.ColumnSpan="2" Classes="inline-status">
                       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">

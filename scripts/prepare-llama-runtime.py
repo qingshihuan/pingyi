@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import os
@@ -94,6 +95,8 @@ def extract_runtime_payload(
     archive: Path,
     destination: Path,
     executable_name: str,
+    runtime: str,
+    backend: str,
 ) -> Path:
     extraction_root = destination.parent / f".{destination.name}-extract"
     if extraction_root.exists():
@@ -107,13 +110,54 @@ def extract_runtime_payload(
             )
 
         payload_root = executables[0].parent
+        if runtime == "win-x64":
+            required_patterns = [
+                "llama-server.exe",
+                "llama-server-impl.dll",
+                "llama-common.dll",
+                "llama.dll",
+                "mtmd.dll",
+                "ggml.dll",
+                "ggml-base.dll",
+                "ggml-cpu-*.dll",
+                "libomp140.x86_64.dll",
+            ]
+            optional_patterns: list[str] = []
+            if backend == "vulkan":
+                required_patterns.append("ggml-vulkan.dll")
+        else:
+            required_patterns = [
+                "llama-server",
+                "libllama.so*",
+                "libmtmd.so*",
+                "libggml.so*",
+                "libggml-base.so*",
+                "libggml-cpu*.so*",
+            ]
+            # LLVM OpenMP may be bundled by upstream and is covered by the
+            # Complete-edition license manifest. GNU libgomp is intentionally
+            # not redistributed; Ubuntu supplies it as the libgomp1 package.
+            optional_patterns = ["libomp.so*"]
+            if backend == "vulkan":
+                required_patterns.append("libggml-vulkan.so*")
+
+        sources = [source for source in payload_root.iterdir() if source.is_file() or source.is_symlink()]
+        missing = [
+            pattern
+            for pattern in required_patterns
+            if not any(fnmatch.fnmatch(source.name, pattern) for source in sources)
+        ]
+        if missing:
+            raise RuntimeError(
+                f"{archive.name} is missing required llama-server files: {', '.join(missing)}"
+            )
+        keep_patterns = required_patterns + optional_patterns
         destination.mkdir(parents=True, exist_ok=True)
-        for source in payload_root.iterdir():
+        for source in sources:
+            if not any(fnmatch.fnmatch(source.name, pattern) for pattern in keep_patterns):
+                continue
             target = destination / source.name
-            if source.is_dir():
-                shutil.copytree(source, target)
-            else:
-                shutil.copy2(source, target)
+            shutil.copy2(source, target, follow_symlinks=True)
     finally:
         if extraction_root.exists():
             shutil.rmtree(extraction_root)
@@ -153,6 +197,8 @@ def main() -> int:
                 archive,
                 backend_directory,
                 executable_name,
+                args.runtime,
+                asset["backend"],
             )
             if not executable.is_file():
                 raise RuntimeError(f"llama-server is missing after extracting {asset['name']}")
@@ -163,6 +209,14 @@ def main() -> int:
                     "backend": asset["backend"],
                     "archive": asset["name"],
                     "sha256": asset["sha256"],
+                    "files": [
+                        {
+                            "name": path.name,
+                            "size": path.stat().st_size,
+                        }
+                        for path in sorted(backend_directory.iterdir())
+                        if path.is_file()
+                    ],
                 }
             )
 

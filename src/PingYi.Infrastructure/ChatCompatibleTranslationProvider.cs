@@ -22,9 +22,17 @@ public sealed class ChatCompatibleTranslationProvider(
     public async ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default)
     {
         var settings = settingsAccessor();
-        if (!Uri.TryCreate(settings.CustomTranslationEndpoint, UriKind.Absolute, out var endpoint) ||
-            !string.IsNullOrWhiteSpace(endpoint.Query) ||
-            string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
+        Uri endpoint;
+        try
+        {
+            endpoint = ResolveEndpoint(settings);
+        }
+        catch (ProviderException exception)
+        {
+            return new ProviderAvailability(false, exception.Message);
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
         {
             return new ProviderAvailability(false, "请填写 OpenAI 兼容接口地址和模型名。");
         }
@@ -66,13 +74,7 @@ public sealed class ChatCompatibleTranslationProvider(
         CancellationToken cancellationToken = default)
     {
         var settings = settingsAccessor();
-        if (!Uri.TryCreate(
-                AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
-                UriKind.Absolute,
-                out var endpoint))
-        {
-            throw new ProviderException("custom_endpoint_invalid", "OpenAI 兼容接口地址无效。");
-        }
+        var endpoint = ResolveEndpoint(settings);
 
         return await QueryAvailableModelsAsync(endpoint, cancellationToken);
     }
@@ -82,8 +84,8 @@ public sealed class ChatCompatibleTranslationProvider(
         CancellationToken cancellationToken = default)
     {
         var settings = settingsAccessor();
-        if (!Uri.TryCreate(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint), UriKind.Absolute, out var endpoint) ||
-            string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
+        var endpoint = ResolveEndpoint(settings);
+        if (string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
         {
             throw new ProviderException("custom_endpoint_invalid", "自定义翻译接口配置不完整。");
         }
@@ -167,6 +169,22 @@ public sealed class ChatCompatibleTranslationProvider(
             Query = string.Empty,
             Fragment = string.Empty
         }.Uri;
+    }
+
+    private static Uri ResolveEndpoint(AppSettings settings)
+    {
+        if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint))
+        {
+            throw new ProviderException("custom_endpoint_invalid", "OpenAI 兼容接口地址无效。");
+        }
+        if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
+        {
+            throw new ProviderException(
+                "custom_endpoint_insecure_transport",
+                "远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。");
+        }
+
+        return endpoint;
     }
 
     private async Task<string[]> QueryAvailableModelsAsync(

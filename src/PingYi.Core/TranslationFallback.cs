@@ -74,7 +74,7 @@ public static class TranslationFallback
         TranslationRequest request)
     {
         var sourceLanguage = request.SourceLanguage == LanguageCatalog.Auto
-            ? TextProcessing.DetectLanguage(request.Text)
+            ? TextProcessing.DetectLanguageForOfflineFallback(request.Text)
             : request.SourceLanguage;
         return provider.SupportedLanguages.Contains(sourceLanguage, StringComparer.OrdinalIgnoreCase) &&
                provider.SupportedLanguages.Contains(request.TargetLanguage, StringComparer.OrdinalIgnoreCase)

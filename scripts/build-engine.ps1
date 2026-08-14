@@ -11,7 +11,7 @@ if (-not (Test-Path $enginePython)) {
     & (Join-Path $PSScriptRoot "setup-engine.ps1") -Python $Python
 }
 
-& $enginePython -m pip install "pyinstaller>=6,<7"
+& $enginePython -m pip install "pyinstaller==6.21.0"
 if ($LASTEXITCODE -ne 0) { throw "Failed to install PyInstaller." }
 & $enginePython -m PyInstaller --noconfirm --clean --onedir `
     --name pingyi-engine `
