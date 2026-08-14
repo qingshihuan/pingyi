@@ -151,6 +151,13 @@ public static partial class UiText
             ["跟随系统会在中文系统使用简体中文，其他系统使用 English；重新启动后生效。"] = "Follow system uses Simplified Chinese on Chinese systems and English elsewhere. Restart to apply.",
             ["启动后最小化到托盘"] = "Start minimized to tray",
             ["检查并提示可用的新版本"] = "Check for updates",
+            ["启动时检查更新（会访问 GitHub）"] = "Check for updates at startup (contacts GitHub)",
+            ["立即检查更新"] = "Check now",
+            ["立即检查 GitHub 更新"] = "Check GitHub for updates now",
+            ["打开下载页"] = "Open download page",
+            ["在 GitHub 打开最新版本"] = "Open the latest release on GitHub",
+            ["OpenAI 兼容接口地址无效。"] = "The OpenAI-compatible endpoint is invalid.",
+            ["远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。"] = "Remote custom services must use HTTPS; only loopback endpoints may use HTTP.",
             ["检查应用更新"] = "Check for application updates",
             ["经典完整界面"] = "Full classic interface",
             ["保留旧版完整页面，便于对照或恢复熟悉的工作方式。"] = "Keep the original full settings page for comparison and familiar workflows.",
@@ -253,6 +260,17 @@ public static partial class UiText
             ["快捷键已启用"] = "Global shortcut enabled",
             ["离线基础功能就绪"] = "Offline baseline ready",
             ["基础模型需要处理"] = "Baseline models need attention",
+            ["请先填写百度 OCR API Key 和 Secret Key。"] = "Configure the Baidu OCR API Key and Secret Key first.",
+            ["请先填写百度翻译 APP ID 和密钥。"] = "Configure the Baidu Translation APP ID and secret first.",
+            ["请填写 OpenAI 兼容接口地址和模型名。"] = "Enter an OpenAI-compatible endpoint and model name.",
+            ["连接本地大模型超时；请确认所选服务已启动。"] = "The local model connection timed out. Confirm that the selected service is running.",
+            ["无法连接本地大模型；请确认 llama.cpp、Ollama、LM Studio 或兼容服务已启动，并检查端口。"] = "Could not connect to the local model. Start llama.cpp, Ollama, LM Studio, or the compatible service and check its port.",
+            ["本地模型列表响应格式不正确；请确认服务兼容 OpenAI API。"] = "The local model list has an unsupported format. Confirm that the service implements the OpenAI API.",
+            ["尚未安装 Argos Translate 引擎。"] = "The Argos Translate engine is not installed.",
+            ["尚未安装中英离线翻译模型，请在设置中下载。"] = "The offline Chinese-English translation model is missing. Download it in Settings.",
+            ["中英 OCR 离线模型完整性校验失败，请重新安装标准离线版。"] = "The offline OCR model failed integrity verification. Reinstall the Standard offline edition.",
+            ["安装包缺少中英 OCR 离线模型，请重新安装标准离线版。"] = "The installer is missing the offline OCR model. Reinstall the Standard offline edition.",
+            ["离线 OCR 模型未包含在安装包中，请重新安装标准离线版或导入离线模型包。"] = "The offline OCR model is not bundled. Reinstall the Standard offline edition or import an offline model package.",
             ["正在校验基础模型"] = "Verifying baseline models",
             ["确认无网络环境下仍可执行 OCR 与翻译"] = "Confirming OCR and translation work without a network connection",
             ["PaddleOCR 与中英离线翻译均已校验"] = "PaddleOCR and offline Chinese/English translation are verified",
@@ -326,7 +344,19 @@ public static partial class UiText
             ["已配置的百度凭据均验证通过。"] = "All configured Baidu credentials were verified.",
             ["尚未填写完整的百度 OCR 或翻译凭据。"] = "Baidu OCR or translation credentials are incomplete.",
             ["已启用自动翻译：外语译成简体中文，中文译成英文。"] = "Automatic translation enabled: non-Chinese text to Simplified Chinese, and Chinese to English.",
-            ["当前为经典界面"] = "Currently using the classic interface"
+            ["当前为经典界面"] = "Currently using the classic interface",
+            ["模型与视觉组件均已通过 SHA-256 校验"] = "The model and vision projector passed SHA-256 verification",
+            ["发现未完成下载，可继续断点续传"] = "An incomplete download was found and can be resumed",
+            ["尚未下载"] = "Not downloaded",
+            ["模型下载完成并通过 SHA-256 校验"] = "The model download completed and passed SHA-256 verification",
+            ["本机模型服务已经运行"] = "The local model service is already running",
+            ["已连接正在运行的本机模型服务；其计算后端由该服务决定"] = "Connected to an existing local model service; that service controls its compute backend",
+            ["模型已通过 Vulkan 显卡后端启动"] = "The model started with the Vulkan GPU backend",
+            ["模型已通过 CPU 后端启动"] = "The model started with the CPU backend",
+            ["显卡后端不可用，已自动回退 CPU 并启动"] = "The GPU backend was unavailable, so the model started with the CPU fallback",
+            ["Vulkan 启动失败，正在自动回退 CPU…"] = "Vulkan startup failed; falling back to CPU…",
+            ["Vulkan 通用显卡"] = "Vulkan GPU",
+            ["正在验证图片识别与翻译…"] = "Validating image recognition and translation…"
         };
 
     public static string CurrentLanguage { get; private set; } = Resolve(Auto);
@@ -370,6 +400,91 @@ public static partial class UiText
         }
 
         return TranslateDynamic(text);
+    }
+
+    public static string Error(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        if (!IsEnglish)
+        {
+            return exception.Message;
+        }
+
+        if (exception is ProviderException providerException)
+        {
+            if (providerException.Code.EndsWith("_timeout", StringComparison.OrdinalIgnoreCase))
+            {
+                return "The operation timed out. Try a smaller capture area, then retry.";
+            }
+
+            if (providerException.Code.Equals("RuntimeError", StringComparison.OrdinalIgnoreCase))
+            {
+                if (providerException.Message.Contains("不支持", StringComparison.Ordinal))
+                {
+                    return "The offline translator does not support the selected language pair. Choose a multilingual local model or cloud provider.";
+                }
+
+                if (providerException.Message.Contains("尚未安装", StringComparison.Ordinal) ||
+                    providerException.Message.Contains("找不到", StringComparison.Ordinal))
+                {
+                    return "The offline translation model is missing. Open Settings → Local models to repair it.";
+                }
+            }
+
+            return providerException.Code switch
+            {
+                "no_text" => "No text was found in the selected area. Select a clearer or larger area and retry.",
+                "ocr_models_missing" => "The offline OCR model is unavailable. Open Settings → Local models to repair it.",
+                "credentials_missing" => "Credentials are missing. Open Settings and add credentials for the selected provider.",
+                "credentials_invalid" => "The saved credentials were rejected. Check them in Settings and retry.",
+                "custom_endpoint_invalid" or "vlm_ocr_endpoint_invalid" =>
+                    "The OpenAI-compatible endpoint or model name is invalid.",
+                "custom_endpoint_insecure_transport" or "vlm_ocr_insecure_transport" =>
+                    "Remote custom services must use HTTPS; only loopback endpoints may use HTTP.",
+                "managed_runtime_unavailable" =>
+                    "The local model could not start. Open Settings → Local multimodal model to repair it.",
+                "ocr_unavailable" => "The selected OCR provider is unavailable. Open Settings to repair or switch it.",
+                "translation_unsupported" or "translation_fallback_language_unsupported" =>
+                    "The offline translator does not support this language pair. Choose a multilingual local model or a cloud provider.",
+                "translation_unavailable" or "translation_fallback_unavailable" =>
+                    "The selected translator is unavailable. Open Settings to repair or switch it.",
+                "translation_primary_and_fallback_failed" =>
+                    "Both the selected translator and offline fallback failed. Check the provider and local models in Settings.",
+                "custom_translate_http" =>
+                    "The compatible translation service rejected the request. Check its endpoint, model, and API key.",
+                "custom_translate_schema" =>
+                    "The compatible service returned an unsupported response format.",
+                "vlm_ocr_image_invalid" => "The captured image is empty. Capture the area again.",
+                "vlm_ocr_http" =>
+                    "The multimodal service rejected the image request. Confirm that the vision projector is loaded.",
+                "vlm_ocr_schema" or "vlm_ocr_empty" =>
+                    "The multimodal service did not return usable OCR text. Check model vision support and retry.",
+                "engine_timeout" => "The offline translation engine timed out. Retry or repair the local model in Settings.",
+                "baidu_ocr_http" or "baidu_ocr_api" or "baidu_translate_api" =>
+                    "Baidu Cloud rejected the request. Check the credentials, quota, and network connection.",
+                "google_vision_http" or "google_vision_api" or "google_translate_http" or "google_translate_api" =>
+                    "Google Cloud rejected the request. Check the API key restrictions, enabled APIs, quota, and network.",
+                _ => T(providerException.Message)
+            };
+        }
+
+        if (exception is HttpRequestException)
+        {
+            return "The service could not be reached. Check the network or local model endpoint, then retry.";
+        }
+
+        if (exception is OperationCanceledException)
+        {
+            return "The operation was canceled.";
+        }
+
+        if (exception.Message.Contains("模型文件尚未完整下载", StringComparison.Ordinal) ||
+            exception.Message.Contains("llama.cpp", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The local model is incomplete or could not start. Open Settings → Local multimodal model to repair it.";
+        }
+
+        return T(exception.Message);
     }
 
     public static string ProviderName(string id, string fallback) => id switch
@@ -478,21 +593,87 @@ public static partial class UiText
     private static string TranslateDynamic(string text)
     {
         var value = text;
-        value = RecognizingPattern().Replace(value, "Recognizing with $1…");
-        value = RecognizedPattern().Replace(value, "$1 recognized · Translating…");
-        value = CompletedPattern().Replace(value, "Complete · $1");
-        value = ReadyPattern().Replace(value, "$1 · $2 is ready. Press $3 to capture.");
-        value = AppliedPattern().Replace(value, "Applied: $1 + $2.");
-        value = ModePattern().Replace(value, "Switched to ‘$1’. Checking availability.");
-        value = UploadBothPattern().Replace(value, "The selected image is sent to $1; recognized text is sent to $2.");
-        value = UploadTextPattern().Replace(value, "The image is recognized locally; only recognized text is sent to $1.");
-        value = LoadingModelPattern().Replace(value, "Loading $1…");
-        value = DownloadingModelPattern().Replace(value, "Downloading $1 from ModelScope…");
-        value = CredentialVisiblePattern().Replace(value, "$1 is visible and can be edited or pasted.");
-        value = CredentialHiddenPattern().Replace(value, "$1 is hidden.");
-        value = InitializationPattern().Replace(value, "Initialization failed: $1");
-        value = ErrorPrefixPattern().Replace(value, "$1: $2");
+        value = RecognizingPattern().Replace(value, match =>
+            $"Recognizing with {TranslateToken(match.Groups[1].Value)}…");
+        value = RecognizedPattern().Replace(value, match =>
+            $"{TranslateToken(match.Groups[1].Value)} recognized · Translating…");
+        value = CompletedPattern().Replace(value, match =>
+            $"Complete · {TranslateToken(match.Groups[1].Value)}");
+        value = ReadyPattern().Replace(value, match =>
+            $"{TranslateToken(match.Groups[1].Value)} · {TranslateToken(match.Groups[2].Value)} is ready. Press {match.Groups[3].Value} to capture.");
+        value = ReadyCapturePattern().Replace(value, match =>
+            $"Ready. Press {match.Groups[1].Value} or select Start capture.");
+        value = AppliedPattern().Replace(value, match =>
+            $"Applied: {TranslateToken(match.Groups[1].Value)} + {TranslateToken(match.Groups[2].Value)}.");
+        value = ModePattern().Replace(value, match =>
+            $"Switched to ‘{TranslateToken(match.Groups[1].Value)}’. Checking availability.");
+        value = TargetLanguagePattern().Replace(value, match =>
+            $"Target language: {TranslateToken(match.Groups[1].Value)}.");
+        value = UploadBothPattern().Replace(value, match =>
+            $"The selected image is sent to {TranslateToken(match.Groups[1].Value)}; recognized text is sent to {TranslateToken(match.Groups[2].Value)}.");
+        value = UploadTextPattern().Replace(value, match =>
+            $"The image is recognized locally; only recognized text is sent to {TranslateToken(match.Groups[1].Value)}.");
+        value = LoadingModelPattern().Replace(value, match =>
+            $"Loading {TranslateToken(match.Groups[1].Value)}…");
+        value = LoadingBackendPattern().Replace(value, match =>
+            $"Loading the model with the {TranslateToken(match.Groups[1].Value)} backend…");
+        value = DownloadingModelPattern().Replace(value, match =>
+            $"Downloading {TranslateToken(match.Groups[1].Value)} from ModelScope…");
+        value = DownloadingFilePattern().Replace(value, match =>
+            $"Downloading {match.Groups[1].Value}");
+        value = VerifyingFilePattern().Replace(value, match =>
+            $"Verifying {match.Groups[1].Value}…");
+        value = ExistingFilePattern().Replace(value, match =>
+            $"{match.Groups[1].Value} already exists and passed verification");
+        value = RunningBackendPattern().Replace(value, match =>
+            $"The local model service is running with {TranslateToken(match.Groups[1].Value)}");
+        value = CredentialVisiblePattern().Replace(value, match =>
+            $"{TranslateToken(match.Groups[1].Value)} is visible and can be edited or pasted.");
+        value = CredentialHiddenPattern().Replace(value, match =>
+            $"{TranslateToken(match.Groups[1].Value)} is hidden.");
+        value = SettingsSavedPattern().Replace(value, match =>
+            $"Settings saved. {TranslateToken(match.Groups[1].Value)}");
+        value = InitializationPattern().Replace(value, match =>
+            $"Initialization failed: {TranslateToken(match.Groups[1].Value)}");
+        value = ErrorPrefixPattern().Replace(value, match =>
+            $"{TranslateToken(match.Groups[1].Value)}: {TranslateToken(match.Groups[2].Value)}");
+        value = MissingLocalModelPattern().Replace(
+            value,
+            "The service is connected, but model ‘$1’ was not found. Available: $2.");
         return value;
+    }
+
+    private static string TranslateToken(string value)
+    {
+        if (EnglishText.TryGetValue(value, out var translated))
+        {
+            return translated;
+        }
+
+        var knownValue = value switch
+        {
+            "OCR 模型" => "OCR model",
+            "翻译模型" => "Translation model",
+            "OCR 凭据" => "OCR credential",
+            "翻译凭据" => "Translation credential",
+            "Google OCR 凭据" => "Google OCR credential",
+            "Google 翻译凭据" => "Google Translation credential",
+            "本地 PaddleOCR ONNX" => "Local PaddleOCR ONNX",
+            "本机多模态大模型 OCR" => "Local multimodal LLM OCR",
+            "PaddleOCR + 本机大模型纠错" => "PaddleOCR + local LLM correction",
+            "本地 / 自定义大模型" => "Local / custom LLM",
+            "百度云 OCR" => "Baidu Cloud OCR",
+            "百度翻译" => "Baidu Translation",
+            _ => null
+        };
+        if (knownValue is not null)
+        {
+            return knownValue;
+        }
+
+        return ManagedMultimodalModels.All.FirstOrDefault(model =>
+                   string.Equals(model.DisplayName, value, StringComparison.Ordinal))?.LocalizedDisplayName
+               ?? value;
     }
 
     [GeneratedRegex("^正在使用 (.+) 识别…$")]
@@ -503,24 +684,42 @@ public static partial class UiText
     private static partial Regex CompletedPattern();
     [GeneratedRegex("^(.+) · (.+) 已就绪，按 (.+) 开始截图。$")]
     private static partial Regex ReadyPattern();
+    [GeneratedRegex("^就绪。按 (.+) 或点击“开始截图”。$")]
+    private static partial Regex ReadyCapturePattern();
     [GeneratedRegex(@"^已应用：(.+) \+ (.+)。$")]
     private static partial Regex AppliedPattern();
     [GeneratedRegex("^已切换到“(.+)”，正在检查可用性。$")]
     private static partial Regex ModePattern();
+    [GeneratedRegex("^目标语言已切换为：(.+)。$")]
+    private static partial Regex TargetLanguagePattern();
     [GeneratedRegex("^所选图片(?:将)?发送给 (.+)；(?:识别)?文字(?:将)?发送给 (.+)[。]?$")]
     private static partial Regex UploadBothPattern();
     [GeneratedRegex("^图片在本地识别；(?:只有)?识别文字(?:会|将)发送给 (.+)[。]?$")]
     private static partial Regex UploadTextPattern();
     [GeneratedRegex("^正在加载 (.+)…$")]
     private static partial Regex LoadingModelPattern();
+    [GeneratedRegex("^正在使用 (.+) 后端加载模型…$")]
+    private static partial Regex LoadingBackendPattern();
     [GeneratedRegex("^正在从魔搭下载 (.+)…$")]
     private static partial Regex DownloadingModelPattern();
+    [GeneratedRegex("^正在下载 (.+)$")]
+    private static partial Regex DownloadingFilePattern();
+    [GeneratedRegex("^正在校验 (.+)…$")]
+    private static partial Regex VerifyingFilePattern();
+    [GeneratedRegex("^(.+) 已存在并通过校验$")]
+    private static partial Regex ExistingFilePattern();
+    [GeneratedRegex("^本机模型服务已通过 (.+) 运行$")]
+    private static partial Regex RunningBackendPattern();
     [GeneratedRegex("^(.+) 已显示，可直接编辑或粘贴。$")]
     private static partial Regex CredentialVisiblePattern();
     [GeneratedRegex("^(.+) 已隐藏。$")]
     private static partial Regex CredentialHiddenPattern();
+    [GeneratedRegex("^设置已保存。(.*)$")]
+    private static partial Regex SettingsSavedPattern();
     [GeneratedRegex("^初始化失败：(.+)$")]
     private static partial Regex InitializationPattern();
     [GeneratedRegex("^(OCR 模型|翻译模型|OCR 凭据|翻译凭据|Google OCR 凭据|Google 翻译凭据)：(.+)$")]
     private static partial Regex ErrorPrefixPattern();
+    [GeneratedRegex("^服务已连接，但模型名“(.+)”不存在；当前可用：(.+)。$")]
+    private static partial Regex MissingLocalModelPattern();
 }

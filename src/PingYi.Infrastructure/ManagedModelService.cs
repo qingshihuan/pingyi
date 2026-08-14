@@ -33,11 +33,15 @@ public sealed class ManagedModelService : IAsyncDisposable
     private readonly AppDataPaths _paths;
     private readonly HttpClient _downloadClient;
     private readonly HttpClient _probeClient;
+    private readonly CancellationTokenSource _lifetime = new();
     private readonly SemaphoreSlim _operationGate = new(1, 1);
+    private readonly TaskCompletionSource _disposeCompletion =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<string> _recentServerErrors = new();
     private Process? _ownedProcess;
     private string? _runningModelId;
     private string? _runningBackendId;
+    private int _disposeState;
 
     public ManagedModelService(AppDataPaths paths)
     {
@@ -90,9 +94,15 @@ public sealed class ManagedModelService : IAsyncDisposable
         IProgress<ManagedModelProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
+        using var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _lifetime.Token);
+        cancellationToken = operationCancellation.Token;
         await _operationGate.WaitAsync(cancellationToken);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             EnsureCompleteRuntimeAvailable();
             var directory = GetModelDirectory(model);
             Directory.CreateDirectory(directory);
@@ -154,9 +164,15 @@ public sealed class ManagedModelService : IAsyncDisposable
         IProgress<ManagedModelProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
+        using var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _lifetime.Token);
+        cancellationToken = operationCancellation.Token;
         await _operationGate.WaitAsync(cancellationToken);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             EnsureCompleteRuntimeAvailable();
             var status = await GetStatusAsync(model, cancellationToken);
             if (!status.IsInstalled)
@@ -253,9 +269,15 @@ public sealed class ManagedModelService : IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
+        using var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _lifetime.Token);
+        cancellationToken = operationCancellation.Token;
         await _operationGate.WaitAsync(cancellationToken);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             await StopOwnedProcessCoreAsync();
         }
         finally
@@ -627,10 +649,32 @@ public sealed class ManagedModelService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await StopOwnedProcessCoreAsync();
-        _downloadClient.Dispose();
-        _probeClient.Dispose();
-        _operationGate.Dispose();
+        if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
+        {
+            await _disposeCompletion.Task;
+            return;
+        }
+
+        try
+        {
+            _lifetime.Cancel();
+            await _operationGate.WaitAsync();
+            try
+            {
+                await StopOwnedProcessCoreAsync();
+                _downloadClient.Dispose();
+                _probeClient.Dispose();
+            }
+            finally
+            {
+                _operationGate.Release();
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _disposeState, 2);
+            _disposeCompletion.TrySetResult();
+        }
     }
 
     private sealed record RuntimeCandidate(string ExecutablePath, bool IsGpu);

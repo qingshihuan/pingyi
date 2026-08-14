@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IMainWindowShell
     private object? _deleteModelsDefaultContent;
     private bool _isLoadingSettings;
     private CancellationTokenSource? _managedModelOperation;
+    private Uri? _latestReleasePage;
 
     public MainWindow()
     {
@@ -191,7 +192,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "保存失败", success: false);
         }
     }
@@ -241,7 +242,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
         }
     }
 
@@ -264,7 +265,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
         }
     }
 
@@ -295,14 +296,14 @@ public partial class MainWindow : Window, IMainWindowShell
                         ? $"{ocrName} and {translationName} are available."
                         : $"{ocrName}、{translationName}均可用。"
                     : UiText.IsEnglish
-                        ? $"OCR: {ocrStatus.Message ?? "Available"}  Translation: {translationStatus.Message ?? "Available"}"
+                        ? $"OCR: {UiText.T(ocrStatus.Message ?? "可用")}  Translation: {UiText.T(translationStatus.Message ?? "可用")}"
                         : $"OCR：{ocrStatus.Message ?? "可用"}  翻译：{translationStatus.Message ?? "可用"}",
                 isError: !ready);
             FinishButtonOperation(button, ready ? "状态正常" : "检查未通过", success: ready);
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "检查失败", success: false);
         }
     }
@@ -341,7 +342,7 @@ public partial class MainWindow : Window, IMainWindowShell
                 catch (Exception exception)
                 {
                     allValid = false;
-                    SetInlineStatus(BaiduOcrCredentialStatusText, $"OCR 凭据：{exception.Message}", "DangerTextBrush");
+                    SetInlineStatus(BaiduOcrCredentialStatusText, $"OCR 凭据：{UiText.Error(exception)}", "DangerTextBrush");
                 }
             }
             else
@@ -359,7 +360,7 @@ public partial class MainWindow : Window, IMainWindowShell
                 catch (Exception exception)
                 {
                     allValid = false;
-                    SetInlineStatus(BaiduTranslationCredentialStatusText, $"翻译凭据：{exception.Message}", "DangerTextBrush");
+                    SetInlineStatus(BaiduTranslationCredentialStatusText, $"翻译凭据：{UiText.Error(exception)}", "DangerTextBrush");
                 }
             }
             else
@@ -381,7 +382,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "验证失败", success: false);
         }
     }
@@ -419,7 +420,7 @@ public partial class MainWindow : Window, IMainWindowShell
             catch (Exception exception)
             {
                 allValid = false;
-                SetInlineStatus(GoogleOcrCredentialStatusText, $"Google OCR 凭据：{exception.Message}", "DangerTextBrush");
+                SetInlineStatus(GoogleOcrCredentialStatusText, $"Google OCR 凭据：{UiText.Error(exception)}", "DangerTextBrush");
             }
 
             try
@@ -430,7 +431,7 @@ public partial class MainWindow : Window, IMainWindowShell
             catch (Exception exception)
             {
                 allValid = false;
-                SetInlineStatus(GoogleTranslationCredentialStatusText, $"Google 翻译凭据：{exception.Message}", "DangerTextBrush");
+                SetInlineStatus(GoogleTranslationCredentialStatusText, $"Google 翻译凭据：{UiText.Error(exception)}", "DangerTextBrush");
             }
 
             SetGlobalStatus(
@@ -442,7 +443,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "验证失败", success: false);
         }
     }
@@ -490,8 +491,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(CustomTranslationStatusText, exception.Message, "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(CustomTranslationStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, presetSaved ? "已应用，连接失败" : "应用失败", success: false);
         }
     }
@@ -553,8 +554,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(ManagedModelStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(ManagedModelInstallButton, "下载或配置失败", success: false);
         }
         finally
@@ -594,8 +595,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(ManagedModelStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(ManagedModelStartButton, "启动失败", success: false);
         }
         finally
@@ -660,7 +661,12 @@ public partial class MainWindow : Window, IMainWindowShell
             SelectedManagedRuntimeBackendId,
             progress,
             cancellationToken);
-        SetInlineStatus(ManagedModelStatusText, $"{startResult}，正在验证图片识别与翻译…", "SecondaryTextBrush");
+        SetInlineStatus(
+            ManagedModelStatusText,
+            UiText.IsEnglish
+                ? $"{UiText.T(startResult)}, validating image recognition and translation…"
+                : $"{startResult}，正在验证图片识别与翻译…",
+            "SecondaryTextBrush");
         await TestCustomVisionConnectionCoreAsync();
         await TestCustomTranslationConnectionCoreAsync();
     }
@@ -706,7 +712,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(ManagedModelStatusText, exception.Message, "DangerTextBrush");
+            SetInlineStatus(ManagedModelStatusText, UiText.Error(exception), "DangerTextBrush");
         }
     }
 
@@ -744,7 +750,7 @@ public partial class MainWindow : Window, IMainWindowShell
         var transferred = progress.TotalBytes > 0
             ? $" · {FormatGiB(progress.BytesCompleted)}/{FormatGiB(progress.TotalBytes)}"
             : string.Empty;
-        SetInlineStatus(ManagedModelStatusText, progress.Message + transferred, "SecondaryTextBrush");
+        SetInlineStatus(ManagedModelStatusText, UiText.T(progress.Message) + transferred, "SecondaryTextBrush");
     }
 
     private void SetManagedModelBusy(bool isBusy)
@@ -782,8 +788,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(CustomTranslationStatusText, exception.Message, "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(CustomTranslationStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "连接失败", success: false);
         }
     }
@@ -804,8 +810,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(CustomTranslationStatusText, exception.Message, "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(CustomTranslationStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "图片不可用", success: false);
         }
     }
@@ -830,8 +836,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(OcrModelStatusText, $"OCR 模型：{exception.Message}", "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(OcrModelStatusText, $"OCR 模型：{UiText.Error(exception)}", "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "下载失败", success: false);
         }
     }
@@ -856,8 +862,8 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(TranslationModelStatusText, $"翻译模型：{exception.Message}", "DangerTextBrush");
-            SetGlobalStatus(exception.Message, isError: true);
+            SetInlineStatus(TranslationModelStatusText, $"翻译模型：{UiText.Error(exception)}", "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), isError: true);
             FinishButtonOperation(button, "下载失败", success: false);
         }
     }
@@ -888,7 +894,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(exception.Message, isError: true);
+            SetGlobalStatus(UiText.Error(exception), isError: true);
         }
         finally
         {
@@ -929,7 +935,7 @@ public partial class MainWindow : Window, IMainWindowShell
             ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
-            CheckForUpdates = CheckForUpdatesCheckBox.IsChecked != false,
+            CheckForUpdates = CheckForUpdatesCheckBox.IsChecked == true,
             InterfaceStyle = (InterfaceStyleCombo.SelectedItem as UiStyleChoice)?.Id ?? "modern",
             UiLanguage = (UiLanguageCombo.SelectedItem as UiLanguageChoice)?.Id ?? "auto"
         };
@@ -953,6 +959,61 @@ public partial class MainWindow : Window, IMainWindowShell
 
         OpenClassicInterfaceButton.IsEnabled = false;
         OpenClassicInterfaceButton.Content = "当前为经典界面";
+    }
+
+    public void OpenSettings()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private async void CheckUpdatesNowButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        CheckUpdatesNowButton.IsEnabled = false;
+        OpenLatestReleaseButton.IsVisible = false;
+        UpdateStatusText.Text = UiText.T("正在检查…");
+        try
+        {
+            var update = await _services.UpdateService.CheckAsync();
+            _latestReleasePage = update.ReleasePage;
+            if (update.IsUpdateAvailable)
+            {
+                UpdateStatusText.Text = UiText.IsEnglish
+                    ? $"Version {update.LatestVersion} is available."
+                    : $"发现新版本 {update.LatestVersion}。";
+                OpenLatestReleaseButton.IsVisible = true;
+            }
+            else
+            {
+                UpdateStatusText.Text = UiText.IsEnglish
+                    ? $"You are up to date ({update.CurrentVersion})."
+                    : $"当前已是最新版本（{update.CurrentVersion}）。";
+            }
+        }
+        catch (Exception exception)
+        {
+            UpdateStatusText.Text = UiText.Error(exception);
+        }
+        finally
+        {
+            CheckUpdatesNowButton.IsEnabled = true;
+        }
+    }
+
+    private void OpenLatestReleaseButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_latestReleasePage is null)
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(_latestReleasePage.AbsoluteUri) { UseShellExecute = true });
     }
 
     private async void OpenClassicInterfaceButton_OnClick(object? sender, RoutedEventArgs e)
@@ -1013,7 +1074,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            return new ProviderAvailability(false, exception.Message);
+            return new ProviderAvailability(false, UiText.Error(exception));
         }
     }
 
@@ -1035,7 +1096,7 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            return new ProviderAvailability(false, exception.Message);
+            return new ProviderAvailability(false, UiText.Error(exception));
         }
     }
 
@@ -1206,7 +1267,12 @@ public partial class MainWindow : Window, IMainWindowShell
         }
         catch (Exception exception)
         {
-            SetInlineStatus(BaiduOcrCredentialStatusText, $"读取凭据失败：{exception.Message}", "DangerTextBrush");
+            SetInlineStatus(
+                BaiduOcrCredentialStatusText,
+                UiText.IsEnglish
+                    ? $"Could not read credentials: {UiText.Error(exception)}"
+                    : $"读取凭据失败：{UiText.Error(exception)}",
+                "DangerTextBrush");
             SetInlineStatus(BaiduTranslationCredentialStatusText, "翻译凭据状态未知", "DangerTextBrush");
             SetInlineStatus(GoogleOcrCredentialStatusText, "Google OCR 凭据状态未知", "DangerTextBrush");
             SetInlineStatus(GoogleTranslationCredentialStatusText, "Google 翻译凭据状态未知", "DangerTextBrush");

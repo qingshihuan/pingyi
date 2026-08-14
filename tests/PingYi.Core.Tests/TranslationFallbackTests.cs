@@ -69,6 +69,25 @@ public sealed class TranslationFallbackTests
         Assert.Equal(0, offline.TranslateCalls);
     }
 
+    [Theory]
+    [InlineData("Bonjour le monde")]
+    [InlineData("Hola, ¿cómo estás?")]
+    [InlineData("Guten Morgen, wie geht es Ihnen?")]
+    public async Task ExecuteAsync_DoesNotTreatAutomaticallyDetectedNonEnglishLatinAsEnglish(string text)
+    {
+        var external = new StubProvider("custom-chat", fail: true, "external");
+        var offline = new StubProvider("local-argos", fail: false, "offline");
+
+        var exception = await Assert.ThrowsAsync<ProviderException>(() =>
+            TranslationFallback.ExecuteAsync(
+                external,
+                offline,
+                new TranslationRequest(text, LanguageCatalog.Auto, "zh")));
+
+        Assert.Equal("translation_fallback_language_unsupported", exception.Code);
+        Assert.Equal(0, offline.TranslateCalls);
+    }
+
     private sealed class StubProvider(
         string id,
         bool fail,

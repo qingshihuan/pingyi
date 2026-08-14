@@ -10,7 +10,7 @@ if [[ ! -x "$engine_python" ]]; then
   "$project_root/scripts/setup-engine.sh"
 fi
 
-"$engine_python" -m pip install "pyinstaller>=6,<7"
+"$engine_python" -m pip install "pyinstaller==6.21.0"
 "$engine_python" -m PyInstaller --noconfirm --clean --onedir \
   --name pingyi-engine \
   --runtime-hook "$project_root/engine_host/runtime_minimal.py" \

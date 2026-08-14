@@ -28,6 +28,9 @@ deb_root="$project_root/artifacts/deb-root$edition_suffix"
 if [[ ! -x "$engine_dir/pingyi-engine" ]]; then
   "$project_root/scripts/build-engine.sh"
 fi
+if [[ ! -x "$engine_python" ]]; then
+  "$project_root/scripts/setup-engine.sh"
+fi
 
 rm -rf -- "$publish_dir"
 dotnet publish "$project_root/src/PingYi.App/PingYi.App.csproj" \
@@ -56,7 +59,8 @@ if [[ "$edition" == "complete" ]]; then
   printf 'PingYi Complete\n' > "$publish_dir/pingyi-complete.edition"
 fi
 cp "$project_root/LICENSE" "$project_root/THIRD_PARTY_NOTICES.md" "$publish_dir/"
-"$engine_python" "$project_root/scripts/audit-release-dependencies.py" "$publish_dir"
+"$engine_python" "$project_root/scripts/collect-release-licenses.py" "$publish_dir"
+"$engine_python" "$project_root/scripts/audit-release-dependencies.py" --require-licenses "$publish_dir"
 
 tar -C "$publish_dir" -czf "$project_root/artifacts/$archive_prefix-$version-linux-x64.tar.gz" .
 

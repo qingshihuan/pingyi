@@ -4,6 +4,50 @@ namespace PingYi.Core;
 
 public static class TextProcessing
 {
+    private static readonly IReadOnlyDictionary<string, HashSet<string>> LatinLanguageWords =
+        new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["fr"] = new(StringComparer.OrdinalIgnoreCase)
+                { "le", "la", "les", "des", "une", "et", "est", "pour", "dans", "avec", "bonjour", "merci", "monde", "cette" },
+            ["es"] = new(StringComparer.OrdinalIgnoreCase)
+                { "el", "la", "los", "las", "una", "y", "es", "para", "con", "hola", "gracias", "como", "esta", "estas", "este" },
+            ["de"] = new(StringComparer.OrdinalIgnoreCase)
+                { "der", "die", "das", "und", "ist", "ein", "eine", "mit", "für", "guten", "morgen", "wie", "geht", "ihnen", "danke" },
+            ["pt"] = new(StringComparer.OrdinalIgnoreCase)
+                { "os", "uma", "um", "e", "para", "com", "olá", "obrigado", "como", "você" },
+            ["it"] = new(StringComparer.OrdinalIgnoreCase)
+                { "il", "lo", "gli", "le", "uno", "una", "e", "per", "con", "ciao", "grazie", "come", "questo" },
+            ["nl"] = new(StringComparer.OrdinalIgnoreCase)
+                { "het", "een", "en", "is", "voor", "met", "hallo", "dank", "deze" }
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> StrongLatinLanguageWords =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["bonjour"] = "fr",
+            ["merci"] = "fr",
+            ["hola"] = "es",
+            ["gracias"] = "es",
+            ["guten"] = "de",
+            ["danke"] = "de",
+            ["olá"] = "pt",
+            ["obrigado"] = "pt",
+            ["ciao"] = "it",
+            ["grazie"] = "it"
+        };
+
+    private static readonly HashSet<string> EnglishEvidenceWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "the", "and", "is", "are", "to", "of", "in", "for", "with", "this", "that", "from", "on", "not",
+        "you", "your", "hello", "good", "morning", "screen", "screenshot", "translation", "file", "open", "save",
+        "copy", "settings", "where", "what", "how", "login", "auth", "github", "application"
+    };
+
+    private static readonly HashSet<string> StrongEnglishEvidenceWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "hello", "screen", "screenshot", "translation", "settings", "copy", "login", "auth", "github", "application"
+    };
+
     public readonly record struct TranslationLanguageRoute(
         string SourceLanguage,
         string TargetLanguage);
@@ -71,7 +115,27 @@ public static class TextProcessing
         if (hebrew > 0) return "he";
         if (devanagari > 0) return "hi";
         if (thai > 0) return "th";
-        return cjk > 0 && cjk * 5 >= latin ? "zh" : "en";
+        if (cjk > 0 && cjk * 5 >= latin)
+        {
+            return "zh";
+        }
+
+        return DetectLikelyLatinLanguage(text) ?? "en";
+    }
+
+    public static string DetectLanguageForOfflineFallback(string text)
+    {
+        var detected = DetectLanguage(text);
+        if (!string.Equals(detected, "en", StringComparison.OrdinalIgnoreCase))
+        {
+            return detected;
+        }
+
+        var words = TokenizeLetters(text).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var evidenceCount = words.Count(EnglishEvidenceWords.Contains);
+        return words.Any(StrongEnglishEvidenceWords.Contains) || evidenceCount >= 2
+            ? "en"
+            : "unknown";
     }
 
     public static string ResolveTargetLanguage(string sourceLanguage, string configuredTarget)
@@ -155,5 +219,57 @@ public static class TextProcessing
         return value.Length <= 6
             ? new string('*', value.Length)
             : $"{value[..2]}{new string('*', value.Length - 4)}{value[^2..]}";
+    }
+
+    private static string? DetectLikelyLatinLanguage(string text)
+    {
+        var words = TokenizeLetters(text).ToArray();
+        foreach (var word in words)
+        {
+            if (StrongLatinLanguageWords.TryGetValue(word, out var language))
+            {
+                return language;
+            }
+        }
+
+        if (text.IndexOfAny(['¿', '¡', 'ñ', 'Ñ']) >= 0) return "es";
+        if (text.IndexOfAny(['ß']) >= 0) return "de";
+        if (text.IndexOfAny(['ã', 'Ã', 'õ', 'Õ']) >= 0) return "pt";
+
+        var scores = LatinLanguageWords
+            .Select(pair => new
+            {
+                Language = pair.Key,
+                Score = words.Distinct(StringComparer.OrdinalIgnoreCase).Count(pair.Value.Contains)
+            })
+            .OrderByDescending(item => item.Score)
+            .ToArray();
+        return scores.Length > 0 &&
+               scores[0].Score >= 2 &&
+               (scores.Length == 1 || scores[0].Score > scores[1].Score)
+            ? scores[0].Language
+            : null;
+    }
+
+    private static IEnumerable<string> TokenizeLetters(string text)
+    {
+        var word = new StringBuilder();
+        foreach (var character in text)
+        {
+            if (char.IsLetter(character))
+            {
+                word.Append(char.ToLowerInvariant(character));
+            }
+            else if (word.Length > 0)
+            {
+                yield return word.ToString();
+                word.Clear();
+            }
+        }
+
+        if (word.Length > 0)
+        {
+            yield return word.ToString();
+        }
     }
 }

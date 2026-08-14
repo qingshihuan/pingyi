@@ -26,6 +26,8 @@ public interface IMainWindowShell
 
     void Activate();
 
+    void OpenSettings();
+
     IReadOnlyList<CaptureDisplay> GetCaptureDisplays();
 
     void SetGlobalStatus(string message, bool isError);

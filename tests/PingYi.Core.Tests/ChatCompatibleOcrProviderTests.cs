@@ -62,6 +62,30 @@ public sealed class ChatCompatibleOcrProviderTests
     }
 
     [Fact]
+    public async Task RemoteHttpEndpoint_IsRejectedBeforeImageCanBeSent()
+    {
+        var requestSent = false;
+        var handler = new StubHandler(_ =>
+        {
+            requestSent = true;
+            return Json("{}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "http://api.example.com/v1/chat/completions",
+            CustomTranslationModel = "remote-model"
+        };
+        var provider = CreateProvider(new HttpClient(handler), settings: settings);
+
+        var exception = await Assert.ThrowsAsync<ProviderException>(() => provider.RecognizeAsync(
+            new ImageFrame([1], 100, 40, new PixelRect(0, 0, 100, 40)),
+            new OcrOptions("en")));
+
+        Assert.Equal("custom_endpoint_insecure_transport", exception.Code);
+        Assert.False(requestSent);
+    }
+
+    [Fact]
     [Trait("Category", "LocalLlamaVision")]
     public async Task LocalLlama_RecognizesRealSyntheticImageWhenEnabled()
     {
@@ -82,13 +106,16 @@ public sealed class ChatCompatibleOcrProviderTests
         Assert.Contains("2026", result.PlainText, StringComparison.Ordinal);
     }
 
-    private static ChatCompatibleOcrProvider CreateProvider(HttpClient httpClient, IOcrProvider? draft = null)
+    private static ChatCompatibleOcrProvider CreateProvider(
+        HttpClient httpClient,
+        IOcrProvider? draft = null,
+        AppSettings? settings = null)
     {
         var secrets = new StubSecretStore();
         return new ChatCompatibleOcrProvider(
             httpClient,
             secrets,
-            () => new AppSettings(),
+            () => settings ?? new AppSettings(),
             new StubTranslationProvider(),
             draft);
     }

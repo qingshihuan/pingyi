@@ -8,6 +8,9 @@ param(
     [string]$Edition = "Standard",
     [string]$LlamaRuntimeSource,
     [string]$InnoCompiler,
+    [string]$SignTool,
+    [string]$SigningCertificateThumbprint,
+    [string]$TimestampUrl = "https://timestamp.digicert.com",
     [switch]$SkipEngine,
     [switch]$BuildInstaller
 )
@@ -36,6 +39,10 @@ if (-not $SkipEngine) {
 }
 elseif (-not (Test-Path $engineExecutable)) {
     throw "The local engine is missing. Remove -SkipEngine or build it first."
+}
+if (-not (Test-Path -LiteralPath (Join-Path $engineVenv "Scripts\python.exe") -PathType Leaf)) {
+    & (Join-Path $PSScriptRoot "setup-engine.ps1")
+    if ($LASTEXITCODE -ne 0) { throw "Failed to prepare the local engine license environment." }
 }
 
 $artifactsRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "artifacts"))
@@ -95,8 +102,59 @@ if ($Edition -eq "Complete") {
 Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE") -Destination $output -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $output -Force
 & (Join-Path $engineVenv "Scripts\python.exe") `
-    (Join-Path $PSScriptRoot "audit-release-dependencies.py") $output
+    (Join-Path $PSScriptRoot "collect-release-licenses.py") $output
+if ($LASTEXITCODE -ne 0) { throw "Failed to collect the release license bundle." }
+& (Join-Path $engineVenv "Scripts\python.exe") `
+    (Join-Path $PSScriptRoot "audit-release-dependencies.py") --require-licenses $output
 if ($LASTEXITCODE -ne 0) { throw "The release dependency audit failed." }
+
+function Get-CodeSignTool {
+    if ([string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) { return $null }
+    $normalizedThumbprint = $SigningCertificateThumbprint.Replace(" ", "")
+    if ($normalizedThumbprint -notmatch "^[0-9A-Fa-f]{40}$") {
+        throw "SigningCertificateThumbprint must be a 40-character SHA-1 certificate thumbprint."
+    }
+    if ($TimestampUrl -notmatch "^https://") {
+        throw "TimestampUrl must use HTTPS."
+    }
+    $candidates = @(
+        $SignTool,
+        $env:PINGYI_SIGNTOOL,
+        (Get-Command signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1)
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) }
+    if (-not $candidates) {
+        $windowsKits = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+        if (Test-Path -LiteralPath $windowsKits -PathType Container) {
+            $candidates = Get-ChildItem -LiteralPath $windowsKits -Filter signtool.exe -Recurse -File `
+                | Where-Object { $_.DirectoryName -match "\\x64$" } `
+                | Sort-Object FullName -Descending `
+                | Select-Object -ExpandProperty FullName -First 1
+        }
+    }
+    $resolved = $candidates | Select-Object -First 1
+    if (-not $resolved) {
+        throw "signtool.exe was not found. Install the Windows SDK, pass -SignTool, or omit -SigningCertificateThumbprint."
+    }
+    return [pscustomobject]@{
+        Path = $resolved
+        Thumbprint = $normalizedThumbprint
+    }
+}
+
+function Invoke-CodeSign([string]$TargetPath, $Signing) {
+    if (-not $Signing) { return }
+    & $Signing.Path sign /fd SHA256 /sha1 $Signing.Thumbprint /tr $TimestampUrl /td SHA256 /v $TargetPath
+    if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed for $TargetPath" }
+}
+
+$signing = Get-CodeSignTool
+if ($signing) {
+    Invoke-CodeSign (Join-Path $output "PingYi.App.exe") $signing
+    $engineExe = Join-Path $output "engine-host\pingyi-engine.exe"
+    if (Test-Path -LiteralPath $engineExe -PathType Leaf) {
+        Invoke-CodeSign $engineExe $signing
+    }
+}
 
 $archivePrefix = if ($Edition -eq "Complete") { "PingYi-Complete" } else { "PingYi" }
 $archive = Join-Path $projectRoot "artifacts\$archivePrefix-$Version-$Runtime.zip"
@@ -118,7 +176,18 @@ if ($BuildInstaller -and $Runtime -eq "win-x64") {
         throw "ISCC.exe was not found. Set PINGYI_ISCC, install Inno Setup, or omit -BuildInstaller."
     }
     Write-Host "Inno Setup compiler: $isccPath"
-    & $isccPath "/DMyAppVersion=$Version" "/DSourceDir=$output" "/DEdition=$Edition" `
-        (Join-Path $projectRoot "packaging\windows\PingYi.iss")
+    $innoArguments = @(
+        "/DMyAppVersion=$Version",
+        "/DSourceDir=$output",
+        "/DEdition=$Edition"
+    )
+    if ($signing) {
+        $innoSignCommand = '$q' + $signing.Path + '$q sign /fd SHA256 /sha1 ' + `
+            $signing.Thumbprint + ' /tr ' + $TimestampUrl + ' /td SHA256 /v $f'
+        $innoArguments += "/SPingYiSign=$innoSignCommand"
+        $innoArguments += "/DSignToolName=PingYiSign"
+    }
+    $innoArguments += (Join-Path $projectRoot "packaging\windows\PingYi.iss")
+    & $isccPath @innoArguments
     if ($LASTEXITCODE -ne 0) { throw "Failed to build the Windows installer." }
 }

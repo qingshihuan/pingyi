@@ -78,7 +78,7 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 | Google OCR | Cloud Vision API | 是，上传所选图片 | 云端 |
 | Google 翻译 | Cloud Translation Basic v2 | 是，仅上传识别文字 | 云端 |
 
-标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 运行库。完全版只增加 llama.cpp 官方 MIT 许可的 Vulkan 与 CPU 运行时，不携带 CUDA、cuDNN 或 ROCm；Vulkan 可使用支持该接口的 AMD、NVIDIA 或 Intel 显卡。外部本机大模型服务也可独立使用自己的加速方案。没有显卡不影响基础功能或完全版的 CPU 模式。
+标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 加速运行库。离线翻译引擎会携带官方 CTranslate2 平台 wheel 所需的 CPU/OpenMP 依赖，x64 平台包括 Intel oneMKL 与 oneDNN；每个成品都附带实际适用的 EULA、开源许可证与第三方声明。完全版另增加 MIT 许可的 llama.cpp Vulkan/CPU 运行时，不携带 CUDA、cuDNN 或 ROCm；Vulkan 可使用支持该接口的 AMD、NVIDIA 或 Intel 显卡。Ubuntu `.deb` 会安装 llama.cpp 所需的 OpenSSL、Vulkan loader、GNU OpenMP 与 C++ 系统运行库。外部本机大模型服务也可独立使用自己的加速方案。没有显卡不影响基础功能或完全版的 CPU 模式。
 
 ## 配置 Google Cloud OCR 与翻译
 
@@ -117,16 +117,19 @@ Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `sett
 - llama.cpp、Ollama、LM Studio、vLLM 与通用 OpenAI 兼容预设。
 - 本机多模态大模型 OCR，以及更适合小字、终端和特殊字体的 PaddleOCR + 视觉模型纠错模式。
 - 复制原文/译文/全部、重新处理、结果卡固定、托盘常驻和浅深色主题。
+- 单实例运行：重复启动会唤醒现有窗口或转发截图/设置命令，不会创建多个后台进程；每次处理都可取消并设有超时。
 - 任务优先的主界面、独立设置窗口、故障修复卡和可选经典界面。
 - 简体中文与 English 界面，可跟随操作系统语言自动选择。
 - Windows DPAPI 与 Linux Secret Service 密钥存储；凭据支持遮罩查看、明文切换、复制和粘贴。
+- 自定义兼容服务仅允许本机回环地址使用 HTTP；任何非本机地址必须使用 HTTPS，避免凭据、识别文字或截图被明文传输。
 - 默认零历史记录；日志禁止记录截图、识别正文、译文和密钥。
+- 更新检查默认关闭；只有用户在设置中明确开启后才会联网检查新版本。
 
 ## 当前兼容范围
 
 - Windows 10/11 x64。
-- Ubuntu X11 x64；v1 暂不支持 Wayland 截图门户。
-- PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。
+- Ubuntu 22.04+ X11 x64；v1 暂不支持 Wayland 截图门户。
+- PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。自动检测到非中英文时不会错误回退到中英 Argos 模型。
 - v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
 
 ## 从源码运行
@@ -144,18 +147,19 @@ dotnet run --project src/PingYi.App/PingYi.App.csproj
 .\scripts\setup-engine.ps1
 ```
 
-需要直接打开设置窗口排障时，可在可执行文件后添加 `--settings`。
+需要直接打开设置窗口排障时，可在可执行文件后添加 `--settings`；使用 `--capture` 可把截图命令转发给已经运行的实例。
 
 ## 测试与发布
 
 ```powershell
 dotnet test PingYi.slnx
 py -3 -m unittest discover -s engine_host -p "test_*.py"
+py -3 -m unittest discover -s scripts -p "test_*.py"
 .\scripts\run-quality-baseline.ps1 -ModelDirectory <已准备的离线模型目录>
 .\scripts\publish.ps1 -Runtime win-x64
 ```
 
-OCR 固定场景分数、翻译对比与成品依赖审计见 [质量基线](docs/QUALITY_BASELINE.md)。发布脚本会生成裁剪后的自包含 .NET 程序、精简独立引擎并打包离线模型；发现 NVIDIA/CUDA/cuDNN 或意外的 Torch 运行库时会直接中止发布。
+OCR 固定场景分数、翻译对比与成品依赖审计见 [质量基线](docs/QUALITY_BASELINE.md)。发布脚本会生成裁剪后的自包含 .NET 程序、精简独立引擎并打包离线模型；发现 NVIDIA/CUDA/cuDNN、意外的 Torch 运行库或缺失的第三方许可证时会直接中止发布。每个成品都包含 `licenses/` 完整许可证目录，完全版只保留 llama.cpp server 所需文件。
 
 Inno Setup 位于自定义目录时，可传入 `-InnoCompiler "D:\path\to\ISCC.exe"`。发布机尚无模型源时，先运行：
 
@@ -170,6 +174,16 @@ py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts
 .\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
+Windows 支持可选 Authenticode 签名。先把代码签名证书导入当前用户证书库，再传入其 SHA-1 指纹；未传入时仍生成未签名成品：
+
+```powershell
+.\scripts\publish.ps1 -Runtime win-x64 -BuildInstaller `
+  -SigningCertificateThumbprint <40 位证书指纹> `
+  -TimestampUrl https://timestamp.digicert.com
+```
+
+GitHub Release 可配置仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64`（PFX 的 Base64）和 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`。未配置时工作流不会要求或伪造证书。构建任务只有仓库读取权限，只有最终发布任务拥有 Release 写权限。
+
 推送 `v*` 标签后，GitHub Actions 会分别生成 Windows 安装器/ZIP 与 Ubuntu `.deb`/`.tar.gz`，附带 SHA-256 校验文件并创建 GitHub Release。
 
 ## 参与贡献
@@ -178,4 +192,4 @@ py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts
 
 ## 许可证
 
-屏译源码采用 [MIT License](LICENSE)。离线模型和第三方运行组件保留各自许可证，详见 [第三方声明](THIRD_PARTY_NOTICES.md)。
+屏译源码采用 [MIT License](LICENSE)。离线模型和第三方运行组件保留各自许可证，详见 [第三方声明](THIRD_PARTY_NOTICES.md)；安装后的 `licenses/` 目录提供本次成品实际包含组件的完整许可证正文与清单。

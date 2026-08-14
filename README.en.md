@@ -78,7 +78,7 @@ On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP
 | Google OCR | Cloud Vision API | Yes; selected image only | Cloud |
 | Google translation | Cloud Translation Basic v2 | Yes; recognized text only | Cloud |
 
-The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GPU runtime. The Complete edition adds only the official MIT-licensed llama.cpp Vulkan and CPU runtimes; it does not bundle CUDA, cuDNN, or ROCm. Vulkan supports compatible AMD, NVIDIA, and Intel GPUs. An external local model server may use its own acceleration stack independently. Core features and Complete edition CPU mode work without a GPU.
+The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GPU acceleration runtime. The offline translation engine includes the CPU/OpenMP dependencies required by its official CTranslate2 platform wheel, including Intel oneMKL and oneDNN on x64; every artifact includes the applicable EULA, open-source licenses, and third-party notices. The Complete edition additionally adds the MIT-licensed llama.cpp Vulkan/CPU runtimes and does not bundle CUDA, cuDNN, or ROCm. The Ubuntu `.deb` installs the OpenSSL, Vulkan loader, GNU OpenMP, and C++ system runtimes required by llama.cpp. Vulkan supports compatible AMD, NVIDIA, and Intel GPUs. An external local model server may use its own acceleration stack independently. Core features and Complete edition CPU mode work without a GPU.
 
 ## Configure Google Cloud OCR and translation
 
@@ -117,16 +117,19 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 - Presets for llama.cpp, Ollama, LM Studio, vLLM, and generic OpenAI-compatible services.
 - Local multimodal OCR plus a PaddleOCR + vision-model correction mode for small text, terminals, and unusual fonts.
 - Copy source/translation/all, retry, pin, tray mode, and light/dark themes.
+- Single-instance operation: later launches wake the existing window or forward capture/settings commands instead of creating duplicate background processes; every processing task is cancelable and time-bounded.
 - Task-focused home screen, separate Settings window, contextual repair cards, and an optional classic interface.
 - English and Simplified Chinese interfaces with automatic system-language selection.
 - Windows DPAPI and Linux Secret Service credential storage, with masked display, reveal, copy, and paste controls.
+- Compatible custom services may use HTTP only on loopback addresses; every non-loopback endpoint must use HTTPS so credentials, recognized text, and images are never sent in plaintext.
 - Zero history by default; logs exclude screenshots, recognized text, translations, and secrets.
+- Update checks are off by default and contact the network only after the user explicitly enables them in Settings.
 
 ## Current compatibility
 
 - Windows 10/11 x64.
-- Ubuntu X11 x64; Wayland screenshot portals are outside the v1 scope.
-- PaddleOCR and bundled Argos translation support Simplified Chinese and English; local/custom LLM translation offers 34 common target languages in Settings.
+- Ubuntu 22.04+ X11 x64; Wayland screenshot portals are outside the v1 scope.
+- PaddleOCR and bundled Argos translation support Simplified Chinese and English; local/custom LLM translation offers 34 common target languages in Settings. Text automatically detected as another language is never sent to the Chinese-English Argos fallback.
 - v1 does not include live overlay translation, PDF/image batch processing, specialized table/formula OCR, or history.
 
 ## Run from source
@@ -144,18 +147,19 @@ Local OCR does not need Python during development. To run the standalone Argos t
 .\scripts\setup-engine.ps1
 ```
 
-Append `--settings` to the executable when you need to open Settings directly for troubleshooting.
+Append `--settings` to open Settings directly for troubleshooting. Use `--capture` to forward a capture command to an already-running instance.
 
 ## Test and release
 
 ```powershell
 dotnet test PingYi.slnx
 py -3 -m unittest discover -s engine_host -p "test_*.py"
+py -3 -m unittest discover -s scripts -p "test_*.py"
 .\scripts\run-quality-baseline.ps1 -ModelDirectory <prepared-offline-model-directory>
 .\scripts\publish.ps1 -Runtime win-x64
 ```
 
-See the [quality baseline](docs/QUALITY_BASELINE.md) for deterministic OCR scores, the translation comparison, and release dependency auditing. Release builds contain a trimmed self-contained .NET app, a minimized standalone translation engine, and the offline models. The build fails if it detects NVIDIA/CUDA/cuDNN or an unexpected Torch runtime.
+See the [quality baseline](docs/QUALITY_BASELINE.md) for deterministic OCR scores, the translation comparison, and release dependency auditing. Release builds contain a trimmed self-contained .NET app, a minimized standalone translation engine, and the offline models. The build fails if it detects NVIDIA/CUDA/cuDNN, an unexpected Torch runtime, or a missing third-party license. Every artifact contains a complete `licenses/` directory; the Complete edition retains only the files needed by llama.cpp server.
 
 If Inno Setup is installed in a custom directory, pass `-InnoCompiler "D:\path\to\ISCC.exe"`. To prepare model sources on a release machine:
 
@@ -170,6 +174,16 @@ py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts
 .\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
+Windows builds optionally support Authenticode. Import a code-signing certificate into the current-user certificate store and pass its SHA-1 thumbprint; omitting it continues to produce unsigned artifacts:
+
+```powershell
+.\scripts\publish.ps1 -Runtime win-x64 -BuildInstaller `
+  -SigningCertificateThumbprint <40-character-thumbprint> `
+  -TimestampUrl https://timestamp.digicert.com
+```
+
+GitHub Release can use repository secrets `PINGYI_SIGNING_CERTIFICATE_BASE64` (a Base64-encoded PFX) and `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Without them, the workflow neither requires nor fabricates a certificate. Build jobs have read-only repository access; only the final publishing job can write a Release.
+
 Pushing a `v*` tag builds the Windows installer/ZIP and Ubuntu `.deb`/`.tar.gz`, generates SHA-256 checksums, and creates a GitHub Release.
 
 ## Contributing
@@ -178,4 +192,4 @@ Bug reports, OCR failure samples, translation feedback, feature requests, and pu
 
 ## License
 
-PingYi source code is available under the [MIT License](LICENSE). Offline models and third-party runtime components retain their respective licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+PingYi source code is available under the [MIT License](LICENSE). Offline models and third-party runtime components retain their respective licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The installed `licenses/` directory contains the complete texts and manifest for the components in that particular build.

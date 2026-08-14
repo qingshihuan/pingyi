@@ -4,20 +4,50 @@ using System.Text.Json.Nodes;
 
 namespace PingYi.Infrastructure;
 
-public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
+public sealed class EngineProcessClient : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly CancellationTokenSource _disposeCancellation = new();
+    private readonly AppDataPaths _paths;
+    private readonly TimeSpan _requestTimeout;
     private Process? _process;
     private int _nextId;
+    private bool _disposed;
+
+    public EngineProcessClient(AppDataPaths paths, TimeSpan? requestTimeout = null)
+    {
+        _paths = paths;
+        _requestTimeout = requestTimeout ?? TimeSpan.FromMinutes(2);
+        if (_requestTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requestTimeout), "The request timeout must be positive.");
+        }
+    }
 
     public async Task<JsonElement> CallAsync(
         string method,
         JsonObject? parameters = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        TimeSpan? timeout = null)
     {
-        await _gate.WaitAsync(cancellationToken);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            _disposeCancellation.Token);
+        var effectiveTimeout = timeout ?? _requestTimeout;
+        if (effectiveTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeout), "The request timeout must be positive.");
+        }
+        requestCancellation.CancelAfter(effectiveTimeout);
+
+        var enteredGate = false;
+        var requestStarted = false;
         try
         {
+            await _gate.WaitAsync(requestCancellation.Token);
+            enteredGate = true;
+            ObjectDisposedException.ThrowIf(_disposed, this);
             EnsureStarted();
             var id = Interlocked.Increment(ref _nextId);
             var request = new JsonObject
@@ -26,16 +56,17 @@ public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
                 ["method"] = method,
                 ["params"] = parameters ?? new JsonObject()
             }.ToJsonString();
-            await _process!.StandardInput.WriteLineAsync(request.AsMemory(), cancellationToken);
-            await _process.StandardInput.FlushAsync(cancellationToken);
+            requestStarted = true;
+            await _process!.StandardInput.WriteLineAsync(request.AsMemory(), requestCancellation.Token);
+            await _process.StandardInput.FlushAsync(requestCancellation.Token);
 
             while (true)
             {
-                var line = await _process.StandardOutput.ReadLineAsync(cancellationToken);
+                var line = await _process.StandardOutput.ReadLineAsync(requestCancellation.Token);
                 if (line is null)
                 {
                     var detail = _process.HasExited ? $"退出码 {_process.ExitCode}" : "输出已关闭";
-                    ResetProcess();
+                    ResetProcess(terminate: true);
                     throw new InvalidOperationException($"本地引擎意外停止：{detail}。");
                 }
 
@@ -72,9 +103,36 @@ public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
                 }
             }
         }
+        catch (OperationCanceledException) when (
+            !cancellationToken.IsCancellationRequested &&
+            !_disposeCancellation.IsCancellationRequested)
+        {
+            if (enteredGate && requestStarted)
+            {
+                ResetProcess(terminate: true);
+            }
+
+            throw new Core.ProviderException(
+                "engine_timeout",
+                $"本地引擎在 {effectiveTimeout.TotalSeconds:0} 秒内未响应。");
+        }
+        catch (OperationCanceledException)
+        {
+            // The engine host handles one request at a time. Terminating an in-flight request
+            // prevents a canceled OCR/translation from delaying or replying into the next one.
+            if (enteredGate && requestStarted)
+            {
+                ResetProcess(terminate: true);
+            }
+
+            throw;
+        }
         finally
         {
-            _gate.Release();
+            if (enteredGate)
+            {
+                _gate.Release();
+            }
         }
     }
 
@@ -94,8 +152,8 @@ public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        startInfo.Environment["PINGYI_MODEL_DIR"] = paths.ModelDirectory;
-        startInfo.Environment["PINGYI_BUNDLED_MODEL_DIR"] = paths.BundledModelDirectory;
+        startInfo.Environment["PINGYI_MODEL_DIR"] = _paths.ModelDirectory;
+        startInfo.Environment["PINGYI_BUNDLED_MODEL_DIR"] = _paths.BundledModelDirectory;
         startInfo.Environment["PYTHONUNBUFFERED"] = "1";
 
         _process = Process.Start(startInfo)
@@ -167,14 +225,33 @@ public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
         }
     }
 
-    private void ResetProcess()
+    private void ResetProcess(bool terminate = false)
     {
+        if (terminate && _process is { HasExited: false } process)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch
+            {
+                // The process may have exited between the state check and Kill.
+            }
+        }
+
         _process?.Dispose();
         _process = null;
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        await _disposeCancellation.CancelAsync();
         await _gate.WaitAsync();
         try
         {
@@ -191,12 +268,12 @@ public sealed class EngineProcessClient(AppDataPaths paths) : IAsyncDisposable
                 }
             }
 
-            ResetProcess();
+            ResetProcess(terminate: true);
         }
         finally
         {
             _gate.Release();
-            _gate.Dispose();
+            _disposeCancellation.Dispose();
         }
     }
 }

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using PingYi.Core;
 using CorePixelRect = PingYi.Core.PixelRect;
 
@@ -15,6 +16,8 @@ public partial class CaptureOverlayWindow : Window
     private readonly Bitmap _bitmap;
     private readonly CaptureOverlaySession? _session;
     private readonly double _preferredScaling;
+    private bool _bitmapDisposalQueued;
+    private bool _bitmapDisposed;
 
     public CaptureOverlayWindow() : this(CreatePlaceholderCapture(), 1, session: null)
     {
@@ -55,12 +58,21 @@ public partial class CaptureOverlayWindow : Window
         };
         Closed += (_, _) =>
         {
-            _bitmap.Dispose();
+            QueueBitmapDisposal();
             _session?.NotifyClosed();
         };
     }
 
     internal void ShowOverlay() => Show();
+
+    internal void CloseOverlay()
+    {
+        Close();
+        if (!IsVisible)
+        {
+            QueueBitmapDisposal();
+        }
+    }
 
     internal void SetGlobalSelection(CorePixelRect? selection, bool showSize)
     {
@@ -131,6 +143,31 @@ public partial class CaptureOverlayWindow : Window
             Position.Y + (int)Math.Round(localPosition.Y * scale));
     }
 
+    private void QueueBitmapDisposal()
+    {
+        if (_bitmapDisposalQueued)
+        {
+            return;
+        }
+
+        _bitmapDisposalQueued = true;
+        // Detach the native bitmap before closing the window, then give Avalonia's
+        // render queue a turn to release its reference before disposing the image.
+        ScreenshotImage.Source = null;
+        Dispatcher.UIThread.Post(DisposeBitmap, DispatcherPriority.Background);
+    }
+
+    private void DisposeBitmap()
+    {
+        if (_bitmapDisposed)
+        {
+            return;
+        }
+
+        _bitmapDisposed = true;
+        _bitmap.Dispose();
+    }
+
     private static ImageFrame CreatePlaceholderCapture()
     {
         const string transparentPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -182,9 +219,26 @@ internal sealed class CaptureOverlaySession(
     private bool _selecting;
     private bool _completing;
     private int _openWindowCount;
+    private CancellationTokenRegistration _cancellationRegistration;
 
-    public Task<CorePixelRect?> ShowAndSelectAsync()
+    public Task<CorePixelRect?> ShowAndSelectAsync(CancellationToken cancellationToken = default)
     {
+        try
+        {
+            return ShowAndSelectCore(cancellationToken);
+        }
+        catch
+        {
+            _completing = true;
+            _cancellationRegistration.Dispose();
+            CloseWindows();
+            throw;
+        }
+    }
+
+    private Task<CorePixelRect?> ShowAndSelectCore(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var display in displays)
         {
             var displayCapture = ScreenSelectionGeometry.Intersect(display.Bounds, desktop.DesktopBounds);
@@ -206,9 +260,23 @@ internal sealed class CaptureOverlaySession(
         }
 
         _openWindowCount = _windows.Count;
-        foreach (var window in _windows)
+        _cancellationRegistration = cancellationToken.Register(() =>
+            Dispatcher.UIThread.Post(
+                () => CompleteCanceled(cancellationToken),
+                DispatcherPriority.Send));
+        try
         {
-            window.ShowOverlay();
+            foreach (var window in _windows)
+            {
+                window.ShowOverlay();
+            }
+        }
+        catch
+        {
+            _completing = true;
+            _cancellationRegistration.Dispose();
+            CloseWindows();
+            throw;
         }
 
         return _completion.Task;
@@ -302,11 +370,37 @@ internal sealed class CaptureOverlaySession(
         }
 
         _completing = true;
+        _cancellationRegistration.Dispose();
+        CloseWindows();
+        _completion.TrySetResult(selection);
+    }
+
+    private void CompleteCanceled(CancellationToken cancellationToken)
+    {
+        if (_completing)
+        {
+            return;
+        }
+
+        _completing = true;
+        _cancellationRegistration.Dispose();
+        CloseWindows();
+        _completion.TrySetCanceled(cancellationToken);
+    }
+
+    private void CloseWindows()
+    {
         foreach (var window in _windows)
         {
-            window.Close();
+            try
+            {
+                window.CloseOverlay();
+            }
+            catch
+            {
+                // A native overlay may already have closed; always clean up the rest.
+            }
         }
-        _completion.TrySetResult(selection);
     }
 }
 

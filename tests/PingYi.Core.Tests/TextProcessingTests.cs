@@ -7,6 +7,9 @@ public sealed class TextProcessingTests
     [Theory]
     [InlineData("这是中文界面", "zh")]
     [InlineData("Screenshot translation", "en")]
+    [InlineData("Bonjour le monde, merci beaucoup", "fr")]
+    [InlineData("Hola, ¿cómo estás? Muchas gracias", "es")]
+    [InlineData("Guten Morgen, wie geht es Ihnen?", "de")]
     [InlineData("版本 version", "zh")]
     [InlineData("画面を翻訳します", "ja")]
     [InlineData("화면 번역", "ko")]
@@ -18,6 +21,18 @@ public sealed class TextProcessingTests
     public void DetectLanguage_ReturnsExpectedLanguage(string text, string expected)
     {
         Assert.Equal(expected, TextProcessing.DetectLanguage(text));
+    }
+
+    [Theory]
+    [InlineData("Hello, open the screenshot settings", "en")]
+    [InlineData("PingYi", "unknown")]
+    [InlineData("Bonjour le monde", "fr")]
+    [InlineData("Hola, ¿cómo estás?", "es")]
+    public void DetectLanguageForOfflineFallback_IsConservativeForAmbiguousLatinText(
+        string text,
+        string expected)
+    {
+        Assert.Equal(expected, TextProcessing.DetectLanguageForOfflineFallback(text));
     }
 
     [Theory]

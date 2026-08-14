@@ -55,13 +55,16 @@ public sealed class ChatCompatibleOcrProvider(
         }
 
         var settings = settingsAccessor();
-        if (!Uri.TryCreate(
-                AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
-                UriKind.Absolute,
-                out var endpoint) ||
+        if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint) ||
             string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
         {
             throw new ProviderException("vlm_ocr_endpoint_invalid", "本机多模态模型接口配置不完整。");
+        }
+        if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
+        {
+            throw new ProviderException(
+                "custom_endpoint_insecure_transport",
+                "远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。");
         }
 
         using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);

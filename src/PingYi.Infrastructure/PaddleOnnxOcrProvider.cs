@@ -8,15 +8,18 @@ using SkiaSharp;
 
 namespace PingYi.Infrastructure;
 
-public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDisposable
+public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDisposable, IAsyncDisposable
 {
     private const string DetectionModelName = "PP-OCRv5_mobile_det_onnx";
     private const string RecognitionModelName = "PP-OCRv5_mobile_rec_onnx";
     private readonly SemaphoreSlim _inferenceGate = new(1, 1);
+    private readonly TaskCompletionSource _disposeCompletion =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Dictionary<string, (long Length, DateTime LastWriteUtc, string Hash)> _hashCache = [];
     private InferenceSession? _detectionSession;
     private InferenceSession? _recognitionSession;
     private IReadOnlyList<string>? _characters;
+    private int _disposeState;
 
     public ProviderMetadata Metadata { get; } = new(
         "local-paddle",
@@ -39,9 +42,11 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         OcrOptions options,
         CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
         await _inferenceGate.WaitAsync(cancellationToken);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             EnsureInitialized();
             using var bitmap = SKBitmap.Decode(image.PngBytes)
                 ?? throw new ProviderException("ocr_image_invalid", "无法读取所选截图。");
@@ -52,7 +57,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var recognition = RecognizeBox(bitmap, box);
-                if (!string.IsNullOrWhiteSpace(recognition.Text))
+                if (!string.IsNullOrWhiteSpace(recognition.Text) && recognition.Confidence >= 0.28)
                 {
                     blocks.Add(new OcrBlock(recognition.Text, box, recognition.Confidence));
                 }
@@ -112,8 +117,66 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
 
     private List<PixelRect> DetectTextBoxes(SKBitmap bitmap, CancellationToken cancellationToken)
     {
-        const int maxSide = 960;
-        var scale = Math.Min(1d, (double)maxSide / Math.Max(bitmap.Width, bitmap.Height));
+        const int tileSide = 1280;
+        const int tileOverlap = 96;
+        if (bitmap.Width <= tileSide && bitmap.Height <= tileSide)
+        {
+            if (HasDarkBackground(bitmap))
+            {
+                using var inverted = CreateInvertedBitmap(bitmap);
+                return MergeNearbyBoxes(
+                    RemoveDuplicateBoxes(DetectTextBoxesSingle(inverted, cancellationToken)));
+            }
+
+            return MergeNearbyBoxes(
+                RemoveDuplicateBoxes(DetectTextBoxesSingle(bitmap, cancellationToken)));
+        }
+
+        var tiledBoxes = new List<PixelRect>();
+        var step = tileSide - tileOverlap;
+        for (var top = 0; top < bitmap.Height; top += step)
+        {
+            var tileHeight = Math.Min(tileSide, bitmap.Height - top);
+            for (var left = 0; left < bitmap.Width; left += step)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var tileWidth = Math.Min(tileSide, bitmap.Width - left);
+                using var tile = new SKBitmap(tileWidth, tileHeight);
+                using (var canvas = new SKCanvas(tile))
+                {
+                    canvas.DrawBitmap(
+                        bitmap,
+                        new SKRect(left, top, left + tileWidth, top + tileHeight),
+                        new SKRect(0, 0, tileWidth, tileHeight));
+                }
+
+                List<PixelRect> localBoxes;
+                if (HasDarkBackground(tile))
+                {
+                    using var inverted = CreateInvertedBitmap(tile);
+                    localBoxes = DetectTextBoxesSingle(inverted, cancellationToken);
+                }
+                else
+                {
+                    localBoxes = DetectTextBoxesSingle(tile, cancellationToken);
+                }
+
+                tiledBoxes.AddRange(localBoxes.Select(box => new PixelRect(
+                    box.X + left,
+                    box.Y + top,
+                    box.Width,
+                    box.Height)));
+            }
+        }
+
+        return MergeNearbyBoxes(RemoveDuplicateBoxes(tiledBoxes));
+    }
+
+    private List<PixelRect> DetectTextBoxesSingle(SKBitmap bitmap, CancellationToken cancellationToken)
+    {
+        const int maxSide = 1280;
+        const double maximumUpscale = 2d;
+        var scale = Math.Min(maximumUpscale, (double)maxSide / Math.Max(bitmap.Width, bitmap.Height));
         var resizedWidth = Math.Max(32, (int)Math.Round(bitmap.Width * scale / 32d) * 32);
         var resizedHeight = Math.Max(32, (int)Math.Round(bitmap.Height * scale / 32d) * 32);
         var data = new float[3 * resizedHeight * resizedWidth];
@@ -150,6 +213,8 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
             {
                 var color = bitmap.GetPixel(x, y);
                 var index = y * bitmap.Width + x;
+                // The pinned PP-OCRv5 inference configuration explicitly uses
+                // DecodeImage.img_mode=BGR, so preserve OpenCV channel order.
                 data[index] = (color.Blue / 255f - means[0]) / stds[0];
                 data[plane + index] = (color.Green / 255f - means[1]) / stds[1];
                 data[2 * plane + index] = (color.Red / 255f - means[2]) / stds[2];
@@ -281,11 +346,43 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         return merged.Where(box => box.Width >= 4 && box.Height >= 4).ToList();
     }
 
+    private static List<PixelRect> RemoveDuplicateBoxes(IEnumerable<PixelRect> boxes)
+    {
+        var result = new List<PixelRect>();
+        foreach (var candidate in boxes
+                     .Where(box => box.Width >= 4 && box.Height >= 4)
+                     .OrderByDescending(box => box.Width * box.Height))
+        {
+            var duplicate = result.Any(existing => IntersectionOverUnion(existing, candidate) >= 0.55);
+            if (!duplicate)
+            {
+                result.Add(candidate);
+            }
+        }
+
+        return result.OrderBy(box => box.Y).ThenBy(box => box.X).ToList();
+    }
+
+    private static double IntersectionOverUnion(PixelRect left, PixelRect right)
+    {
+        var intersectionLeft = Math.Max(left.X, right.X);
+        var intersectionTop = Math.Max(left.Y, right.Y);
+        var intersectionRight = Math.Min(left.X + left.Width, right.X + right.Width);
+        var intersectionBottom = Math.Min(left.Y + left.Height, right.Y + right.Height);
+        var width = Math.Max(0, intersectionRight - intersectionLeft);
+        var height = Math.Max(0, intersectionBottom - intersectionTop);
+        var intersection = (long)width * height;
+        if (intersection == 0)
+        {
+            return 0;
+        }
+
+        var union = (long)left.Width * left.Height + (long)right.Width * right.Height - intersection;
+        return union <= 0 ? 0 : (double)intersection / union;
+    }
+
     private (string Text, double Confidence) RecognizeBox(SKBitmap source, PixelRect box)
     {
-        const int targetHeight = 48;
-        const int minimumTargetWidth = 32;
-        const int maximumTargetWidth = 1600;
         using var cropped = new SKBitmap(box.Width, box.Height);
         using (var canvas = new SKCanvas(cropped))
         {
@@ -296,7 +393,22 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
                 new SKRect(0, 0, box.Width, box.Height));
         }
 
-        var idealWidth = Math.Max(1, (int)Math.Ceiling((double)targetHeight * box.Width / box.Height));
+        var normal = RecognizeBoxVariant(cropped, invert: false);
+        if (!HasDarkBackground(cropped))
+        {
+            return normal;
+        }
+
+        var inverted = RecognizeBoxVariant(cropped, invert: true);
+        return RecognitionScore(inverted) > RecognitionScore(normal) ? inverted : normal;
+    }
+
+    private (string Text, double Confidence) RecognizeBoxVariant(SKBitmap cropped, bool invert)
+    {
+        const int targetHeight = 48;
+        const int minimumTargetWidth = 32;
+        const int maximumTargetWidth = 1600;
+        var idealWidth = Math.Max(1, (int)Math.Ceiling((double)targetHeight * cropped.Width / cropped.Height));
         var targetWidth = Math.Clamp(
             (int)Math.Ceiling(idealWidth / 32d) * 32,
             minimumTargetWidth,
@@ -307,16 +419,15 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         var data = new float[3 * targetHeight * targetWidth];
         Array.Fill(data, 1f);
         var plane = targetHeight * targetWidth;
-        var invert = HasDarkBackground(cropped);
         for (var y = 0; y < targetHeight; y++)
         {
             for (var x = 0; x < resizedWidth; x++)
             {
                 var color = resized.GetPixel(x, y);
                 var index = y * targetWidth + x;
-                var blue = invert ? 255 - color.Blue : color.Blue;
-                var green = invert ? 255 - color.Green : color.Green;
                 var red = invert ? 255 - color.Red : color.Red;
+                var green = invert ? 255 - color.Green : color.Green;
+                var blue = invert ? 255 - color.Blue : color.Blue;
                 data[index] = blue / 127.5f - 1f;
                 data[plane + index] = green / 127.5f - 1f;
                 data[2 * plane + index] = red / 127.5f - 1f;
@@ -365,6 +476,28 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         }
 
         return (result.ToString().Trim(), accepted == 0 ? 0 : confidence / accepted);
+    }
+
+    private static double RecognitionScore((string Text, double Confidence) recognition) =>
+        recognition.Confidence + Math.Min(12, recognition.Text.Length) * 0.005;
+
+    private static SKBitmap CreateInvertedBitmap(SKBitmap source)
+    {
+        var inverted = new SKBitmap(source.Width, source.Height);
+        for (var y = 0; y < source.Height; y++)
+        {
+            for (var x = 0; x < source.Width; x++)
+            {
+                var color = source.GetPixel(x, y);
+                inverted.SetPixel(x, y, new SKColor(
+                    (byte)(255 - color.Red),
+                    (byte)(255 - color.Green),
+                    (byte)(255 - color.Blue),
+                    color.Alpha));
+            }
+        }
+
+        return inverted;
     }
 
     private static bool HasDarkBackground(SKBitmap bitmap)
@@ -549,10 +682,39 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         return characters;
     }
 
-    public void Dispose()
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+    public async ValueTask DisposeAsync()
     {
-        _detectionSession?.Dispose();
-        _recognitionSession?.Dispose();
-        _inferenceGate.Dispose();
+        if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
+        {
+            await _disposeCompletion.Task;
+            return;
+        }
+
+        try
+        {
+            // InferenceSession.Run is native and is not interrupted immediately by a
+            // canceled token. Never release ONNX sessions while an inference still owns
+            // the gate; doing so can surface as an unrecoverable native access violation.
+            await _inferenceGate.WaitAsync();
+            try
+            {
+                _detectionSession?.Dispose();
+                _recognitionSession?.Dispose();
+                _detectionSession = null;
+                _recognitionSession = null;
+                _characters = null;
+            }
+            finally
+            {
+                _inferenceGate.Release();
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _disposeState, 2);
+            _disposeCompletion.TrySetResult();
+        }
     }
 }

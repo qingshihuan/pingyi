@@ -40,6 +40,27 @@ public static class LocalLlmPresets
 
     public static LocalLlmPreset Default => All[0];
 
+    public static AppSettings ApplyLocalMode(AppSettings settings, string ocrProviderId)
+    {
+        var preset = Default;
+        var hasUsableLocalConfiguration =
+            AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var configuredEndpoint) &&
+            configuredEndpoint.IsLoopback &&
+            !string.IsNullOrWhiteSpace(settings.CustomTranslationModel);
+        return settings with
+        {
+            OcrProviderId = ocrProviderId,
+            TranslationProviderId = "custom-chat",
+            CustomTranslationEndpoint = hasUsableLocalConfiguration
+                ? configuredEndpoint.AbsoluteUri.TrimEnd('/')
+                : preset.ChatCompletionsEndpoint,
+            CustomTranslationModel = hasUsableLocalConfiguration
+                ? settings.CustomTranslationModel.Trim()
+                : preset.SuggestedModel,
+            ManagedRuntimeEnabled = hasUsableLocalConfiguration && settings.ManagedRuntimeEnabled
+        };
+    }
+
     public static LocalLlmPreset? MatchEndpoint(string? endpoint)
     {
         var normalized = AppSettings.NormalizeChatCompletionsEndpoint(endpoint);
