@@ -92,6 +92,8 @@ class PrepareLlamaRuntimeTests(unittest.TestCase):
     def test_linux_runtime_keeps_shared_libraries_and_server(self) -> None:
         required = {
             "llama-server",
+            "libllama-server-impl.so",
+            "libllama-common.so.0",
             "libllama.so.0",
             "libmtmd.so.0",
             "libggml.so.0",

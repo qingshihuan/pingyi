@@ -128,6 +128,8 @@ def extract_runtime_payload(
         else:
             required_patterns = [
                 "llama-server",
+                "libllama-server-impl.so*",
+                "libllama-common.so*",
                 "libllama.so*",
                 "libmtmd.so*",
                 "libggml.so*",
