@@ -24,7 +24,24 @@ collector = importlib.util.module_from_spec(COLLECTOR_SPEC)
 COLLECTOR_SPEC.loader.exec_module(collector)
 
 
+def sha256_text_file(path: Path) -> str:
+    # Git may check text files out with CRLF on Windows. Compare canonical LF
+    # bytes so pinned upstream text has the same digest on every platform.
+    content = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()
+
+
 class ReleaseLicenseAuditTests(unittest.TestCase):
+    def test_text_hash_is_independent_of_checkout_line_endings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lf_file = root / "lf.txt"
+            crlf_file = root / "crlf.txt"
+            lf_file.write_bytes(b"first line\nsecond line\n")
+            crlf_file.write_bytes(b"first line\r\nsecond line\r\n")
+
+            self.assertEqual(sha256_text_file(lf_file), sha256_text_file(crlf_file))
+
     def test_pinned_onednn_license_files_remain_unchanged(self) -> None:
         # SHA-256 digests of the upstream oneDNN v3.1.1 files.
         expected = {
@@ -32,8 +49,7 @@ class ReleaseLicenseAuditTests(unittest.TestCase):
             "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e",
         }
         for name, digest in expected.items():
-            content = (collector.CURATED_ROOT / name).read_bytes()
-            self.assertEqual(digest, hashlib.sha256(content).hexdigest(), name)
+            self.assertEqual(digest, sha256_text_file(collector.CURATED_ROOT / name), name)
 
     def test_collector_distinguishes_gnu_llvm_and_intel_openmp(self) -> None:
         class FakeIntelDistribution:
