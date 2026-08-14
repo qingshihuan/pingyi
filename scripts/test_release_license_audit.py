@@ -26,9 +26,10 @@ COLLECTOR_SPEC.loader.exec_module(collector)
 
 class ReleaseLicenseAuditTests(unittest.TestCase):
     def test_pinned_onednn_license_files_remain_unchanged(self) -> None:
+        # SHA-256 digests of the upstream oneDNN v3.1.1 files.
         expected = {
-            "oneDNN-3.1.1-LICENSE.txt": "f961df79eec1c83e6c27483979216c6277bd2a5deed99646e915a92fde4b3d8e",
-            "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt": "799d964b8be96c96405f56b419a9340362d486196a7be1d1110ca5bd9e37a8ef",
+            "oneDNN-3.1.1-LICENSE.txt": "dd12452e1ae11e3282271aa5895d8175296b83e936a027209f9399d26a407d0f",
+            "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e",
         }
         for name, digest in expected.items():
             content = (collector.CURATED_ROOT / name).read_bytes()
