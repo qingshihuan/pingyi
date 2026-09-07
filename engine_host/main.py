@@ -85,7 +85,7 @@ def local_only_network_guard():
         raise EngineError("本地模式已阻止意外网络请求。")
 
     socket.socket.connect = blocked_connect
-    socket.socket.connect_ex = blocked_connect_ex
+    socket.socket.connect_ex = blocked_connect
     socket.create_connection = blocked_connect
     try:
         yield
