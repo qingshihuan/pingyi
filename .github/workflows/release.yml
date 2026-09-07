@@ -3,18 +3,58 @@ name: Release
 on:
   push:
     tags: ["v*"]
+    branches: [main]
+    paths: [".github/release-version.txt"]
   workflow_dispatch:
     inputs:
       version:
         description: Version to place in the package names
         required: true
-        default: 0.1.0
+        default: 0.3.2
 
 permissions:
   contents: read
 
+concurrency:
+  group: pingyi-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      notes: ${{ steps.resolve.outputs.notes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Resolve and validate release version
+        id: resolve
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
+              version = os.environ["REQUESTED_VERSION"].strip()
+          elif os.environ["GITHUB_REF"].startswith("refs/tags/v"):
+              version = os.environ["GITHUB_REF_NAME"][1:]
+          else:
+              version = Path(".github/release-version.txt").read_text(encoding="utf-8").strip()
+          if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
+              raise SystemExit("Invalid release version")
+          notes = Path("docs/releases") / f"v{version}.md"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"version={version}\ntag=v{version}\n")
+              output.write(f"notes={notes.as_posix() if notes.is_file() else ''}\n")
+          print(f"Release version: {version}")
+          PY
+
   windows:
+    needs: version
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -27,6 +67,8 @@ jobs:
       - name: Run full test suite
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet restore PingYi.slnx
           dotnet build PingYi.slnx -c Release --no-restore
           dotnet test PingYi.slnx -c Release --no-build
@@ -62,12 +104,10 @@ jobs:
           "thumbprint=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Build Windows release
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: |
-          $version = if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            "${{ inputs.version }}"
-          } else {
-            "${{ github.ref_name }}".TrimStart("v")
-          }
+          $version = $env:RELEASE_VERSION
           $signingArguments = @{}
           $signingThumbprint = "${{ steps.signing.outputs.thumbprint }}"
           if (-not [string]::IsNullOrWhiteSpace($signingThumbprint)) {
@@ -102,11 +142,13 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-release
+          if-no-files-found: error
           path: |
             artifacts/PingYi-*-win-x64.zip
             packaging/windows/Output/*-setup.exe
 
   linux:
+    needs: version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -127,13 +169,11 @@ jobs:
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y python3-venv dpkg-dev
       - name: Build Linux release
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: |
           chmod +x scripts/*.sh
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            version="${{ inputs.version }}"
-          else
-            version="${GITHUB_REF_NAME#v}"
-          fi
+          version="$RELEASE_VERSION"
           ./scripts/setup-engine.sh
           python scripts/download-offline-models.py --destination artifacts/model-source
           ./scripts/build-engine.sh
@@ -181,34 +221,76 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: linux-release
+          if-no-files-found: error
           path: |
             artifacts/PingYi-*-linux-x64.tar.gz
             artifacts/PingYi-*-linux-x64.deb
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [windows, linux]
+    if: github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v')
+    needs: [version, windows, linux]
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Refuse to replace a tag belonging to another commit
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          if git rev-parse --verify "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$(git rev-parse HEAD)" || {
+              echo "Existing release tag points to another commit; refusing to overwrite." >&2
+              exit 1
+            }
+          fi
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: release-files
           merge-multiple: true
-      - name: Collect release assets
+      - name: Collect and validate release assets
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: |
-          mkdir release-assets
-          find release-files -type f -print0 |
-            while IFS= read -r -d '' file; do
-              cp "$file" "release-assets/$(basename "$file")"
-            done
+          python3 - <<'PY'
+          import os
+          import shutil
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          destination = Path("release-assets")
+          destination.mkdir()
+          expected = {
+              f"{prefix}{version}-{suffix}"
+              for prefix in ("PingYi-", "PingYi-Complete-")
+              for suffix in ("win-x64.zip", "win-x64-setup.exe", "linux-x64.tar.gz", "linux-x64.deb")
+          }
+          seen = set()
+          for source in Path("release-files").rglob("*"):
+              if not source.is_file():
+                  continue
+              if source.name not in expected or source.name in seen or source.stat().st_size == 0:
+                  raise SystemExit(f"Unexpected, duplicate or empty release asset: {source.name}")
+              seen.add(source.name)
+              shutil.copyfile(source, destination / source.name)
+          if seen != expected:
+              raise SystemExit(f"Missing release assets: {sorted(expected - seen)}")
+          print(f"Verified all {len(expected)} expected release packages.")
+          PY
       - name: Generate checksums
         working-directory: release-assets
         run: sha256sum ./* > SHA256SUMS.txt
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: PingYi ${{ needs.version.outputs.tag }}
+          body_path: ${{ needs.version.outputs.notes }}
+          prerelease: ${{ contains(needs.version.outputs.version, '-') }}
+          make_latest: ${{ !contains(needs.version.outputs.version, '-') }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: release-assets/*
