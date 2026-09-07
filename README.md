@@ -35,7 +35,7 @@
   <img src="docs/demo.gif" width="800" alt="屏译截图 OCR 与翻译工作流演示">
 </p>
 
-演示展示了快捷键框选、OCR 结果、翻译和本地隐私状态。可直接下载 [v0.3.0](https://github.com/qingshihuan/pingyi/releases/tag/v0.3.0)；标准版安装后即可离线使用中英基础功能。
+演示展示了快捷键框选、OCR 结果、翻译和本地隐私状态。可直接下载 [最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)；标准版安装后即可离线使用中英基础功能。
 
 ## 为什么选择屏译
 
@@ -107,6 +107,12 @@ Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `sett
 
 完全版使用本机 `127.0.0.1:18080`，选择本机模式时不会上传截图或文字。模型来自魔搭的固定版本：[Qwen3.5 2B GGUF](https://modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF) 与 [Gemma 4 E2B GGUF](https://modelscope.cn/models/ggml-org/gemma-4-E2B-it-GGUF)。
 
+## 可靠性改进（0.3.2）
+
+模型校验改为固定缓冲区分块读取，降低大文件校验的临时内存占用；离线断句保留小数、版本号和域名。设置保存使用同一路径共享锁和独立临时文件，取消或失败时保留原设置并清理临时文件。自定义翻译返回空白或畸形结果时不再视为成功，而是按现有语言支持规则尝试离线回退；模型列表格式错误会显示为不可用。
+
+Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；健康检查与翻译的 Python 依赖初始化也纳入现有网络防护。默认离线方式、模型和第三方依赖版本保持不变。改动范围、内存测量口径与验收要求见 [可靠性优化说明](docs/RELIABILITY_OPTIMIZATION.md)，版本说明见 [0.3.2 更新记录](docs/releases/v0.3.2.md)。这些改进已合并主线；发布状态和可下载安装包以 [GitHub Releases](https://github.com/qingshihuan/pingyi/releases) 为准。
+
 ## 已实现功能
 
 - Windows 虚拟桌面捕获、全局快捷键、多显示器和不同 DPI 框选。
@@ -124,12 +130,6 @@ Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `sett
 - 自定义兼容服务仅允许本机回环地址使用 HTTP；任何非本机地址必须使用 HTTPS，避免凭据、识别文字或截图被明文传输。
 - 默认零历史记录；日志禁止记录截图、识别正文、译文和密钥。
 - 更新检查默认关闭；只有用户在设置中明确开启后才会联网检查新版本。
-
-## 源码分支中的可靠性改进（尚未发布）
-
-模型校验改为固定缓冲区分块读取，降低大文件校验的临时内存占用；离线断句保留小数、版本号和域名。设置保存使用同一路径共享锁和独立临时文件，取消或失败时保留原设置并清理临时文件。自定义翻译返回空白或畸形结果时不再视为成功，而是按现有语言支持规则尝试离线回退；模型列表格式错误会显示为不可用。
-
-Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；健康检查与翻译的 Python 依赖初始化也纳入现有网络防护。默认离线方式、模型和第三方依赖版本保持不变。改动范围、内存测量口径与验收要求见 [可靠性优化说明](docs/RELIABILITY_OPTIMIZATION.md)。此处描述源码变更，不表示已有安装包包含这些修复。
 
 ## 当前兼容范围
 
@@ -177,7 +177,7 @@ python scripts/download-offline-models.py --destination artifacts/model-source
 
 ```powershell
 py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
-.\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.0 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.2 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
 ```
 
 Windows 支持可选 Authenticode 签名。先把代码签名证书导入当前用户证书库，再传入其 SHA-1 指纹；未传入时仍生成未签名成品：
@@ -190,7 +190,7 @@ Windows 支持可选 Authenticode 签名。先把代码签名证书导入当前�
 
 GitHub Release 可配置仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64`（PFX 的 Base64）和 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`。未配置时工作流不会要求或伪造证书。构建任务只有仓库读取权限，只有最终发布任务拥有 Release 写权限。
 
-推送 `v*` 标签后，GitHub Actions 会分别生成 Windows 安装器/ZIP 与 Ubuntu `.deb`/`.tar.gz`，附带 SHA-256 校验文件并创建 GitHub Release。
+推送 `v*` 标签仍可触发发布；也可在 `main` 中更新 `.github/release-version.txt` 为新版本，并添加对应的 `docs/releases/v<版本>.md` 更新说明。普通代码或文档提交不会通过此入口自动发布。双平台构建、测试和全部 8 个成品附件检查通过后，工作流才创建对应标签和 GitHub Release，附带 `SHA256SUMS.txt`。已有标签指向不同提交时会拒绝覆盖。手动运行主线的工作流只构建、不发布；手动运行标签上的工作流保留发布行为。
 
 ## 参与贡献
 
