@@ -9,6 +9,7 @@ import socket
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import main
@@ -37,8 +38,24 @@ class ModelHashTests(unittest.TestCase):
             path = Path(directory) / "model.bin"
             path.write_bytes(b"model")
             expected = main.sha256_file(path)
-            with patch.object(Path, "open", side_effect=AssertionError("cache miss")):
+            with patch.object(main.hashlib, "sha256", side_effect=AssertionError("cache miss")):
                 self.assertEqual(expected, main.sha256_file(path))
+
+    def test_path_and_handle_timestamp_differences_do_not_reject_stable_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "model.bin"
+            path.write_bytes(b"model")
+            actual = path.stat()
+            # File identity agrees, but path timestamps differ from fstat.
+            path_metadata = SimpleNamespace(
+                st_dev=actual.st_dev,
+                st_ino=actual.st_ino,
+                st_size=actual.st_size,
+                st_mtime_ns=actual.st_mtime_ns + 100,
+                st_ctime_ns=actual.st_ctime_ns + 100,
+            )
+            with patch.object(Path, "stat", return_value=path_metadata):
+                self.assertEqual(hashlib.sha256(b"model").hexdigest(), main.sha256_file(path))
 
     def test_replacement_with_same_size_and_mtime_invalidates_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -85,7 +85,7 @@ def local_only_network_guard():
         raise EngineError("本地模式已阻止意外网络请求。")
 
     socket.socket.connect = blocked_connect
-    socket.socket.connect_ex = blocked_connect
+    socket.socket.connect_ex = blocked_connect_ex
     socket.create_connection = blocked_connect
     try:
         yield
@@ -100,29 +100,31 @@ def module_available(name: str) -> bool:
 
 
 def sha256_file(path: Path) -> str:
-    signature = _file_signature(path.stat())
-    cached = _hash_cache.get(path)
-    if cached is not None and cached[0] == signature:
-        return cached[1]
-
-    # Model files can be hundreds of MiB. Reuse one buffer instead of loading
-    # the entire file, and never cache a digest for a file modified mid-read.
-    digest = hashlib.sha256()
-    buffer = bytearray(_HASH_CHUNK_BYTES)
-    view = memoryview(buffer)
+    # Use the same metadata API before and after hashing. Windows path-based
+    # stat and handle-based fstat can expose different timestamp snapshots.
     with path.open("rb") as stream:
-        if _file_signature(os.fstat(stream.fileno())) != signature:
-            raise OSError("模型文件在校验期间发生变化，请重试。")
+        before = os.fstat(stream.fileno())
+        signature = _file_signature(before)
+        cached = _hash_cache.get(path)
+        if cached is not None and cached[0] == signature:
+            return cached[1]
+
+        # Model files can be hundreds of MiB. Reuse one buffer instead of
+        # loading the entire file, including on Unicode installation paths.
+        digest = hashlib.sha256()
+        buffer = bytearray(_HASH_CHUNK_BYTES)
+        view = memoryview(buffer)
         while length := stream.readinto(buffer):
             digest.update(view[:length])
-        if _file_signature(os.fstat(stream.fileno())) != signature:
+        if (
+            _file_signature(os.fstat(stream.fileno())) != signature
+            or not os.path.samestat(before, path.stat())
+        ):
             raise OSError("模型文件在校验期间发生变化，请重试。")
-    if _file_signature(path.stat()) != signature:
-        raise OSError("模型文件在校验期间发生变化，请重试。")
 
-    value = digest.hexdigest()
-    _hash_cache[path] = (signature, value)
-    return value
+        value = digest.hexdigest()
+        _hash_cache[path] = (signature, value)
+        return value
 
 
 def find_argos_model_file(root: Path, source_code: str, target_code: str) -> Path:
