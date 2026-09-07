@@ -60,3 +60,15 @@ text is absent or truncated.
 The upstream projects and authors retain all rights granted by their respective
 licenses. This summary does not replace the complete texts distributed in
 `licenses/`.
+
+## PingYi runtime integration
+
+PingYi's own Python adapter uses a lightweight offline sentence splitter and
+streaming SHA-256 verification. It discards Python-level dependency diagnostics
+during engine requests and exposes only intentionally authored error messages;
+unknown dependency exceptions are represented by a type and a generic message.
+The existing Python socket guard also covers dependency initialization during
+health and translation requests. Explicit model installation remains a separate
+network-capable operation. These adapter changes do not add, replace, or upgrade
+third-party packages, models, native runtimes, or their license terms. They are
+not an operating-system network sandbox or a guarantee about native-library I/O.
