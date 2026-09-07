@@ -5,8 +5,13 @@ namespace PingYi.Infrastructure;
 
 public sealed class JsonSettingsStore : ISettingsStore
 {
+    // Bound the lock registry while coordinating independent store instances.
+    // Hash collisions only serialize unrelated settings files; no files are mixed.
+    private static readonly SemaphoreSlim[] FileGates = Enumerable.Range(0, 32)
+        .Select(_ => new SemaphoreSlim(1, 1))
+        .ToArray();
     private readonly string _settingsFile;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly SemaphoreSlim _gate;
 
     public JsonSettingsStore(AppDataPaths paths) : this(paths.SettingsFile)
     {
@@ -16,6 +21,8 @@ public sealed class JsonSettingsStore : ISettingsStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(settingsFile);
         _settingsFile = Path.GetFullPath(settingsFile);
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        _gate = FileGates[(int)((uint)comparer.GetHashCode(_settingsFile) % (uint)FileGates.Length)];
     }
 
     public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
@@ -23,8 +30,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            // Allow another store/process to replace the file while this reader
-            // finishes reading its complete snapshot (including on Windows).
+            // In-process stores for this path share a gate. Delete sharing also
+            // avoids holding an unnecessary replacement lock for external tools.
             await using var stream = new FileStream(
                 _settingsFile,
                 FileMode.Open,
