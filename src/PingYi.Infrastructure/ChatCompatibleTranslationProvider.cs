@@ -134,19 +134,36 @@ public sealed class ChatCompatibleTranslationProvider(
             throw new ProviderException("custom_translate_http", $"自定义翻译接口返回 HTTP {(int)response.StatusCode}。");
         }
 
-        using var document = JsonDocument.Parse(responsePayload);
         try
         {
-            var text = document.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString() ?? string.Empty;
-            return new TranslationResult(text.Trim(), request.SourceLanguage, request.TargetLanguage);
+            using var document = JsonDocument.Parse(responsePayload);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("choices", out var choices) ||
+                choices.ValueKind != JsonValueKind.Array ||
+                choices.GetArrayLength() == 0 ||
+                choices[0].ValueKind != JsonValueKind.Object ||
+                !choices[0].TryGetProperty("message", out var reply) ||
+                reply.ValueKind != JsonValueKind.Object ||
+                !reply.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.String)
+            {
+                throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
+            }
+
+            var text = content.GetString()!.Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                // An empty successful response must not bypass offline fallback.
+                throw new ProviderException("custom_translate_empty", "自定义翻译接口未返回有效译文。");
+            }
+
+            return new TranslationResult(text, request.SourceLanguage, request.TargetLanguage);
         }
-        catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
+        catch (JsonException)
         {
-            throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。", exception);
+            // Do not retain an untrusted response body in exception diagnostics.
+            throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
         }
     }
 
@@ -208,12 +225,28 @@ public sealed class ChatCompatibleTranslationProvider(
         }
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        return document.RootElement.TryGetProperty("data", out var data)
-            ? data.EnumerateArray()
-                .Select(item => item.TryGetProperty("id", out var id) ? id.GetString() : null)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Cast<string>()
-                .ToArray()
-            : [];
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("data", out var data) ||
+            data.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException("本地模型列表响应格式不正确。");
+        }
+
+        var modelIds = new List<string>();
+        foreach (var item in data.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object ||
+                !item.TryGetProperty("id", out var id) ||
+                id.ValueKind != JsonValueKind.String ||
+                string.IsNullOrWhiteSpace(id.GetString()))
+            {
+                throw new JsonException("本地模型列表响应格式不正确。");
+            }
+
+            modelIds.Add(id.GetString()!);
+        }
+
+        return modelIds.Distinct(StringComparer.Ordinal).ToArray();
     }
 }

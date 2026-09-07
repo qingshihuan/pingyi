@@ -9,7 +9,6 @@ import re
 import shutil
 import socket
 import sys
-import traceback
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +48,30 @@ os.environ.setdefault("ARGOS_PACKAGES_DIR", str(ACTIVE_MODEL_DIR / "argos"))
 os.environ["ARGOS_CHUNK_TYPE"] = "MINISBD"
 os.environ.setdefault("ARGOS_DEVICE_TYPE", "cpu")
 
-_hash_cache: dict[Path, tuple[int, int, str]] = {}
+_hash_cache: dict[Path, tuple[tuple[int, int, int, int], str]] = {}
+_HASH_CHUNK_BYTES = 1024 * 1024
+
+
+class EngineError(RuntimeError):
+    """An intentionally authored, privacy-safe error for the desktop client."""
+
+    def __init__(self, message: str, code: str = "RuntimeError") -> None:
+        super().__init__(message)
+        self.code = code
+
+
+class _DiscardOutput:
+    """Discard dependency diagnostics without retaining screenshot text in memory."""
+
+    def write(self, text: str) -> int:
+        return len(text)
+
+    def flush(self) -> None:
+        pass
+
+
+def _file_signature(stat: os.stat_result) -> tuple[int, int, int, int]:
+    return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino
 
 
 @contextlib.contextmanager
@@ -60,7 +82,7 @@ def local_only_network_guard():
     original_create_connection = socket.create_connection
 
     def blocked_connect(*_: Any, **__: Any):
-        raise RuntimeError("本地模式已阻止意外网络请求。")
+        raise EngineError("本地模式已阻止意外网络请求。")
 
     socket.socket.connect = blocked_connect
     socket.socket.connect_ex = blocked_connect
@@ -78,13 +100,29 @@ def module_available(name: str) -> bool:
 
 
 def sha256_file(path: Path) -> str:
-    stat = path.stat()
+    signature = _file_signature(path.stat())
     cached = _hash_cache.get(path)
-    if cached is not None and cached[0] == stat.st_size and cached[1] == stat.st_mtime_ns:
-        return cached[2]
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    _hash_cache[path] = (stat.st_size, stat.st_mtime_ns, digest)
-    return digest
+    if cached is not None and cached[0] == signature:
+        return cached[1]
+
+    # Model files can be hundreds of MiB. Reuse one buffer instead of loading
+    # the entire file, and never cache a digest for a file modified mid-read.
+    digest = hashlib.sha256()
+    buffer = bytearray(_HASH_CHUNK_BYTES)
+    view = memoryview(buffer)
+    with path.open("rb") as stream:
+        if _file_signature(os.fstat(stream.fileno())) != signature:
+            raise OSError("模型文件在校验期间发生变化，请重试。")
+        while length := stream.readinto(buffer):
+            digest.update(view[:length])
+        if _file_signature(os.fstat(stream.fileno())) != signature:
+            raise OSError("模型文件在校验期间发生变化，请重试。")
+    if _file_signature(path.stat()) != signature:
+        raise OSError("模型文件在校验期间发生变化，请重试。")
+
+    value = digest.hexdigest()
+    _hash_cache[path] = (signature, value)
+    return value
 
 
 def find_argos_model_file(root: Path, source_code: str, target_code: str) -> Path:
@@ -133,7 +171,8 @@ def installed_argos_pairs() -> set[tuple[str, str]]:
 class SimpleSentencizer:
     """Small offline splitter for screenshot text; avoids heavyweight NLP runtimes."""
 
-    _boundary = re.compile(r"(?<=[。！？!?；;\.])(?:\s+|(?=\S))")
+    # A dot inside a number, version, domain or file name is not a sentence end.
+    _boundary = re.compile(r"(?<=[。！？!?；;])\s*|(?<=\.)\s+")
     _max_chars = 220
 
     def split_sentences(self, text: str) -> list[str]:
@@ -143,14 +182,13 @@ class SimpleSentencizer:
             remaining = piece
             while len(remaining) > self._max_chars:
                 cut = max(
-                    remaining.rfind(" ", self._max_chars // 2, self._max_chars + 1),
-                    remaining.rfind("，", self._max_chars // 2, self._max_chars + 1),
-                    remaining.rfind(",", self._max_chars // 2, self._max_chars + 1),
+                    remaining.rfind(" ", self._max_chars // 2, self._max_chars),
+                    remaining.rfind("，", self._max_chars // 2, self._max_chars),
+                    remaining.rfind(",", self._max_chars // 2, self._max_chars),
                 )
-                if cut < self._max_chars // 2:
-                    cut = self._max_chars
-                chunks.append(remaining[: cut + 1].strip())
-                remaining = remaining[cut + 1 :].strip()
+                end = cut + 1 if cut >= self._max_chars // 2 else self._max_chars
+                chunks.append(remaining[:end].strip())
+                remaining = remaining[end:].strip()
             if remaining:
                 chunks.append(remaining)
         return chunks or [text]
@@ -212,9 +250,9 @@ def health(_: dict[str, Any]) -> dict[str, Any]:
 
 def translate(params: dict[str, Any]) -> dict[str, Any]:
     if not module_available("argostranslate"):
-        raise RuntimeError("未安装 Argos Translate 离线引擎。")
+        raise EngineError("未安装 Argos Translate 离线引擎。")
     if not verify_translation_manifest(ACTIVE_MODEL_DIR):
-        raise RuntimeError("离线翻译模型缺失或校验失败，请重新安装标准离线版。")
+        raise EngineError("离线翻译模型缺失或校验失败，请重新安装标准离线版。")
     import argostranslate.translate
     configure_unicode_safe_sentencepiece()
 
@@ -224,10 +262,10 @@ def translate(params: dict[str, Any]) -> dict[str, Any]:
     source = next((language for language in languages if language.code == source_code), None)
     target = next((language for language in languages if language.code == target_code), None)
     if source is None or target is None:
-        raise RuntimeError(f"离线翻译不支持 {source_code}→{target_code}。")
+        raise EngineError("离线翻译不支持所选语言对。")
     translation = source.get_translation(target)
     if translation is None:
-        raise RuntimeError(f"尚未安装 {source_code}→{target_code} 离线翻译模型。")
+        raise EngineError("尚未安装所选语言对的离线翻译模型。")
     use_simple_sentencizer(translation)
     with local_only_network_guard():
         result = translation.translate(params["text"])
@@ -239,7 +277,7 @@ def install_translation_models(_: dict[str, Any]) -> dict[str, Any]:
         source = "bundled" if ACTIVE_MODEL_DIR == BUNDLED_MODEL_DIR else "installed"
         return {"installed": ["zh-en", "en-zh"], "source": source}
     if not module_available("argostranslate"):
-        raise RuntimeError("未安装 Argos Translate 离线引擎。")
+        raise EngineError("未安装 Argos Translate 离线引擎。")
 
     os.environ["ARGOS_PACKAGES_DIR"] = str(MODEL_DIR / "argos")
     import argostranslate.package
@@ -258,7 +296,7 @@ def install_translation_models(_: dict[str, Any]) -> dict[str, Any]:
             None,
         )
         if package is None:
-            raise RuntimeError(f"找不到 {source_code}→{target_code} Argos 模型包。")
+            raise EngineError(f"找不到 {source_code}→{target_code} Argos 模型包。")
         download_path = package.download()
         argostranslate.package.install_from_path(download_path)
         installed_model = find_argos_model_file(MODEL_DIR, source_code, target_code)
@@ -305,25 +343,45 @@ def main() -> int:
     for line in sys.stdin:
         request_id = -1
         try:
-            request = json.loads(line)
-            request_id = int(request.get("id", -1))
+            try:
+                request = json.loads(line)
+            except (ValueError, RecursionError):
+                raise EngineError("本地引擎请求不是有效的 JSON。", "invalid_request") from None
+            if not isinstance(request, dict):
+                raise EngineError("本地引擎请求必须是对象。", "invalid_request")
+            value = request.get("id", -1)
+            if type(value) is not int or not -(2**31) <= value < 2**31:
+                raise EngineError("本地引擎请求编号无效。", "invalid_request")
+            request_id = value
             method = request.get("method")
+            if not isinstance(method, str):
+                raise EngineError("本地引擎请求方法无效。", "invalid_request")
+            params = request.get("params")
+            if params is None:
+                params = {}
+            if not isinstance(params, dict):
+                raise EngineError("本地引擎请求参数必须是对象。", "invalid_request")
             if method == "shutdown":
                 write_response({"id": request_id, "result": {"ok": True}, "error": None})
                 return 0
             if method not in METHODS:
-                raise ValueError(f"未知方法：{method}")
-            result = METHODS[method](request.get("params") or {})
+                raise EngineError("未知的本地引擎方法。", "unknown_method")
+
+            # Only protocol responses belong on stdout. Dependency diagnostics
+            # may contain recognized text, so discard rather than log or buffer.
+            sink = _DiscardOutput()
+            guard = local_only_network_guard() if method in {"health", "translate"} else contextlib.nullcontext()
+            with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink), guard:
+                result = METHODS[method](params)
             write_response({"id": request_id, "result": result, "error": None})
         except Exception as exc:
-            traceback.print_exc(file=sys.stderr)
-            write_response(
-                {
-                    "id": request_id,
-                    "result": None,
-                    "error": {"code": type(exc).__name__, "message": str(exc)},
-                }
-            )
+            # Do not echo arbitrary dependency exceptions or traceback frames:
+            # either can contain the private input text or credentials.
+            error = {
+                "code": exc.code if isinstance(exc, EngineError) else type(exc).__name__,
+                "message": str(exc) if isinstance(exc, EngineError) else "本地引擎处理失败，请检查模型安装后重试。",
+            }
+            write_response({"id": request_id, "result": None, "error": error})
     return 0
 
 
