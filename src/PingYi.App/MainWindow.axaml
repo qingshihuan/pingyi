@@ -1,342 +1,137 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.MainWindow" x:Name="RootWindow" Classes="workspace" Title="屏译" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" Width="1040" Height="760" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
-  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
-  <!-- Native categories, quiet grouped forms and a fixed action bar. -->
-  <Grid RowDefinitions="76,*,Auto" ColumnDefinitions="220,*">
-    <Border Grid.RowSpan="3" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"/>
-    <StackPanel Margin="24,20,18,16" Orientation="Horizontal" Spacing="10">
-      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="32" Height="32"/>
-      <StackPanel VerticalAlignment="Center" Spacing="2">
-        <TextBlock Text="{DynamicResource String.AppName}" FontWeight="SemiBold" FontSize="16"/>
-        <TextBlock Text="{x:Static local:WorkspaceText.Preferences}" Classes="workspace-help" FontSize="11"/>
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.MainWindow" Classes="workspace" Title="{DynamicResource Text.3a57aee6d162}" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" Width="1040" Height="720" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <SolidColorBrush x:Key="TealBrush">#2C9A5E</SolidColorBrush>
+    <SolidColorBrush x:Key="OrangeBrush">#BB771E</SolidColorBrush>
+    <SolidColorBrush x:Key="SuccessBrushV2">#2C9A5E</SolidColorBrush>
+    <SolidColorBrush x:Key="DangerBrushV2">#D74750</SolidColorBrush>
+  </Window.Resources>
+  <Window.Styles>
+    <StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/>
+  </Window.Styles>
+  <Grid RowDefinitions="76,*,Auto">
+    <Grid Margin="32,20,32,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="34" Height="34"/>
+      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="{DynamicResource String.AppName}" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Text="{DynamicResource Workspace.Reading}" Classes="workspace-help" FontSize="12"/>
       </StackPanel>
-    </StackPanel>
-    <Grid Grid.Column="1" Margin="28,20,28,16" ColumnDefinitions="*,Auto" ColumnSpacing="16">
-      <StackPanel VerticalAlignment="Center">
-        <TextBlock x:Name="WindowHeadingText" Text="{DynamicResource String.AppName}" Classes="workspace-help"/>
-        <TextBlock x:Name="WindowSubtitleText" Text="{DynamicResource String.AppTagline}" IsVisible="False"/>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+          <Border x:Name="TopStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+          <TextBlock x:Name="TopStatusText" Text="{DynamicResource Text.d85ff08f9141}" Classes="workspace-help" FontSize="12" AutomationProperties.LiveSetting="Polite"/>
+        </StackPanel>
+        <Button x:Name="HelpButton" Classes="toolbar-action" Content="{DynamicResource String.HelpTitle}" Click="OpenHelp_OnClick"/>
+        <Button Classes="toolbar-action" Click="OpenSettingsButton_OnClick" ToolTip.Tip="Ctrl+," AutomationProperties.Name="{DynamicResource Text.f2eabda76179}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="symbol" Width="15" Height="15" Stroke="{DynamicResource SecondaryTextBrush}" Data="M4 5H20 M4 12H20 M4 19H20 M8 2V8 M16 9V15 M10 16V22"/>
+            <TextBlock Text="{DynamicResource Workspace.Settings}" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
       </StackPanel>
-      <Border Grid.Column="1" x:Name="CaptureHero" VerticalAlignment="Center">
-        <Button x:Name="CaptureButton" Classes="toolbar-action" Content="{DynamicResource String.StartCapture}" Click="CaptureButton_OnClick" AutomationProperties.Name="开始截图翻译"/>
-      </Border>
     </Grid>
-    <TabControl Grid.Row="1" Grid.ColumnSpan="2" Margin="14,0,0,0" x:Name="SettingsTabs" TabStripPlacement="Left" SelectedIndex="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" AutomationProperties.Name="设置分类">
-      <TabItem Classes="workspace-tab" x:Name="GeneralSettingsTab">
-        <TabItem.Header>
-          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavBlueBrush}">
-              <Path Classes="symbol" Data="M4 7V4H7 M17 4H20V7 M20 17V20H17 M7 20H4V17 M8 9H16 M8 13H16 M8 17H13" Width="16" Height="16" Stroke="White"/>
-            </Border>
-            <TextBlock Grid.Column="1" Text="{x:Static local:WorkspaceText.General}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-          </Grid>
-        </TabItem.Header>
-        <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="12">
-            <StackPanel Spacing="6" Margin="0,0,0,4">
-              <TextBlock Text="{x:Static local:WorkspaceText.General}" Classes="workspace-title"/>
-              <TextBlock Text="{x:Static local:WorkspaceText.GeneralHint}" Classes="workspace-help"/>
-            </StackPanel>
-            <Border Classes="preference-note" Padding="0,0,0,2"><TextBlock Text="{x:Static local:WorkspaceText.Immediate}" Classes="workspace-help"/></Border>
-            <TextBlock Text="{x:Static local:PolishText.RecognitionGroup}" Classes="preference-heading"/>
-            <Border Classes="preference-group">
-              <StackPanel>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
-                  <TextBlock Text="文字识别" Classes="workspace-label" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="OcrProviderCombo" Classes="workspace-field" AutomationProperties.Name="文字识别提供商" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <StackPanel Margin="32,6,32,20" Spacing="14">
+        <Border Classes="workspace-card" Padding="28,14" CornerRadius="24" Background="{DynamicResource HeroBackgroundBrush}">
+          <Grid ColumnDefinitions="1.3*,*" ColumnSpacing="24">
+            <StackPanel Spacing="10" VerticalAlignment="Center" MaxWidth="400" HorizontalAlignment="Left">
+              <TextBlock Text="{DynamicResource Polish.CaptureShortTitle}" FontSize="28" LineHeight="35" FontWeight="SemiBold" LetterSpacing="-0.5" TextWrapping="Wrap"/>
+              <TextBlock Text="{DynamicResource Polish.CaptureShortHint}" Classes="workspace-help" FontSize="12" MaxWidth="370" HorizontalAlignment="Left"/>
+              <Button x:Name="CaptureButtonV2" Classes="workspace-capture" HorizontalAlignment="Stretch" Margin="0,4,0,0" Click="CaptureButton_OnClick" AutomationProperties.Name="{DynamicResource Text.87053eb04e5a}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Path Classes="symbol" Stroke="White" Data="M3 8V3H8 M16 3H21V8 M21 16V21H16 M8 21H3V16"/>
+                  <TextBlock Grid.Column="1" Text="{DynamicResource String.StartCapture}" VerticalAlignment="Center"/>
+                  <Border Grid.Column="2" Background="#24FFFFFF" CornerRadius="5" Padding="7,4">
+                    <TextBlock x:Name="CaptureHotkeyText" Text="Ctrl  Alt  D" FontSize="11" VerticalAlignment="Center"/>
+                  </Border>
                 </Grid>
-              </StackPanel>
-            </Border>
-            <TextBlock Text="{x:Static local:PolishText.TranslationGroup}" Classes="preference-heading"/>
-            <Border Classes="preference-group">
-              <StackPanel>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
-                  <TextBlock Text="翻译方式" Classes="workspace-label" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="TranslationProviderCombo" Classes="workspace-field" AutomationProperties.Name="翻译提供商" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
-                </Grid>
-                <Border Height="1" Margin="18,0" Background="{DynamicResource DividerBrush}"/>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
-                  <TextBlock Text="目标语言" Classes="workspace-label" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="TargetLanguageCombo" Classes="workspace-field" AutomationProperties.Name="翻译目标语言" SelectionChanged="TargetLanguageCombo_OnSelectionChanged" Grid.Column="1"/>
-                </Grid>
-              </StackPanel>
-            </Border>
-            <Border Classes="workspace-inset" Padding="16">
-              <StackPanel Spacing="7">
-                <TextBlock Text="{x:Static local:PolishText.DataBoundary}" Classes="workspace-label"/>
-                <TextBlock Text="多模态 OCR 会发送本次框选图片；127.0.0.1 服务不会离开设备。" Classes="workspace-help"/>
-                <TextBlock x:Name="TranslationLanguageHintText" Text="选择云端翻译时，只发送识别后的纯文字。" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-              </StackPanel>
-            </Border>
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-              <Button Classes="secondary" Content="检查状态" HorizontalAlignment="Left" Click="CheckStatusButton_OnClick" AutomationProperties.Name="检查处理引擎状态" Grid.Column="1"/>
-            </Grid>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
-      <TabItem Classes="workspace-tab" x:Name="ModelsSettingsTab">
-        <TabItem.Header>
-          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavGreenBrush}">
-              <Path Classes="symbol" Data="M5 7L12 3L19 7V17L12 21L5 17Z M5 7L12 11L19 7 M12 11V21" Width="16" Height="16" Stroke="White"/>
-            </Border>
-            <TextBlock Grid.Column="1" Text="{x:Static local:WorkspaceText.Models}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-          </Grid>
-        </TabItem.Header>
-        <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="14">
-            <StackPanel Spacing="6" Margin="0,0,0,4">
-              <TextBlock Text="{x:Static local:WorkspaceText.Models}" Classes="workspace-title"/>
-              <TextBlock Text="{x:Static local:WorkspaceText.ModelHint}" Classes="workspace-help"/>
+              </Button>
+              <TextBlock Text="{DynamicResource Polish.CaptureCancelHint}" Classes="workspace-help" FontSize="11" LineHeight="16"/>
             </StackPanel>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="12">
-                <TextBlock Text="文字识别" Classes="workspace-section"/>
-                <Button x:Name="InstallOcrModelsButton" Classes="secondary" HorizontalAlignment="Left" Click="InstallOcrModelsButton_OnClick" AutomationProperties.Name="下载中英 OCR 模型">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <PathIcon x:Name="OcrModelDownloadIcon" Width="18" Height="18" Data="M11 3H13V12L16 9L17.4 10.4L12 15.8L6.6 10.4L8 9L11 12Z M4 18H20V20H4Z"/>
-                    <PathIcon x:Name="OcrModelInstalledIcon" Width="18" Height="18" IsVisible="False" Data="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"/>
-                    <TextBlock x:Name="OcrModelButtonText" Text="下载中英 OCR 模型" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <TextBlock x:Name="OcrModelStatusText" Text="OCR 模型：正在检查…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-              </StackPanel>
-            </Border>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="12">
-                <TextBlock Text="翻译方式" Classes="workspace-section"/>
-                <Button x:Name="InstallTranslationModelsButton" Classes="secondary" HorizontalAlignment="Left" Click="InstallTranslationModelsButton_OnClick" AutomationProperties.Name="下载中英翻译模型">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <PathIcon x:Name="TranslationModelDownloadIcon" Width="18" Height="18" Data="M11 3H13V12L16 9L17.4 10.4L12 15.8L6.6 10.4L8 9L11 12Z M4 18H20V20H4Z"/>
-                    <PathIcon x:Name="TranslationModelInstalledIcon" Width="18" Height="18" IsVisible="False" Data="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"/>
-                    <TextBlock x:Name="TranslationModelButtonText" Text="下载中英翻译模型" VerticalAlignment="Center"/>
-                  </StackPanel>
-                </Button>
-                <TextBlock x:Name="TranslationModelStatusText" Text="翻译模型：正在检查…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-              </StackPanel>
-            </Border>
-            <Expander x:Name="ManagedModelExpander" Header="完全版 · 一键本机多模态模型" IsExpanded="True" IsVisible="False">
-              <StackPanel Spacing="14" Margin="0,14,0,0">
-                <StackPanel Spacing="6">
-                  <TextBlock Text="魔搭模型库" Classes="workspace-label"/>
-                  <ComboBox x:Name="ManagedModelCombo" Classes="workspace-field" AutomationProperties.Name="选择一键安装的本机多模态模型" SelectionChanged="ManagedModelCombo_OnSelectionChanged"/>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="运行后端" Classes="workspace-label"/>
-                  <ComboBox x:Name="ManagedRuntimeBackendCombo" Classes="workspace-field" AutomationProperties.Name="选择本机模型使用 CPU 或通用显卡" SelectionChanged="ManagedRuntimeBackendCombo_OnSelectionChanged"/>
-                </StackPanel>
-                <TextBlock x:Name="ManagedRuntimeBackendHintText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                <TextBlock x:Name="ManagedModelSummaryText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                <TextBlock x:Name="ManagedModelHardwareText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                <ProgressBar x:Name="ManagedModelProgressBar" Minimum="0" Maximum="100" Height="8" Value="0" IsVisible="False"/>
-                <TextBlock x:Name="ManagedModelStatusText" Text="正在检查完整模型包…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                <WrapPanel>
-                  <Button x:Name="ManagedModelSourceButton" Content="查看魔搭来源" Classes="ghost" Click="ManagedModelSourceButton_OnClick" AutomationProperties.Name="查看魔搭来源" Margin="0,0,8,8"/>
-                  <Button x:Name="ManagedModelFolderButton" Content="打开模型目录" Classes="ghost" Click="ManagedModelFolderButton_OnClick" AutomationProperties.Name="打开模型目录" Margin="0,0,8,8"/>
-                  <Button x:Name="ManagedModelCancelButton" Content="取消" Classes="secondary" Click="ManagedModelCancelButton_OnClick" AutomationProperties.Name="取消" Margin="0,0,8,8" IsVisible="False"/>
-                  <Button x:Name="ManagedModelStartButton" Content="启动并应用" Classes="secondary" Click="ManagedModelStartButton_OnClick" AutomationProperties.Name="启动并应用" Margin="0,0,8,8"/>
-                  <Button x:Name="ManagedModelInstallButton" Content="一键下载并配置" Classes="primary" Click="ManagedModelInstallButton_OnClick" AutomationProperties.Name="一键下载并配置" Margin="0,0,8,8"/>
-                </WrapPanel>
-                <TextBlock Text="只下载当前选择的 GGUF 与视觉投影文件；下载支持断点续传并强制校验 SHA-256。模型在本机端口 18080 运行，截图和文字不会离开设备。" Classes="workspace-help"/>
-              </StackPanel>
-            </Expander>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="10">
-                <TextBlock Text="{x:Static local:WorkspaceText.CleanupHint}" Classes="workspace-help"/>
-                <Button x:Name="DeleteModelsButton" Content="清理下载模型" Classes="danger-ghost" Click="DeleteModelsButton_OnClick" AutomationProperties.Name="清理下载模型" HorizontalAlignment="Left"/>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
-      <TabItem Classes="workspace-tab" x:Name="CloudSettingsTab">
-        <TabItem.Header>
-          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavCyanBrush}">
-              <Path Classes="symbol" Data="M7 18H18C24 17 23 10 18 10C17 3 7 3 6 10C0 11 1 18 7 18" Width="16" Height="16" Stroke="White"/>
-            </Border>
-            <TextBlock Grid.Column="1" Text="{x:Static local:WorkspaceText.Cloud}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-          </Grid>
-        </TabItem.Header>
-        <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="14">
-            <StackPanel Spacing="6" Margin="0,0,0,4">
-              <TextBlock Text="{x:Static local:WorkspaceText.Cloud}" Classes="workspace-title"/>
-              <TextBlock Text="{x:Static local:WorkspaceText.CloudHint}" Classes="workspace-help"/>
-            </StackPanel>
-            <Border Classes="workspace-inset"><TextBlock Text="{x:Static local:WorkspaceText.SecretHint}" Classes="workspace-help"/></Border>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="16">
-                <TextBlock Text="百度 OCR 与翻译凭据" Classes="workspace-section"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="OCR API Key" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="BaiduOcrApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="尚未保存" AutomationProperties.Name="百度 OCR API Key"/>
-                    <Button Grid.Column="1" x:Name="BaiduOcrApiKeyRevealButton" Classes="ghost secret-action" Content="显示" Tag="baidu-ocr-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 OCR API Key"/>
-                  </Grid>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="OCR Secret Key" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="BaiduOcrSecretBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="尚未保存" AutomationProperties.Name="百度 OCR Secret Key"/>
-                    <Button Grid.Column="1" x:Name="BaiduOcrSecretRevealButton" Classes="ghost secret-action" Content="显示" Tag="baidu-ocr-secret-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 OCR Secret Key"/>
-                  </Grid>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="翻译 APP ID" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="BaiduTranslateAppIdBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="尚未保存" AutomationProperties.Name="百度翻译 APP ID"/>
-                    <Button Grid.Column="1" x:Name="BaiduTranslateAppIdRevealButton" Classes="ghost secret-action" Content="显示" Tag="baidu-translate-app-id" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示翻译 APP ID"/>
-                  </Grid>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="翻译密钥" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="BaiduTranslateSecretBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="尚未保存" AutomationProperties.Name="百度翻译密钥"/>
-                    <Button Grid.Column="1" x:Name="BaiduTranslateSecretRevealButton" Classes="ghost secret-action" Content="显示" Tag="baidu-translate-secret" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示翻译密钥"/>
-                  </Grid>
-                </StackPanel>
-                <Border Classes="workspace-inset">
-                  <StackPanel Spacing="6">
-                    <TextBlock x:Name="BaiduOcrCredentialStatusText" Text="OCR 凭据：正在检查安全存储…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="BaiduTranslationCredentialStatusText" Text="翻译凭据：正在检查安全存储…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+            <!-- Original static vector illustration; no user content or rendering loop. -->
+            <Viewbox Grid.Column="1" MaxWidth="220" Stretch="Uniform" Margin="0,4,6,0" IsHitTestVisible="False">
+              <Grid Width="264" Height="206">
+                <Border Width="190" Height="190" CornerRadius="95" Background="{DynamicResource HeroAccentBrush}" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Border Width="134" Height="142" Margin="13,9,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="19" Background="{DynamicResource HeroPaperBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" BoxShadow="0 7 18 0 #0B102A50" RenderTransformOrigin="50%,50%">
+                  <Border.RenderTransform>
+                    <RotateTransform Angle="-8"/>
+                  </Border.RenderTransform>
+                  <StackPanel Margin="21,15" Spacing="10">
+                    <TextBlock Text="A" FontSize="42" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    <Border Height="5" CornerRadius="2" Background="{DynamicResource HeroLineBrush}"/>
+                    <Border Height="5" Width="64" HorizontalAlignment="Left" CornerRadius="2" Background="{DynamicResource HeroLineBrush}"/>
                   </StackPanel>
                 </Border>
-                <Button x:Name="ValidateBaiduCredentialsButton" Content="保存并验证凭据" Classes="secondary" Click="ValidateBaiduCredentialsButton_OnClick" AutomationProperties.Name="保存并验证凭据" HorizontalAlignment="Left"/>
-              </StackPanel>
-            </Border>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="16">
-                <TextBlock Text="Google Cloud OCR 与翻译凭据" Classes="workspace-section"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="Google Cloud API Key" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="GoogleCloudApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="尚未保存" AutomationProperties.Name="Google Cloud API Key"/>
-                    <Button Grid.Column="1" x:Name="GoogleCloudApiKeyRevealButton" Classes="ghost secret-action" Content="显示" Tag="google-cloud-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示 Google Cloud API Key"/>
-                  </Grid>
-                </StackPanel>
-                <TextBlock Text="该密钥由你自己的 Google Cloud 项目提供；建议只允许调用 Cloud Vision API 与 Cloud Translation API。截图仅在选择 Google OCR 时上传，翻译只上传识别后的文字。" Classes="workspace-help"/>
-                <Border Classes="workspace-inset">
-                  <StackPanel Spacing="6">
-                    <TextBlock x:Name="GoogleOcrCredentialStatusText" Text="Google OCR 凭据：正在检查安全存储…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="GoogleTranslationCredentialStatusText" Text="Google 翻译凭据：正在检查安全存储…" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <Border Width="134" Height="138" Margin="0,0,11,6" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="21" Background="{DynamicResource ActionFillBrush}" BorderBrush="#40FFFFFF" BorderThickness="1" BoxShadow="0 10 20 0 #16065BB8" RenderTransformOrigin="50%,50%">
+                  <Border.RenderTransform>
+                    <RotateTransform Angle="7"/>
+                  </Border.RenderTransform>
+                  <StackPanel Margin="21,14" Spacing="10">
+                    <TextBlock Text="文" FontSize="38" FontWeight="SemiBold" Foreground="White"/>
+                    <Border Height="5" CornerRadius="2" Background="#70FFFFFF"/>
+                    <Border Height="5" Width="56" HorizontalAlignment="Left" CornerRadius="2" Background="#40FFFFFF"/>
                   </StackPanel>
                 </Border>
-                <Button x:Name="ValidateGoogleCredentialsButton" Content="保存并验证 Google 凭据" Classes="secondary" Click="ValidateGoogleCredentialsButton_OnClick" AutomationProperties.Name="保存并验证 Google 凭据" HorizontalAlignment="Left"/>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
-      <TabItem Classes="workspace-tab" x:Name="CustomSettingsTab">
-        <TabItem.Header>
-          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavPurpleBrush}">
-              <Path Classes="symbol" Data="M8 6L2 12L8 18 M16 6L22 12L16 18 M14 3L10 21" Width="16" Height="16" Stroke="White"/>
-            </Border>
-            <TextBlock Grid.Column="1" Text="{x:Static local:WorkspaceText.Custom}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-          </Grid>
-        </TabItem.Header>
-        <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="14">
-            <StackPanel Spacing="6" Margin="0,0,0,4">
-              <TextBlock Text="{x:Static local:WorkspaceText.Custom}" Classes="workspace-title"/>
-              <TextBlock Text="{x:Static local:WorkspaceText.CustomHint}" Classes="workspace-help"/>
-            </StackPanel>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="16">
-                <StackPanel Spacing="6">
-                  <TextBlock Text="服务预设" Classes="workspace-label"/>
-                  <ComboBox x:Name="LocalServicePresetCombo" Classes="workspace-field" AutomationProperties.Name="本机大模型服务预设"/>
-                </StackPanel>
-                <Button x:Name="UseLocalLlamaPresetButton" Content="应用服务预设" Classes="secondary" Click="UseLocalLlamaPresetButton_OnClick" AutomationProperties.Name="应用服务预设" HorizontalAlignment="Left"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="服务地址" Classes="workspace-label"/>
-                  <TextBox x:Name="CustomEndpointBox" Classes="workspace-field" PlaceholderText="http://127.0.0.1:8080/v1/chat/completions" AutomationProperties.Name="兼容大模型服务地址"/>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="模型名" Classes="workspace-label"/>
-                  <TextBox x:Name="CustomModelBox" Classes="workspace-field" PlaceholderText="例如 gemma-4-e4b-it" AutomationProperties.Name="兼容大模型模型名"/>
-                </StackPanel>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="API Key" Classes="workspace-label"/>
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <TextBox x:Name="CustomApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="本地无鉴权服务可留空" AutomationProperties.Name="兼容翻译接口 API Key"/>
-                    <Button Grid.Column="1" x:Name="CustomApiKeyRevealButton" Classes="ghost secret-action" Content="显示" Tag="custom-translation-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="显示或隐藏" AutomationProperties.Name="显示兼容接口 API Key"/>
-                  </Grid>
-                </StackPanel>
-                <TextBlock Text="{x:Static local:WorkspaceText.SecretHint}" Classes="workspace-help"/>
-                <Border Classes="workspace-inset"><TextBlock x:Name="CustomTranslationStatusText" Text="支持文本翻译与 image_url 多模态识别；图片测试只发送固定合成样本。" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/></Border>
-                <WrapPanel>
-                  <Button x:Name="TestCustomTranslationButton" Content="测试翻译" Classes="secondary" Click="TestCustomTranslationButton_OnClick" AutomationProperties.Name="测试翻译" Margin="0,0,8,8"/>
-                  <Button x:Name="TestCustomVisionButton" Content="测试图片" Classes="secondary" Click="TestCustomVisionButton_OnClick" AutomationProperties.Name="测试图片" Margin="0,0,8,8"/>
-                </WrapPanel>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
-      <TabItem Classes="workspace-tab" x:Name="AppearanceSettingsTab">
-        <TabItem.Header>
-          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavGrayBrush}">
-              <Path Classes="symbol" Data="M4 5H20 M4 12H20 M4 19H20 M8 2V8 M16 9V15 M10 16V22" Width="16" Height="16" Stroke="White"/>
-            </Border>
-            <TextBlock Grid.Column="1" Text="{x:Static local:WorkspaceText.Appearance}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-          </Grid>
-        </TabItem.Header>
-        <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="14">
-            <StackPanel Spacing="6" Margin="0,0,0,4">
-              <TextBlock Text="{x:Static local:WorkspaceText.Appearance}" Classes="workspace-title"/>
-              <TextBlock Text="{x:Static local:WorkspaceText.AppearanceHint}" Classes="workspace-help"/>
-            </StackPanel>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="16">
-                <StackPanel Spacing="6">
-                  <TextBlock Text="主界面样式" Classes="workspace-label"/>
-                  <ComboBox x:Name="InterfaceStyleCombo" Classes="workspace-field" AutomationProperties.Name="主界面样式"/>
-                </StackPanel>
-                <TextBlock Text="切换后重新启动屏译生效；经典完整界面会继续保留。" Classes="workspace-help"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="界面语言" Classes="workspace-label"/>
-                  <ComboBox x:Name="UiLanguageCombo" Classes="workspace-field" AutomationProperties.Name="选择界面语言"/>
-                </StackPanel>
-                <TextBlock Text="跟随系统会在中文系统使用简体中文，其他系统使用 English；重新启动后生效。" Classes="workspace-help"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="全局快捷键" Classes="workspace-label"/>
-                  <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="全局截图快捷键"/>
-                </StackPanel>
-                <TextBlock Text="保存后立即重新注册；冲突时会在当前窗口提示。" Classes="workspace-help"/>
-                <CheckBox x:Name="StartMinimizedCheckBox" AutomationProperties.Name="启动后最小化到托盘"><TextBlock Text="启动后最小化到托盘" TextWrapping="Wrap"/></CheckBox>
-                <CheckBox x:Name="CheckForUpdatesCheckBox" AutomationProperties.Name="检查应用更新"><TextBlock Text="启动时检查更新（会访问 GitHub）" TextWrapping="Wrap"/></CheckBox>
-                <WrapPanel>
-                  <Button x:Name="CheckUpdatesNowButton" Content="立即检查更新" Classes="secondary" Click="CheckUpdatesNowButton_OnClick" AutomationProperties.Name="立即检查更新" Margin="0,0,8,8"/>
-                  <Button x:Name="OpenLatestReleaseButton" Content="打开下载页" Classes="secondary" Click="OpenLatestReleaseButton_OnClick" AutomationProperties.Name="打开下载页" Margin="0,0,8,8" IsVisible="False"/>
-                </WrapPanel>
-                <TextBlock x:Name="UpdateStatusText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
-              </StackPanel>
-            </Border>
-            <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="12">
-                <TextBlock Text="经典完整界面" Classes="workspace-section"/>
-                <TextBlock Text="{x:Static local:WorkspaceText.ClassicHint}" Classes="workspace-help"/>
-                <Button x:Name="OpenClassicInterfaceButton" Content="打开经典界面" Classes="secondary" Click="OpenClassicInterfaceButton_OnClick" AutomationProperties.Name="打开经典界面" HorizontalAlignment="Left"/>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
-      </TabItem>
-    </TabControl>
-    <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource PageBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="28,14,28,18">
-      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="16">
-        <Border x:Name="GlobalStatusBorder" Background="{DynamicResource SubtleBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" MinHeight="46">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <Border x:Name="StatusIndicator" Width="8" Height="8" CornerRadius="4" Background="{DynamicResource BrandBrush}" VerticalAlignment="Center"/>
-            <TextBlock Grid.Column="1" x:Name="GlobalStatusText" Text="正在初始化…" Classes="workspace-help" VerticalAlignment="Center" MaxHeight="64" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
+                <Border Width="38" Height="38" CornerRadius="19" Margin="108,76,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource HeroPaperBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" BoxShadow="0 3 9 0 #13000000">
+                  <Path Classes="symbol" Width="16" Height="16" Data="M4 7H20 M15 3L20 7L15 11 M20 17H4 M9 13L4 17L9 21"/>
+                </Border>
+              </Grid>
+            </Viewbox>
           </Grid>
         </Border>
-        <Button Grid.Column="1" x:Name="SaveSettingsButton" Classes="primary" Content="保存并应用" MinWidth="136" VerticalAlignment="Center" Click="SaveButton_OnClick" ToolTip.Tip="Ctrl+S" AutomationProperties.Name="保存所有设置"/>
-        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{x:Static local:WorkspaceText.SaveHint}" Classes="workspace-help" FontSize="11" LineHeight="17"/>
+        <Border Classes="workspace-card" Padding="22,16" CornerRadius="16">
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="14">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+              <TextBlock Text="{DynamicResource Workspace.ProcessLabel}" Classes="workspace-help" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" TextWrapping="Wrap" x:Name="ModeSummaryText" Text="{DynamicResource Text.085931b25c71}" Classes="workspace-label" VerticalAlignment="Center"/>
+              <Button Grid.Column="2" x:Name="ChooseModeButton" Classes="toolbar-action" MinHeight="34" Padding="14,6"
+                      Content="{DynamicResource String.ChooseMode}" Click="ChooseMode_OnClick"/>
+            </Grid>
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="22">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{DynamicResource Text.5fd5df38157d}" Classes="workspace-help" FontSize="12"/>
+                <TextBlock x:Name="OcrSummaryText" Text="{DynamicResource Text.c5b809959cde}" Classes="workspace-section"/>
+                <TextBlock x:Name="OcrHealthText" Text="{DynamicResource String.CheckPending}" Classes="workspace-help" FontSize="12"/>
+              </StackPanel>
+              <Path Grid.Column="1" Classes="symbol" Stroke="{DynamicResource TertiaryTextBrush}" Width="24" Data="M3 12H21 M16 7L21 12L16 17"/>
+              <StackPanel Grid.Column="2" Spacing="4">
+                <TextBlock Text="{DynamicResource Text.da4ace1c0a46}" Classes="workspace-help" FontSize="12"/>
+                <TextBlock x:Name="TranslationSummaryText" Text="{DynamicResource Text.955983eac341}" Classes="workspace-section"/>
+                <TextBlock x:Name="TranslationHealthText" Text="{DynamicResource String.CheckPending}" Classes="workspace-help" FontSize="12"/>
+              </StackPanel>
+            </Grid>
+          </Grid>
+        </Border>
+        <Border Classes="workspace-card" Padding="18,12" CornerRadius="16">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+            <Border x:Name="ModelStatusDot" Width="7" Height="7" CornerRadius="4" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock x:Name="ModelStatusTitleText" Text="{DynamicResource String.CheckPending}" Classes="workspace-section"/>
+              <TextBlock x:Name="ModelStatusDetailText" Text="{DynamicResource String.BaselineModels}" Classes="workspace-help" FontSize="12" LineHeight="18"/>
+            </StackPanel>
+            <Button Grid.Column="2" x:Name="RefreshWorkspaceButton" Classes="toolbar-action" Content="{DynamicResource Workspace.Refresh}"
+                    Click="RefreshWorkspaceButton_OnClick" ToolTip.Tip="F5" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+        <Border x:Name="RecoveryBorder" IsVisible="False" Background="{DynamicResource WarningBackgroundBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1" CornerRadius="14" Padding="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{DynamicResource Text.8bc59928b706}" Classes="workspace-section"/>
+              <TextBlock x:Name="RecoveryDetailText" Text="{DynamicResource Text.4aa2ad79923b}" Classes="workspace-help" AutomationProperties.LiveSetting="Assertive"/>
+            </StackPanel>
+            <Button Grid.Column="1" Classes="secondary" Content="{DynamicResource Text.6f4f62913d52}" VerticalAlignment="Center" Click="RepairButton_OnClick" AutomationProperties.Name="{DynamicResource Text.b46b3d4ca814}"/>
+          </Grid>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="32,12,32,16">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border x:Name="LiveStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock x:Name="LiveStatusTitleText" Text="{DynamicResource Text.1bd1893c0900}" Classes="workspace-label" FontSize="12"/>
+          <TextBlock x:Name="LiveStatusDetailText" Text="{DynamicResource Text.a27e6084e439}" Classes="workspace-help" FontSize="11" LineHeight="17" MaxHeight="51" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
+        </StackPanel>
       </Grid>
     </Border>
   </Grid>
 </Window>
+

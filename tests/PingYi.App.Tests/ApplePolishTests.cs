@@ -23,27 +23,24 @@ public class ApplePolishTests
         UiText.Configure(language);
         var theme = dark ? ThemeVariant.Dark : ThemeVariant.Light;
         var suffix = $"{language}-{(dark ? "dark" : "light")}";
-        var home = new MainWindowV2 { RequestedThemeVariant = theme };
-        var settings = new MainWindow { RequestedThemeVariant = theme };
+        var home = new MainWindow { RequestedThemeVariant = theme };
+        var settings = new SettingsWindow { RequestedThemeVariant = theme };
         var result = new ResultWindow { RequestedThemeVariant = theme };
         try
         {
             C<TextBlock>(home, "TopStatusText").Text = "UI Preview";
             C<TextBlock>(home, "ModelStatusTitleText").Text = UiText.IsEnglish ? "Load on demand" : "按需加载";
             C<TextBlock>(home, "ModelStatusDetailText").Text = UiText.IsEnglish ? "Sample local OCR and translation setup." : "本地识别与离线翻译方案示例";
-            C<TextBlock>(home, "PrivacySummaryText").Text = UiText.IsEnglish ? "Local-mode example. Screenshots and text stay on this device." : "本地方案示例：截图与文字只在本机处理。";
             C<TextBlock>(home, "LiveStatusTitleText").Text = "UI Preview";
             C<TextBlock>(home, "LiveStatusDetailText").Text = WorkspaceText.Preview;
             home.Show();
             SaveFrame(home, $"refined-home-{suffix}");
 
-            C<Border>(settings, "CaptureHero").IsVisible = false;
             C<TextBlock>(settings, "WindowHeadingText").Text = WorkspaceText.Settings;
             C<TextBlock>(settings, "GlobalStatusText").Text = WorkspaceText.Preview;
             SetChoices(settings, "OcrProviderCombo", "PaddleOCR · ONNX");
             SetChoices(settings, "TranslationProviderCombo", "Argos · Offline");
             SetChoices(settings, "TargetLanguageCombo", UiText.IsEnglish ? "Auto (Chinese / English)" : "自动 · 中英互译");
-            SetChoices(settings, "InterfaceStyleCombo", UiText.IsEnglish ? "Capture workspace" : "截图工作台");
             SetChoices(settings, "UiLanguageCombo", UiText.IsEnglish ? "English" : "简体中文");
             SetChoices(settings, "LocalServicePresetCombo", "llama.cpp");
             C<TextBox>(settings, "HotkeyBox").Text = "Ctrl+Alt+D";
@@ -93,7 +90,7 @@ public class ApplePolishTests
     public void Sidebar_keeps_native_keyboard_navigation_and_accessible_controls()
     {
         UiText.Configure("en-US");
-        var window = new MainWindow { Width = 800, Height = 560 };
+        var window = new SettingsWindow { Width = 800, Height = 560 };
         try
         {
             window.Show();

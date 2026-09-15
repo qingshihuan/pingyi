@@ -33,6 +33,5 @@ public static class WorkspaceText
     public static string PrivacyHint => Choose("数据处理范围随当前方案变化，以此处说明为准。", "Data handling depends on the active mode shown here.");
     public static string NoHistory => Choose("不保存截图与翻译历史", "No screenshot or translation history");
     public static string CleanupHint => Choose("仅清理用户下载的翻译模型；不会删除随软件提供的基础模型。", "Only user-downloaded translation models are removed; bundled models are kept.");
-    public static string ClassicHint => Choose("保留完整功能入口，截图与设置可在同一窗口使用。", "Keep all features together, with capture and settings in one window.");
     public static string SecretHint => Choose("点击“显示”后编辑密钥，再保存或验证。密钥沿用系统安全存储。", "Select Reveal to edit a key, then save or validate. Keys use the existing system secure store.");
 }

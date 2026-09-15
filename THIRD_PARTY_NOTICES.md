@@ -113,3 +113,7 @@ geometry and project-authored text. Microsoft YaHei and Noto CJK family names
 select installed host fonts; these fonts are not distributed by this change.
 The additional layout tests reuse the existing test packages. Native window
 controls, model providers and runtime resource policies are unchanged.
+
+## Usability regression fixes
+
+The unified workspace, live language resources, descriptive mode picker, and Help & About page add no production dependencies, fonts, artwork, telemetry, or web runtime. Language dictionaries are compiled into the existing Avalonia application. Windows capture preparation uses documented DWM and User32 APIs for the application's own windows; temporary display-affinity and transition settings are restored afterwards. The Windows 10 2004 capture-exclusion value is never used on older Windows builds. Synthetic UI/capture tests do not access user credentials or persist real screenshots.

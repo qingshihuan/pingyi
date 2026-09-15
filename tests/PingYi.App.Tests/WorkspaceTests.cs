@@ -33,7 +33,7 @@ public class WorkspaceTests
     public void Capture_and_feedback_remain_visible(int width, int height, bool dark, string language)
     {
         UiText.Configure(language);
-        var window = new MainWindowV2 { Width = width, Height = height,
+        var window = new MainWindow { Width = width, Height = height,
             RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         try
         {
@@ -58,10 +58,9 @@ public class WorkspaceTests
     public void Settings_pages_keep_fields_and_fixed_save(int width, int height, bool dark, string language)
     {
         UiText.Configure(language);
-        var window = new MainWindow { Width = width, Height = height,
+        var window = new SettingsWindow { Width = width, Height = height,
             RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         // Equivalent visual state to settingsMode, without creating real AppServices.
-        Required<Border>(window, "CaptureHero").IsVisible = false;
         var tabs = Required<TabControl>(window, "SettingsTabs");
         var endpoint = Required<TextBox>(window, "CustomEndpointBox");
         endpoint.Text = "http://127.0.0.1:8080/v1/chat/completions";
@@ -92,15 +91,15 @@ public class WorkspaceTests
     }
 
     [AvaloniaFact]
-    public void Classic_capture_and_sidebar_fit_the_minimum_window()
+    public void Settings_no_longer_contains_a_second_capture_shell()
     {
         UiText.Configure("zh-CN");
-        var window = new MainWindow { Width = 800, Height = 560 };
+        var window = new SettingsWindow { Width = 800, Height = 560 };
         try
         {
-            window.Show();
-            window.UpdateLayout();
-            AssertVisibleWithinWindow(window, Required<Button>(window, "CaptureButton"));
+            window.Show(); window.UpdateLayout();
+            Assert.Null(window.FindControl<Button>("CaptureButton"));
+            Assert.Null(window.FindControl<ComboBox>("InterfaceStyleCombo"));
             AssertVisibleWithinWindow(window, Required<TabItem>(window, "AppearanceSettingsTab"));
             AssertVisibleWithinWindow(window, Required<Button>(window, "SaveSettingsButton"));
         }
