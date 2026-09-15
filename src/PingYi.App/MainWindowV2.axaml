@@ -1,318 +1,168 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="PingYi.App.MainWindowV2"
-        Title="屏译"
-        Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png"
-        Width="960"
-        Height="640"
-        MinWidth="820"
-        MinHeight="560"
-        WindowStartupLocation="CenterScreen">
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.MainWindowV2" Classes="workspace" Title="屏译" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" Width="1040" Height="720" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
   <Window.Resources>
-    <ResourceDictionary>
-      <ResourceDictionary.ThemeDictionaries>
-        <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="PageBrush">#F2F4EF</SolidColorBrush>
-          <SolidColorBrush x:Key="SurfaceBrush">#FFFFFF</SolidColorBrush>
-          <SolidColorBrush x:Key="NavBrush">#FAFFFFFF</SolidColorBrush>
-          <SolidColorBrush x:Key="SoftBrush">#E8EFEC</SolidColorBrush>
-          <SolidColorBrush x:Key="InkBrush">#0A1B27</SolidColorBrush>
-          <SolidColorBrush x:Key="MutedBrush">#60727A</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrushV2">#D5DFDB</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerSoftBrush">#FDE7E4</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerBorderBrushV2">#F0B4AD</SolidColorBrush>
-        </ResourceDictionary>
-        <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="PageBrush">#0C1718</SolidColorBrush>
-          <SolidColorBrush x:Key="SurfaceBrush">#122223</SolidColorBrush>
-          <SolidColorBrush x:Key="NavBrush">#F2172A2B</SolidColorBrush>
-          <SolidColorBrush x:Key="SoftBrush">#1B3333</SolidColorBrush>
-          <SolidColorBrush x:Key="InkBrush">#EAF6F4</SolidColorBrush>
-          <SolidColorBrush x:Key="MutedBrush">#AAC0BD</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrushV2">#2B4646</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerSoftBrush">#3B2020</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerBorderBrushV2">#7F3B38</SolidColorBrush>
-        </ResourceDictionary>
-      </ResourceDictionary.ThemeDictionaries>
-
-      <SolidColorBrush x:Key="NavyBrush">#071A31</SolidColorBrush>
-      <SolidColorBrush x:Key="TealBrush">#009E8A</SolidColorBrush>
-      <SolidColorBrush x:Key="TealDarkBrush">#007B6C</SolidColorBrush>
-      <SolidColorBrush x:Key="OrangeBrush">#D94A13</SolidColorBrush>
-      <SolidColorBrush x:Key="OrangeHoverBrush">#B93A0B</SolidColorBrush>
-      <SolidColorBrush x:Key="SuccessBrushV2">#0D7A4B</SolidColorBrush>
-      <SolidColorBrush x:Key="DangerBrushV2">#E05D54</SolidColorBrush>
-      <LinearGradientBrush x:Key="HeroBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-        <GradientStop Color="#071A31" Offset="0" />
-        <GradientStop Color="#0B2838" Offset="0.58" />
-        <GradientStop Color="#075B57" Offset="1" />
-      </LinearGradientBrush>
-    </ResourceDictionary>
+    <SolidColorBrush x:Key="TealBrush">#2C9A5E</SolidColorBrush>
+    <SolidColorBrush x:Key="OrangeBrush">#BB771E</SolidColorBrush>
+    <SolidColorBrush x:Key="SuccessBrushV2">#2C9A5E</SolidColorBrush>
+    <SolidColorBrush x:Key="DangerBrushV2">#D74750</SolidColorBrush>
   </Window.Resources>
-
   <Window.Styles>
-    <Style Selector="Window">
-      <Setter Property="Background" Value="{DynamicResource PageBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
-    </Style>
-    <Style Selector="Border.nav">
-      <Setter Property="Background" Value="{DynamicResource NavBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="BoxShadow" Value="0 8 24 0 #10071A31" />
-    </Style>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="18" />
-      <Setter Property="Padding" Value="20" />
-      <Setter Property="BoxShadow" Value="0 10 28 0 #0D071A31" />
-    </Style>
-    <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
-    </Style>
-    <Style Selector="TextBlock.display">
-      <Setter Property="FontSize" Value="38" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="LineHeight" Value="44" />
-      <Setter Property="LetterSpacing" Value="-0.5" />
-    </Style>
-    <Style Selector="TextBlock.card-title">
-      <Setter Property="FontSize" Value="16" />
-      <Setter Property="FontWeight" Value="Bold" />
-    </Style>
-    <Style Selector="Button">
-      <Setter Property="MinHeight" Value="44" />
-      <Setter Property="CornerRadius" Value="11" />
-      <Setter Property="Padding" Value="15,10" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
-    <Style Selector="Button.primary">
-      <Setter Property="Background" Value="{DynamicResource OrangeBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource OrangeBrush}" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="MinHeight" Value="56" />
-      <Setter Property="FontSize" Value="16" />
-    </Style>
-    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource OrangeHoverBrush}" />
-    </Style>
-    <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushV2}" />
-      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
-    </Style>
-    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource SoftBrush}" />
-    </Style>
-    <Style Selector="Button.dark">
-      <Setter Property="Background" Value="#18FFFFFF" />
-      <Setter Property="BorderBrush" Value="#45FFFFFF" />
-      <Setter Property="Foreground" Value="White" />
-    </Style>
-    <Style Selector="Button.dark:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="#2AFFFFFF" />
-    </Style>
-    <Style Selector="Button:focus">
-      <Setter Property="BorderBrush" Value="#2DD4BF" />
-      <Setter Property="BorderThickness" Value="2" />
-    </Style>
-    <Style Selector="PathIcon.icon">
-      <Setter Property="Width" Value="18" />
-      <Setter Property="Height" Value="18" />
-    </Style>
+    <StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/>
   </Window.Styles>
-
-  <Grid Margin="18" RowDefinitions="62,*,Auto" RowSpacing="16">
-    <Border Grid.Row="0" Classes="nav" Padding="15,9">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-        <StackPanel Orientation="Horizontal" Spacing="11">
-          <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon.png"
-                 Width="40" Height="40" Stretch="Uniform" />
-          <StackPanel VerticalAlignment="Center" Spacing="0">
-            <TextBlock Text="屏译" FontSize="18" FontWeight="Bold" />
-            <TextBlock Text="截图、识别、翻译，一次完成" Classes="muted" FontSize="12" />
-          </StackPanel>
+  <Grid RowDefinitions="76,*,Auto">
+    <Grid Margin="32,20,32,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="34" Height="34"/>
+      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="{DynamicResource String.AppName}" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Text="{x:Static local:WorkspaceText.Reading}" Classes="workspace-help" FontSize="12"/>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+          <Border x:Name="TopStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+          <TextBlock x:Name="TopStatusText" Text="正在检查" Classes="workspace-help" FontSize="12" AutomationProperties.LiveSetting="Polite"/>
         </StackPanel>
-
-        <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{DynamicResource SoftBrush}" CornerRadius="999" Padding="13,7">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Border x:Name="TopStatusDot" Width="8" Height="8" CornerRadius="4"
-                    Background="{DynamicResource TealBrush}" VerticalAlignment="Center" />
-            <TextBlock x:Name="TopStatusText" Text="正在检查" FontSize="12"
-                       FontWeight="SemiBold" VerticalAlignment="Center" />
-          </StackPanel>
-        </Border>
-
-        <Button Grid.Column="2" Classes="secondary" Click="OpenSettingsButton_OnClick"
-                AutomationProperties.Name="打开屏译设置">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Classes="icon" Data="M4 6H20 M4 12H14 M4 18H17" />
-            <TextBlock Text="设置" VerticalAlignment="Center" />
+        <Button Classes="toolbar-action" Click="OpenSettingsButton_OnClick" ToolTip.Tip="Ctrl+," AutomationProperties.Name="打开屏译设置">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="symbol" Width="15" Height="15" Stroke="{DynamicResource SecondaryTextBrush}" Data="M4 5H20 M4 12H20 M4 19H20 M8 2V8 M16 9V15 M10 16V22"/>
+            <TextBlock Text="{x:Static local:WorkspaceText.Settings}" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
-      </Grid>
-    </Border>
-
-    <Grid Grid.Row="1" RowDefinitions="*,Auto" RowSpacing="12">
-      <Grid ColumnDefinitions="7*,5*" ColumnSpacing="16">
-        <Border Background="{DynamicResource HeroBrush}" CornerRadius="24" Padding="30"
-                ClipToBounds="True" BoxShadow="0 18 46 0 #26071A31">
-          <Grid RowDefinitions="Auto,*,Auto">
-            <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon.png"
-                   Width="66" Height="66" Stretch="Uniform" HorizontalAlignment="Left" />
-
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="17" MaxWidth="480"
-                        HorizontalAlignment="Left">
-              <StackPanel Spacing="9">
-                <TextBlock Text="框选一次，读懂屏幕" Classes="display"
-                           Foreground="White" TextWrapping="Wrap" />
-                <TextBlock Text="从屏幕画面到可复制原文，再到自然译文。默认本地处理，不保存历史。"
-                           Foreground="#C7D8DE" FontSize="14" LineHeight="22"
-                           TextWrapping="Wrap" MaxWidth="430" />
-              </StackPanel>
-
-              <Button x:Name="CaptureButtonV2" Classes="primary"
-                      HorizontalAlignment="Stretch" Click="CaptureButton_OnClick"
-                      AutomationProperties.Name="开始截图识别和翻译">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                  <PathIcon Classes="icon" Foreground="White"
-                            Data="M4 8V5A1 1 0 0 1 5 4H8 M16 4H19A1 1 0 0 1 20 5V8 M20 16V19A1 1 0 0 1 19 20H16 M8 20H5A1 1 0 0 1 4 19V16" />
-                  <TextBlock Grid.Column="1" Text="开始截图" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="2" x:Name="CaptureHotkeyText" Text="Ctrl  Alt  D"
-                             FontFamily="Consolas" FontSize="12" VerticalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <StackPanel Margin="32,6,32,20" Spacing="14">
+        <Border Classes="workspace-card" Padding="28,18" CornerRadius="24" Background="{DynamicResource HeroBackgroundBrush}">
+          <Grid ColumnDefinitions="1.3*,*" ColumnSpacing="24">
+            <StackPanel Spacing="10" VerticalAlignment="Center" MaxWidth="400" HorizontalAlignment="Left">
+              <TextBlock Text="{x:Static local:WorkspaceText.Workspace}" Classes="workspace-help" FontSize="12" Foreground="{DynamicResource BrandBrush}"/>
+              <TextBlock Text="{x:Static local:PolishText.CaptureShortTitle}" FontSize="30" LineHeight="39" FontWeight="SemiBold" LetterSpacing="-0.5" TextWrapping="Wrap"/>
+              <TextBlock Text="{x:Static local:PolishText.CaptureShortHint}" Classes="workspace-help" MaxWidth="370" HorizontalAlignment="Left"/>
+              <Button x:Name="CaptureButtonV2" Classes="workspace-capture" HorizontalAlignment="Stretch" Margin="0,4,0,0" Click="CaptureButton_OnClick" AutomationProperties.Name="开始截图识别和翻译">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Path Classes="symbol" Stroke="White" Data="M3 8V3H8 M16 3H21V8 M21 16V21H16 M8 21H3V16"/>
+                  <TextBlock Grid.Column="1" Text="{DynamicResource String.StartCapture}" VerticalAlignment="Center"/>
+                  <Border Grid.Column="2" Background="#24FFFFFF" CornerRadius="5" Padding="7,4">
+                    <TextBlock x:Name="CaptureHotkeyText" Text="Ctrl  Alt  D" FontSize="11" VerticalAlignment="Center"/>
+                  </Border>
                 </Grid>
               </Button>
+              <TextBlock Text="{x:Static local:PolishText.CaptureCancelHint}" Classes="workspace-help" FontSize="11" LineHeight="16"/>
             </StackPanel>
-
-            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-              <PathIcon Classes="icon" Foreground="#9FE2D9"
-                        Data="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3 M8 12L11 15L16 9" />
-              <TextBlock Grid.Column="1" Text="本地优先时，截图与文字不会离开设备"
-                         Foreground="#A9C4CA" FontSize="12" VerticalAlignment="Center" />
+            <!-- Original static vector illustration; no user content or rendering loop. -->
+            <Viewbox Grid.Column="1" MaxWidth="270" Stretch="Uniform" Margin="0,4,6,0" IsHitTestVisible="False">
+              <Grid Width="264" Height="206">
+                <Border Width="190" Height="190" CornerRadius="95" Background="{DynamicResource HeroAccentBrush}" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Border Width="134" Height="142" Margin="13,9,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="19" Background="{DynamicResource HeroPaperBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" BoxShadow="0 7 18 0 #0B102A50" RenderTransformOrigin="50%,50%">
+                  <Border.RenderTransform>
+                    <RotateTransform Angle="-8"/>
+                  </Border.RenderTransform>
+                  <StackPanel Margin="21,15" Spacing="10">
+                    <TextBlock Text="A" FontSize="42" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                    <Border Height="5" CornerRadius="2" Background="{DynamicResource HeroLineBrush}"/>
+                    <Border Height="5" Width="64" HorizontalAlignment="Left" CornerRadius="2" Background="{DynamicResource HeroLineBrush}"/>
+                  </StackPanel>
+                </Border>
+                <Border Width="134" Height="138" Margin="0,0,11,6" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="21" Background="{DynamicResource ActionFillBrush}" BorderBrush="#40FFFFFF" BorderThickness="1" BoxShadow="0 10 20 0 #16065BB8" RenderTransformOrigin="50%,50%">
+                  <Border.RenderTransform>
+                    <RotateTransform Angle="7"/>
+                  </Border.RenderTransform>
+                  <StackPanel Margin="21,14" Spacing="10">
+                    <TextBlock Text="文" FontSize="38" FontWeight="SemiBold" Foreground="White"/>
+                    <Border Height="5" CornerRadius="2" Background="#70FFFFFF"/>
+                    <Border Height="5" Width="56" HorizontalAlignment="Left" CornerRadius="2" Background="#40FFFFFF"/>
+                  </StackPanel>
+                </Border>
+                <Border Width="38" Height="38" CornerRadius="19" Margin="108,76,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource HeroPaperBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" BoxShadow="0 3 9 0 #13000000">
+                  <Path Classes="symbol" Width="16" Height="16" Data="M4 7H20 M15 3L20 7L15 11 M20 17H4 M9 13L4 17L9 21"/>
+                </Border>
+              </Grid>
+            </Viewbox>
+          </Grid>
+        </Border>
+        <Border Classes="workspace-card" Padding="22,16" CornerRadius="16">
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="14">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+              <TextBlock Text="{x:Static local:WorkspaceText.ProcessLabel}" Classes="workspace-help" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" x:Name="ModeSummaryText" Text="本地优先" Classes="workspace-label" VerticalAlignment="Center"/>
+              <Button Grid.Column="2" Classes="toolbar-action" MinHeight="30" Padding="12,4" Content="{x:Static local:WorkspaceText.QuickSwitch}" AutomationProperties.Name="快速切换处理方案">
+                <Button.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedRight">
+                    <MenuItem Header="本地优先 · PaddleOCR + Argos" Click="LocalFirstMenuItem_OnClick"/>
+                    <MenuItem Header="本机大模型翻译 · PaddleOCR + 兼容接口" Click="LocalLlmMenuItem_OnClick"/>
+                    <MenuItem Header="本机多模态 · PaddleOCR + 大模型纠错" Click="LocalMultimodalMenuItem_OnClick"/>
+                    <MenuItem Header="云端增强 · 百度 OCR + 百度翻译" Click="CloudModeMenuItem_OnClick"/>
+                    <MenuItem Header="自定义组合…" Click="CustomModeMenuItem_OnClick"/>
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+            </Grid>
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="22">
+              <StackPanel Spacing="4">
+                <TextBlock Text="文字识别" Classes="workspace-help" FontSize="12"/>
+                <TextBlock x:Name="OcrSummaryText" Text="本地 PaddleOCR" Classes="workspace-section"/>
+              </StackPanel>
+              <Path Grid.Column="1" Classes="symbol" Stroke="{DynamicResource TertiaryTextBrush}" Width="24" Data="M3 12H21 M16 7L21 12L16 17"/>
+              <StackPanel Grid.Column="2" Spacing="4">
+                <TextBlock Text="翻译方式" Classes="workspace-help" FontSize="12"/>
+                <TextBlock x:Name="TranslationSummaryText" Text="本地 Argos" Classes="workspace-section"/>
+              </StackPanel>
             </Grid>
           </Grid>
         </Border>
-
-        <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="12">
-          <Border Classes="card">
-            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <StackPanel Spacing="2">
-                  <TextBlock Text="当前方案" Classes="card-title" />
-                  <TextBlock Text="常用模式可快速切换" Classes="muted" FontSize="12" />
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+          <Border Classes="workspace-card" Padding="18,12" Grid.Column="0" CornerRadius="16">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Border Classes="symbol-tile">
+                  <Path Classes="symbol" Data="M5 7L12 3L19 7V17L12 21L5 17Z M5 7L12 11L19 7 M12 11V21"/>
+                </Border>
+                <TextBlock Grid.Column="1" Text="本地模型" Classes="workspace-section" VerticalAlignment="Center"/>
+                <Border Grid.Column="2" x:Name="ModelStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+              </Grid>
+              <StackPanel Grid.Row="1" Spacing="7" VerticalAlignment="Center">
+                <TextBlock x:Name="ModelStatusTitleText" Text="正在检查" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ModelStatusDetailText" Text="启动时校验离线模型" Classes="workspace-help" FontSize="12" LineHeight="18"/>
+              </StackPanel>
+              <Button Grid.Row="2" x:Name="RefreshWorkspaceButton" Classes="ghost" HorizontalAlignment="Left" Padding="0,4" MinHeight="28" Click="RefreshWorkspaceButton_OnClick" ToolTip.Tip="F5" AutomationProperties.Name="刷新模型与服务状态">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{x:Static local:WorkspaceText.Refresh}" FontSize="12" Foreground="{DynamicResource BrandBrush}"/>
+                  <Path Classes="symbol" Width="12" Height="12" Data="M20 10A8 8 0 1 0 19 17 M20 10V4 M20 10H14"/>
                 </StackPanel>
-                <Button Grid.Column="1" Classes="secondary" Content="快速切换"
-                        AutomationProperties.Name="快速切换处理方案">
-                  <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight">
-                      <MenuItem Header="本地优先 · PaddleOCR + Argos"
-                                Click="LocalFirstMenuItem_OnClick" />
-                      <MenuItem Header="本机大模型翻译 · PaddleOCR + 兼容接口"
-                                Click="LocalLlmMenuItem_OnClick" />
-                      <MenuItem Header="本机多模态 · PaddleOCR + 大模型纠错"
-                                Click="LocalMultimodalMenuItem_OnClick" />
-                      <MenuItem Header="云端增强 · 百度 OCR + 百度翻译"
-                                Click="CloudModeMenuItem_OnClick" />
-                      <MenuItem Header="自定义组合…" Click="CustomModeMenuItem_OnClick" />
-                    </MenuFlyout>
-                  </Button.Flyout>
-                </Button>
-              </Grid>
-
-              <TextBlock Grid.Row="1" x:Name="ModeSummaryText" Text="本地优先"
-                         FontSize="23" FontWeight="Bold" TextWrapping="Wrap" />
-
-              <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Border Background="{DynamicResource SoftBrush}" CornerRadius="12" Padding="12,9">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="文字识别" Classes="muted" FontSize="12" />
-                    <TextBlock x:Name="OcrSummaryText" Text="本地 PaddleOCR"
-                               FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Border>
-                <Border Grid.Column="1" Background="{DynamicResource SoftBrush}"
-                        CornerRadius="12" Padding="12,9">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="翻译方式" Classes="muted" FontSize="12" />
-                    <TextBlock x:Name="TranslationSummaryText" Text="本地 Argos"
-                               FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Border>
-              </Grid>
+              </Button>
             </Grid>
           </Border>
-
-          <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
-            <Border Classes="card" Padding="17">
-              <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="本地模型" Classes="card-title" />
-                  <Border Grid.Column="1" x:Name="ModelStatusDot" Width="9" Height="9"
-                          CornerRadius="5" Background="{DynamicResource TealBrush}"
-                          VerticalAlignment="Center" />
-                </Grid>
-                <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="5">
-                  <TextBlock x:Name="ModelStatusTitleText" Text="正在检查"
-                             FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" />
-                  <TextBlock x:Name="ModelStatusDetailText" Text="启动时校验离线模型"
-                             Classes="muted" FontSize="12" LineHeight="18" TextWrapping="Wrap" />
-                </StackPanel>
+          <Border Classes="workspace-card" Padding="18,12" Grid.Column="1" CornerRadius="16">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Border Classes="symbol-tile" Background="{DynamicResource SuccessBackgroundBrush}">
+                  <Path Classes="symbol" Stroke="{DynamicResource SuccessTextBrush}" Data="M12 3L20 7V12C20 17 16 20 12 21C8 20 4 17 4 12V7Z M8 12L11 15L16 9"/>
+                </Border>
+                <TextBlock Grid.Column="1" Text="隐私边界" Classes="workspace-section" VerticalAlignment="Center"/>
               </Grid>
-            </Border>
-
-            <Border Grid.Column="1" Classes="card" Padding="17">
-              <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="隐私边界" Classes="card-title" />
-                  <PathIcon Grid.Column="1" Width="17" Height="17"
-                            Foreground="{DynamicResource SuccessBrushV2}"
-                            Data="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3 M8 12L11 15L16 9" />
-                </Grid>
-                <TextBlock Grid.Row="1" x:Name="PrivacySummaryText"
-                           Text="正在读取当前方案的数据范围"
-                           Classes="muted" FontSize="12" LineHeight="18"
-                           TextWrapping="Wrap" VerticalAlignment="Center" />
-              </Grid>
-            </Border>
+              <TextBlock Grid.Row="1" x:Name="PrivacySummaryText" Text="正在读取当前方案的数据范围" Classes="workspace-help" FontSize="12" LineHeight="18" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="2" Text="{x:Static local:WorkspaceText.NoHistory}" Classes="workspace-label" FontSize="11"/>
+            </Grid>
+          </Border>
+        </Grid>
+        <Border x:Name="RecoveryBorder" IsVisible="False" Background="{DynamicResource WarningBackgroundBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1" CornerRadius="14" Padding="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="4">
+              <TextBlock Text="当前方案需要处理" Classes="workspace-section"/>
+              <TextBlock x:Name="RecoveryDetailText" Text="请检查模型或服务配置。" Classes="workspace-help" AutomationProperties.LiveSetting="Assertive"/>
+            </StackPanel>
+            <Button Grid.Column="1" Classes="secondary" Content="立即修复" VerticalAlignment="Center" Click="RepairButton_OnClick" AutomationProperties.Name="打开设置修复问题"/>
           </Grid>
-        </Grid>
-      </Grid>
-
-      <Border Grid.Row="1" x:Name="RecoveryBorder" IsVisible="False"
-              Background="{DynamicResource DangerSoftBrush}"
-              BorderBrush="{DynamicResource DangerBorderBrushV2}" BorderThickness="1" CornerRadius="14" Padding="14,11">
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-          <PathIcon Width="19" Height="19" Foreground="{DynamicResource DangerBrushV2}"
-                    VerticalAlignment="Center"
-                    Data="M12 3L22 20H2L12 3 M12 9V14 M12 17V18" />
-          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="当前方案需要处理" FontWeight="Bold" FontSize="12" />
-            <TextBlock x:Name="RecoveryDetailText" Text="请检查模型或服务配置。"
-                       Classes="muted" FontSize="12" TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Assertive" />
-          </StackPanel>
-          <Button Grid.Column="2" Classes="secondary" Content="立即修复"
-                  Click="RepairButton_OnClick" AutomationProperties.Name="打开设置修复问题" />
-        </Grid>
-      </Border>
-    </Grid>
-
-    <Border Grid.Row="2" Classes="nav" Padding="14,10">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-        <Border x:Name="LiveStatusDot" Width="9" Height="9" CornerRadius="5"
-                Background="{DynamicResource TealBrush}" VerticalAlignment="Center" />
-        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-          <TextBlock x:Name="LiveStatusTitleText" Text="准备就绪"
-                     FontSize="12" FontWeight="Bold" />
-          <TextBlock x:Name="LiveStatusDetailText" Text="按 Ctrl+Alt+D 或点击“开始截图”。"
-                     Classes="muted" FontSize="12" TextWrapping="Wrap"
-                     AutomationProperties.LiveSetting="Polite" />
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="32,12,32,16">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border x:Name="LiveStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock x:Name="LiveStatusTitleText" Text="准备就绪" Classes="workspace-label" FontSize="12"/>
+          <TextBlock x:Name="LiveStatusDetailText" Text="按 Ctrl+Alt+D 或点击“开始截图”。" Classes="workspace-help" FontSize="11" LineHeight="17" MaxHeight="51" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
         </StackPanel>
       </Grid>
     </Border>
   </Grid>
 </Window>
+

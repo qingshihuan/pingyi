@@ -67,7 +67,7 @@ public sealed class AppServices : IAsyncDisposable
                 GoogleTranslationProvider,
                 CustomTranslationProvider
             ]);
-        WarmManagedRuntimeIfConfigured();
+        // Heavy runtimes are started by an explicit selection or the first capture.
     }
 
     public AppDataPaths Paths { get; }
@@ -111,8 +111,7 @@ public sealed class AppServices : IAsyncDisposable
     {
         var paths = new AppDataPaths();
         var settingsStore = new JsonSettingsStore(paths);
-        var settings = await settingsStore.LoadAsync(cancellationToken);
-        await settingsStore.SaveAsync(settings, cancellationToken);
+        var settings = await settingsStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         var secretStore = new PlatformSecretStore(paths);
         var engine = new EngineProcessClient(paths);
         var httpClient = new HttpClient
@@ -164,11 +163,11 @@ public sealed class AppServices : IAsyncDisposable
             var previous = Settings;
             await SettingsStore.SaveAsync(normalized, cancellationToken);
             Settings = normalized;
-            if (Settings.ManagedRuntimeEnabled)
+            if (RuntimePolicy.UsesManagedRuntime(Settings))
             {
                 WarmManagedRuntimeIfConfigured();
             }
-            else if (previous.ManagedRuntimeEnabled)
+            else if (RuntimePolicy.UsesManagedRuntime(previous))
             {
                 var previousStartup = InvalidateManagedRuntimeStartup();
                 CancelAndRelease(previousStartup.Cancellation, previousStartup.Task);
@@ -191,7 +190,7 @@ public sealed class AppServices : IAsyncDisposable
             }
 
             var settings = Settings;
-            if (!settings.ManagedRuntimeEnabled)
+            if (!RuntimePolicy.UsesManagedRuntime(settings))
             {
                 return ProviderAvailability.Available;
             }
@@ -229,7 +228,7 @@ public sealed class AppServices : IAsyncDisposable
             }
 
             var currentSettings = Settings;
-            if (!currentSettings.ManagedRuntimeEnabled)
+            if (!RuntimePolicy.UsesManagedRuntime(currentSettings))
             {
                 return ProviderAvailability.Available;
             }
@@ -261,7 +260,7 @@ public sealed class AppServices : IAsyncDisposable
         }
 
         var settings = Settings;
-        if (!settings.ManagedRuntimeEnabled ||
+        if (!RuntimePolicy.UsesManagedRuntime(settings) ||
             !ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var model))
         {
             return;

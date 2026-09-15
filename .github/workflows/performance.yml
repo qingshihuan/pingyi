@@ -1,0 +1,51 @@
+name: Performance validation
+
+on:
+  push:
+    branches: [main, ui/workspace-settings-redesign]
+    paths:
+      - '.github/workflows/performance.yml'
+      - 'scripts/measure-startup.py'
+      - 'engine_host/**'
+      - 'src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  performance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install only the pinned CPU dependencies, without optional NLP stacks
+        run: python -m pip install --no-deps -r engine_host/requirements.txt
+      - name: Reconstruct fixed pre-optimization engine
+        run: |
+          mkdir -p .performance-baseline
+          git show 48b2138c7cf64ca530299f04aea099358823060d:engine_host/main.py > .performance-baseline/main.py
+          git show 48b2138c7cf64ca530299f04aea099358823060d:engine_host/runtime_minimal.py > .performance-baseline/runtime_minimal.py
+      - name: Measure fresh-process health startup (not desktop startup)
+        run: python scripts/measure-startup.py --baseline .performance-baseline --output artifacts/performance/engine-health.json
+      - name: Archive tracked inputs for reproducibility
+        if: always()
+        run: git archive --format=zip --output=performance-source.zip HEAD
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: performance-validation
+          path: |
+            artifacts/performance/*.json
+            performance-source.zip
+          retention-days: 3

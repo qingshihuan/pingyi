@@ -14,6 +14,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     private CaptureCoordinator? _captureCoordinator;
     private Func<Task>? _openSettings;
     private bool _isRefreshing;
+    private readonly PassiveRefreshPolicy _passiveRefresh = new(TimeSpan.FromSeconds(30));
 
     public MainWindowV2()
     {
@@ -79,7 +80,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
 
         LoadSettings();
-        await RefreshDashboardAsync();
+        if (_passiveRefresh.ShouldRefresh(_services.Settings))
+            await RefreshDashboardAsync();
     }
 
     private async Task RefreshDashboardAsync()
@@ -97,22 +99,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         try
         {
             var settings = _services.Settings;
-            string? managedStartupError = null;
-            if (settings.ManagedRuntimeEnabled &&
-                ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var managedModel))
-            {
-                LiveStatusDetailText.Text = UiText.IsEnglish
-                    ? $"Loading {managedModel.LocalizedDisplayName}…"
-                    : $"正在加载 {managedModel.DisplayName}…";
-                try
-                {
-                    await _services.WaitForManagedRuntimeAsync();
-                }
-                catch (Exception exception)
-                {
-                    managedStartupError = UiText.Error(exception);
-                }
-            }
+            // Opening/focusing the UI is not a request to load GiB of model weights.
+            var managedOnDemand = RuntimePolicy.UsesManagedRuntime(settings);
 
             var selectedOcr = _services.Providers.GetOcrProvider(settings.OcrProviderId);
             var selectedTranslation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId);
@@ -121,10 +109,14 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             var argosTask = GetAvailabilityAsync(_services.ArgosProvider);
             var selectedOcrTask = ReferenceEquals(selectedOcr, _services.PaddleProvider)
                 ? paddleTask
-                : GetAvailabilityAsync(selectedOcr);
+                : managedOnDemand && (settings.OcrProviderId is "local-vlm-ocr" or "local-vlm-corrected")
+                    ? Task.FromResult(ProviderAvailability.Available)
+                    : GetAvailabilityAsync(selectedOcr);
             var selectedTranslationTask = ReferenceEquals(selectedTranslation, _services.ArgosProvider)
                 ? argosTask
-                : GetAvailabilityAsync(selectedTranslation);
+                : managedOnDemand && settings.TranslationProviderId == "custom-chat"
+                    ? Task.FromResult(ProviderAvailability.Available)
+                    : GetAvailabilityAsync(selectedTranslation);
 
             await Task.WhenAll(paddleTask, argosTask, selectedOcrTask, selectedTranslationTask);
             var paddle = await paddleTask;
@@ -140,7 +132,15 @@ public partial class MainWindowV2 : Window, IMainWindowShell
                 : $"OCR：{DescribeAvailability(paddle)}；翻译：{DescribeAvailability(argos)}";
 
             var currentModeReady = ocr.IsAvailable && translation.IsAvailable;
-            if (baseModelsReady && currentModeReady)
+            if (baseModelsReady && currentModeReady && managedOnDemand)
+            {
+                SetGlobalStatus(UiText.IsEnglish
+                    ? "Offline models are verified. The local model will be checked and started when you capture."
+                    : "离线基础模型已校验；本机大模型将在截图时检查并按需启动。", false);
+                TopStatusText.Text = UiText.IsEnglish ? "On demand" : "按需加载";
+                LiveStatusTitleText.Text = UiText.IsEnglish ? "Local model: on demand" : "本机大模型按需加载";
+            }
+            else if (baseModelsReady && currentModeReady)
             {
                 SetGlobalStatus(
                     UiText.IsEnglish
@@ -150,11 +150,12 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             }
             else
             {
-                var detail = managedStartupError ?? (!baseModelsReady
+                var detail = !baseModelsReady
                     ? ModelStatusDetailText.Text ?? "离线基础模型不可用。"
-                    : $"OCR：{DescribeAvailability(ocr)}；翻译：{DescribeAvailability(translation)}");
+                    : $"OCR：{DescribeAvailability(ocr)}；翻译：{DescribeAvailability(translation)}";
                 SetGlobalStatus(detail, isError: true);
             }
+            _passiveRefresh.RecordRefresh(settings);
         }
         catch (Exception exception)
         {

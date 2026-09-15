@@ -1,137 +1,70 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="PingYi.App.ResultWindow"
-        Title="屏译结果"
-        Width="620"
-        Height="520"
-        MinWidth="460"
-        MinHeight="420"
-        ShowInTaskbar="False"
-        WindowStartupLocation="Manual">
-  <Border Classes="card" CornerRadius="16" Padding="0" Margin="10">
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
-      <Grid Margin="20,18,16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="11">
-        <Border Width="38" Height="38" CornerRadius="11" Background="{DynamicResource BrandBrush}">
-          <PathIcon Width="20" Height="20" Foreground="White"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Data="M5 7V5H7 M17 5H19V7 M19 17V19H17 M7 19H5V17 M8 9H16 M8 13H15 M8 17H12" />
-        </Border>
-
-        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-          <TextBlock Text="{DynamicResource String.ResultTitle}" FontSize="17" FontWeight="SemiBold" />
-          <StackPanel Orientation="Horizontal" Spacing="7">
-            <Border x:Name="ResultStatusIndicator" Width="7" Height="7" CornerRadius="4"
-                    Background="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
-            <TextBlock x:Name="StatusText" Text="正在识别…" Classes="muted"
-                       FontSize="12" TextTrimming="CharacterEllipsis"
-                       AutomationProperties.LiveSetting="Polite" />
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PingYi.App.ResultWindow" Classes="workspace" Title="屏译结果"
+        Width="660" Height="580" MinWidth="460" MinHeight="440" ShowInTaskbar="False" WindowStartupLocation="Manual">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml" /></Window.Styles>
+  <Grid Margin="22" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <StackPanel Spacing="5">
+        <TextBlock Text="{DynamicResource String.ResultTitle}" FontSize="20" FontWeight="SemiBold" />
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
+          <Border x:Name="ResultStatusIndicator" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" x:Name="StatusText" Text="正在识别…" Classes="workspace-help" FontSize="12" MaxHeight="42" TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite" />
+        </Grid>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top">
+        <ToggleButton x:Name="PinButton" Classes="pin" Click="PinButton_OnClick" AutomationProperties.Name="固定结果卡" CornerRadius="999" MinHeight="34" Padding="10,6">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Path Classes="symbol" Width="14" Height="14" Data="M8 3H16L15 9L19 13V15H13V21 M11 21V15H5V13L9 9Z" />
+            <TextBlock x:Name="PinButtonLabel" Text="固定" FontSize="12" VerticalAlignment="Center" />
           </StackPanel>
-        </StackPanel>
-
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-          <ToggleButton x:Name="PinButton" Classes="pin" Click="PinButton_OnClick"
-                        AutomationProperties.Name="固定结果卡">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <PathIcon Width="16" Height="16"
-                        Data="M9 4H15L14 9L18 13V15H13V21L11 19V15H6V13L10 9L9 4" />
-              <TextBlock x:Name="PinButtonLabel" Text="固定" VerticalAlignment="Center" />
-            </StackPanel>
-          </ToggleButton>
-          <Button Classes="ghost" Click="CloseButton_OnClick" Padding="10,8"
-                  ToolTip.Tip="关闭" AutomationProperties.Name="关闭结果卡">
-            <PathIcon Width="18" Height="18" Data="M6 6L18 18 M18 6L6 18" />
-          </Button>
-        </StackPanel>
-      </Grid>
-
-      <ProgressBar Grid.Row="1" x:Name="ProcessingProgress" Height="3" Margin="20,0,20,12"
-                   IsIndeterminate="True" Foreground="{DynamicResource BrandBrush}"
-                   AutomationProperties.Name="正在处理截图内容" />
-
-      <Grid Grid.Row="2" Margin="20,0" RowDefinitions="*,*" RowSpacing="12">
-        <Border Classes="subtle-card" Padding="14">
-          <Grid RowDefinitions="Auto,*" RowSpacing="10">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Border Width="24" Height="24" CornerRadius="7" Background="#180D9488">
-                  <PathIcon Width="14" Height="14" Foreground="{DynamicResource BrandBrush}"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Data="M5 4H19V18H9L5 22V4 M9 8H15 M9 12H17" />
-                </Border>
-                <TextBlock Text="原文" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-              </StackPanel>
-              <Button Grid.Column="1" Classes="ghost" Click="CopySourceButton_OnClick"
-                      Padding="10,6" MinHeight="32" AutomationProperties.Name="复制原文">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <PathIcon Width="15" Height="15" Data="M8 8H19V19H8V8 M5 16H4V5H15V6" />
-                  <TextBlock Text="复制" FontSize="12" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-            </Grid>
-            <TextBox Grid.Row="1" x:Name="SourceTextBox" Classes="result-text"
-                     IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     AutomationProperties.Name="识别到的原文" />
-          </Grid>
-        </Border>
-
-        <Border Grid.Row="1" Classes="subtle-card" Padding="14">
-          <Grid RowDefinitions="Auto,*" RowSpacing="10">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Border Width="24" Height="24" CornerRadius="7" Background="#18EA580C">
-                  <PathIcon Width="14" Height="14" Foreground="{DynamicResource ActionBrush}"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Data="M4 5H11 M7.5 3V5 M5 9C7 12 9 13 11 14 M10 7C9 10 7 12 4 14 M14 20L17 12L20 20 M15 17H19" />
-                </Border>
-                <TextBlock Text="译文" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-              </StackPanel>
-              <Button Grid.Column="1" Classes="ghost" Click="CopyTranslationButton_OnClick"
-                      Padding="10,6" MinHeight="32" AutomationProperties.Name="复制译文">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <PathIcon Width="15" Height="15" Data="M8 8H19V19H8V8 M5 16H4V5H15V6" />
-                  <TextBlock Text="复制" FontSize="12" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-            </Grid>
-            <TextBox Grid.Row="1" x:Name="TranslationTextBox" Classes="result-text"
-                     IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     AutomationProperties.Name="翻译结果" />
-          </Grid>
-        </Border>
-      </Grid>
-
-      <Grid Grid.Row="3" Margin="20,14,20,18" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <Border Classes="chip" Padding="10,6" HorizontalAlignment="Left" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="7">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource SuccessBrush}"
-                      Data="M12 3L20 7V12C20 17 16.5 20 12 21C7.5 20 4 17 4 12V7L12 3 M8 12L11 15L16 9" />
-            <TextBlock x:Name="PrivacyText" Text="内容仅在内存中处理" Classes="muted"
-                       FontSize="10" VerticalAlignment="Center" />
-          </StackPanel>
-        </Border>
-
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
-          <Button x:Name="RepairButton" Content="{DynamicResource String.OpenSettings}"
-                  Classes="secondary" IsVisible="False" Click="RepairButton_OnClick"
-                  AutomationProperties.Name="打开设置修复问题" />
-          <Button Classes="secondary" Click="RetryButton_OnClick"
-                  AutomationProperties.Name="重新识别和翻译">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <PathIcon Width="16" Height="16" Data="M20 11A8 8 0 1 0 18 16 M20 11V5 M20 11H14" />
-              <TextBlock Text="{DynamicResource String.Retry}" />
-            </StackPanel>
-          </Button>
-          <Button Classes="primary" Click="CopyAllButton_OnClick"
-                  AutomationProperties.Name="复制原文和译文">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <PathIcon Width="16" Height="16" Data="M8 8H19V19H8V8 M5 16H4V5H15V6" />
-              <TextBlock Text="{DynamicResource String.CopyAll}" />
-            </StackPanel>
-          </Button>
-        </StackPanel>
-      </Grid>
+        </ToggleButton>
+        <Button Classes="ghost" Click="CloseButton_OnClick" Padding="9" MinHeight="34" CornerRadius="999" ToolTip.Tip="关闭" AutomationProperties.Name="关闭结果卡">
+          <Path Classes="symbol" Width="14" Height="14" Stroke="{DynamicResource SecondaryTextBrush}" Data="M5 5L19 19 M19 5L5 19" />
+        </Button>
+      </StackPanel>
     </Grid>
-  </Border>
+    <ProgressBar Grid.Row="1" x:Name="ProcessingProgress" Height="3" IsIndeterminate="True" Foreground="{DynamicResource BrandBrush}" AutomationProperties.Name="正在处理截图内容" />
+    <Grid Grid.Row="2" RowDefinitions="*,*" RowSpacing="14">
+      <Border Classes="workspace-card" Padding="18">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="原文" Classes="workspace-label" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost" Click="CopySourceButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="复制原文">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="symbol" Width="13" Height="13" Data="M8 8H20V20H8Z M4 16H3V3H16V4" />
+                <TextBlock Text="复制" FontSize="12" Foreground="{DynamicResource BrandBrush}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBox Grid.Row="1" x:Name="SourceTextBox" Classes="result-text" FontSize="15" LineHeight="25"
+                   IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="识别到的原文" />
+        </Grid>
+      </Border>
+      <Border Grid.Row="1" Classes="workspace-card" Padding="18" BorderBrush="{DynamicResource BrandSoftBrush}">
+        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="译文" Classes="workspace-label" Foreground="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost" Click="CopyTranslationButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="复制译文">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Path Classes="symbol" Width="13" Height="13" Data="M8 8H20V20H8Z M4 16H3V3H16V4" />
+                <TextBlock Text="复制" FontSize="12" Foreground="{DynamicResource BrandBrush}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBox Grid.Row="1" x:Name="TranslationTextBox" Classes="result-text" FontSize="15" LineHeight="25"
+                   IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="翻译结果" />
+        </Grid>
+      </Border>
+    </Grid>
+    <StackPanel Grid.Row="3" Spacing="10">
+      <WrapPanel HorizontalAlignment="Right">
+        <Button x:Name="RepairButton" Content="{DynamicResource String.OpenSettings}" Classes="secondary" IsVisible="False" Click="RepairButton_OnClick" AutomationProperties.Name="打开设置修复问题" Margin="0,0,6,4" />
+        <Button Content="{DynamicResource String.Retry}" Classes="secondary" Click="RetryButton_OnClick" AutomationProperties.Name="重新识别和翻译" Margin="0,0,6,4" />
+        <Button Content="{DynamicResource String.CopyAll}" Classes="primary" Click="CopyAllButton_OnClick" AutomationProperties.Name="复制原文和译文" Margin="0,0,0,4" />
+      </WrapPanel>
+      <TextBlock x:Name="PrivacyText" Text="内容仅在内存中处理" Classes="workspace-help" FontSize="11" LineHeight="17" TextAlignment="Center" MaxHeight="34" TextTrimming="CharacterEllipsis"
+                 ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+    </StackPanel>
+  </Grid>
 </Window>

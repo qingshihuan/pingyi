@@ -21,9 +21,22 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
+      - name: Install Chinese fonts for UI snapshots
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
       - run: dotnet restore PingYi.slnx
       - run: dotnet build PingYi.slnx -c Release --no-restore
       - run: dotnet test PingYi.slnx -c Release --no-build
+        env:
+          PINGYI_UI_ARTIFACTS: ${{ github.workspace }}/artifacts/ui
       - run: python -m py_compile engine_host/main.py
       - run: python -m unittest discover -s engine_host -p "test_*.py"
       - run: python -m unittest discover -s scripts -p "test_*.py"
+      - name: Upload rendered UI snapshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-snapshots-${{ matrix.os }}
+          path: artifacts/ui/*.png
+          if-no-files-found: ignore
+          retention-days: 7

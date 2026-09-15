@@ -72,3 +72,44 @@ health and translation requests. Explicit model installation remains a separate
 network-capable operation. These adapter changes do not add, replace, or upgrade
 third-party packages, models, native runtimes, or their license terms. They are
 not an operating-system network sandbox or a guarantee about native-library I/O.
+
+## Workspace UI development tests
+
+The workspace redesign reuses the existing Avalonia/Fluent/Skia runtime and
+repository branding assets. It adds no production runtime, font, icon-pack,
+model or service dependency.
+
+The separate `PingYi.App.Tests` project uses Avalonia.Headless.XUnit 12.1.1
+(from Avalonia, MIT; https://github.com/AvaloniaUI/Avalonia), xUnit v3 3.2.2
+(Apache-2.0; https://github.com/xunit/xunit), and the existing versions of
+Microsoft.NET.Test.Sdk and xunit.runner.visualstudio. These packages are test
+infrastructure only and are not part of PingYi application publishing.
+CI may install Noto CJK fonts on the test runner to render Chinese snapshots;
+those runner fonts and generated test snapshots are not bundled in releases.
+
+## Startup and resource policy
+
+The startup/resource changes use the existing pinned Avalonia, ONNX Runtime,
+Argos and CTranslate2 dependencies. No production dependency or model version
+is added or upgraded. ONNX session threading is configured according to its
+upstream API, and dense output buffers are borrowed only while their output
+owners remain alive. The optional CI performance workflow installs the existing
+CPU-only requirements without transitive optional NLP stacks; its measurements
+contain no user screenshots, recognized text, translations or credentials.
+
+## macOS-inspired visual refinement
+
+The refined interface uses original XAML geometry, a project-authored semantic
+palette, and the existing PingYi branding. No Apple artwork, SF Symbols,
+San Francisco font files, or new third-party icon/font packages are bundled.
+Font-family names refer only to fonts already installed on the host system,
+with the existing Inter package retained as a fallback. This visual refinement
+does not add macOS platform support, a web runtime, or additional production
+dependencies. Synthetic text in UI test previews is authored for this project;
+the previews do not contain real captures, credentials, or connected services.
+
+The grouped-preferences finishing pass adds only original static document-card
+geometry and project-authored text. Microsoft YaHei and Noto CJK family names
+select installed host fonts; these fonts are not distributed by this change.
+The additional layout tests reuse the existing test packages. Native window
+controls, model providers and runtime resource policies are unchanged.
