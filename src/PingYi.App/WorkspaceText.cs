@@ -4,6 +4,12 @@ namespace PingYi.App;
 public static class WorkspaceText
 {
     private static string Choose(string zh, string en) => UiText.IsEnglish ? en : zh;
+    public static string Preferences => Choose("偏好设置", "Preferences");
+    public static string Reading => Choose("让阅读，不止于一种语言。", "Read beyond one language.");
+    public static string CaptureEyebrow => Choose("屏幕上的文字，触手可及", "YOUR SCREEN, IN YOUR WORDS");
+    public static string CaptureTitleLine => Choose("框选一下，\n读懂眼前的世界。", "A simple capture.\nA clearer world.");
+    public static string ProcessLabel => Choose("处理流程", "PROCESSING FLOW");
+    public static string Preview => Choose("布局预览 · 使用演示数据，未连接真实服务", "Layout preview · Sample data, no connected services");
     public static string Workspace => Choose("截图翻译工作台", "Capture workspace");
     public static string CaptureTitle => Choose("框选文字，即刻翻译", "Select text. Read it your way.");
     public static string CaptureHint => Choose("选择屏幕上的任意文字区域，自动识别并翻译。", "Select any text on your screen to recognize and translate it.");

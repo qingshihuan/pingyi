@@ -1,79 +1,126 @@
-<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- Deliberately reuse App's light/dark tokens and native Fluent controls. -->
-  <Style Selector="Window.workspace"><Setter Property="FontSize" Value="14" /></Style>
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Native controls, static materials and original vectors. No render loop or blur. -->
+  <Style Selector="Window.workspace">
+    <Setter Property="FontSize" Value="14" />
+  </Style>
   <Style Selector="Border.workspace-card">
     <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="CornerRadius" Value="20" />
     <Setter Property="Padding" Value="24" />
+    <Setter Property="BoxShadow" Value="0 2 5 0 #05000000" />
   </Style>
   <Style Selector="Border.workspace-inset">
     <Setter Property="Background" Value="{DynamicResource SubtleBackgroundBrush}" />
-    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="CornerRadius" Value="12" />
     <Setter Property="Padding" Value="16" />
   </Style>
+  <Style Selector="Border.symbol-tile">
+    <Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+  </Style>
+  <Style Selector="Path.symbol">
+    <Setter Property="Width" Value="18" /><Setter Property="Height" Value="18" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="Stroke" Value="{DynamicResource BrandBrush}" />
+    <Setter Property="StrokeThickness" Value="1.7" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <Style Selector="TextBlock.workspace-title">
-    <Setter Property="FontSize" Value="24" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontSize" Value="26" /><Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="-0.4" /><Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="TextBlock.workspace-section">
-    <Setter Property="FontSize" Value="16" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="TextBlock.workspace-help">
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="LineHeight" Value="21" />
+    <Setter Property="FontSize" Value="13" /><Setter Property="LineHeight" Value="21" />
     <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="TextBlock.workspace-label">
-    <Setter Property="FontSize" Value="13" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
+  <Style Selector="TextBlock.overline">
+    <Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="1.6" />
+    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+  </Style>
   <Style Selector="Button.workspace-capture">
-    <Setter Property="MinHeight" Value="54" />
-    <Setter Property="FontSize" Value="16" />
+    <Setter Property="MinHeight" Value="50" /><Setter Property="FontSize" Value="15" />
+    <Setter Property="CornerRadius" Value="14" /><Setter Property="Padding" Value="20,12" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="Background" Value="{DynamicResource BrandHoverBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BrandHoverBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ActionFillBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ActionFillBrush}" />
     <Setter Property="Foreground" Value="White" />
   </Style>
-  <Style Selector="Button.workspace-capture:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource BrandBrush}" /></Style>
-  <Style Selector="Button.workspace-capture:disabled /template/ ContentPresenter"><Setter Property="Opacity" Value="0.55" /></Style>
+  <Style Selector="Button.workspace-capture:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BrandHoverBrush}" />
+  </Style>
+  <Style Selector="Button.workspace-capture:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#064A9F" />
+  </Style>
+  <Style Selector="Button.workspace-capture:disabled /template/ ContentPresenter">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <Style Selector="Button.toolbar-action">
+    <Setter Property="CornerRadius" Value="999" /><Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="13,7" /><Setter Property="FontSize" Value="13" />
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
   <Style Selector="Button.secret-action">
-    <Setter Property="MinWidth" Value="72" />
-    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="MinWidth" Value="72" /><Setter Property="MinHeight" Value="40" />
     <Setter Property="Padding" Value="12,8" />
   </Style>
-  <Style Selector="TextBox.workspace-field">
-    <Setter Property="MinHeight" Value="42" />
-    <Setter Property="FontSize" Value="14" />
+  <Style Selector="TextBox.workspace-field, ComboBox.workspace-field">
+    <Setter Property="MinHeight" Value="40" /><Setter Property="FontSize" Value="14" />
+    <Setter Property="CornerRadius" Value="9" />
   </Style>
-  <Style Selector="ComboBox.workspace-field">
-    <Setter Property="MinHeight" Value="42" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-  </Style>
-  <!-- Keep the native tab template, selection indicator, and keyboard semantics. -->
+  <Style Selector="ComboBox.workspace-field"><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
   <Style Selector="TabItem.workspace-tab">
-    <Setter Property="Width" Value="168" />
-    <Setter Property="MinHeight" Value="52" />
-    <Setter Property="Padding" Value="16,12" />
-    <Setter Property="HorizontalContentAlignment" Value="Left" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="Margin" Value="0,0,12,4" />
+    <Setter Property="Width" Value="192" /><Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="12,10" /><Setter Property="CornerRadius" Value="11" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="FontSize" Value="13" /><Setter Property="Margin" Value="0,0,14,4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="NavSurface" Background="{TemplateBinding Background}"
+                CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}"
+                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+          <ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Header}"
+                            ContentTemplate="{TemplateBinding HeaderTemplate}" RecognizesAccessKey="True"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="TabItem.workspace-tab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
   </Style>
   <Style Selector="TabItem.workspace-tab:selected">
-    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SidebarSelectionBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TabItem.workspace-tab:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
   <Style Selector="ScrollViewer.workspace-page">
     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="Window.workspace Button:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
   </Style>
 </Styles>

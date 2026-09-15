@@ -6,67 +6,8 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://PingYi.App/Localization/Strings.zh-CN.axaml" />
+        <ResourceInclude Source="avares://PingYi.App/Styles/ApplePalette.axaml" />
       </ResourceDictionary.MergedDictionaries>
-
-      <ResourceDictionary.ThemeDictionaries>
-        <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="PageBackgroundBrush">#F4F8F7</SolidColorBrush>
-          <SolidColorBrush x:Key="CardBackgroundBrush">#FFFFFF</SolidColorBrush>
-          <SolidColorBrush x:Key="ElevatedBackgroundBrush">#FFFFFF</SolidColorBrush>
-          <SolidColorBrush x:Key="SubtleBackgroundBrush">#F0F5F4</SolidColorBrush>
-          <SolidColorBrush x:Key="HoverBackgroundBrush">#E6F3F1</SolidColorBrush>
-          <SolidColorBrush x:Key="PrimaryTextBrush">#153B39</SolidColorBrush>
-          <SolidColorBrush x:Key="SecondaryTextBrush">#58706E</SolidColorBrush>
-          <SolidColorBrush x:Key="TertiaryTextBrush">#718684</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrush">#D8E5E3</SolidColorBrush>
-          <SolidColorBrush x:Key="DividerBrush">#E8EFEE</SolidColorBrush>
-          <SolidColorBrush x:Key="InputBackgroundBrush">#FBFDFC</SolidColorBrush>
-          <SolidColorBrush x:Key="SuccessBackgroundBrush">#E8F7EE</SolidColorBrush>
-          <SolidColorBrush x:Key="WarningBackgroundBrush">#FFF3E8</SolidColorBrush>
-          <SolidColorBrush x:Key="SuccessTextBrush">#166534</SolidColorBrush>
-          <SolidColorBrush x:Key="WarningTextBrush">#92400E</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerTextBrush">#B91C1C</SolidColorBrush>
-          <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-            <GradientStop Color="#E1F5F1" Offset="0" />
-            <GradientStop Color="#F7FBFA" Offset="0.55" />
-            <GradientStop Color="#FFF4EA" Offset="1" />
-          </LinearGradientBrush>
-        </ResourceDictionary>
-
-        <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="PageBackgroundBrush">#0C1718</SolidColorBrush>
-          <SolidColorBrush x:Key="CardBackgroundBrush">#122223</SolidColorBrush>
-          <SolidColorBrush x:Key="ElevatedBackgroundBrush">#172A2B</SolidColorBrush>
-          <SolidColorBrush x:Key="SubtleBackgroundBrush">#193031</SolidColorBrush>
-          <SolidColorBrush x:Key="HoverBackgroundBrush">#203C3C</SolidColorBrush>
-          <SolidColorBrush x:Key="PrimaryTextBrush">#EAF6F4</SolidColorBrush>
-          <SolidColorBrush x:Key="SecondaryTextBrush">#AAC0BD</SolidColorBrush>
-          <SolidColorBrush x:Key="TertiaryTextBrush">#8DA5A2</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrush">#2B4646</SolidColorBrush>
-          <SolidColorBrush x:Key="DividerBrush">#233A3B</SolidColorBrush>
-          <SolidColorBrush x:Key="InputBackgroundBrush">#102021</SolidColorBrush>
-          <SolidColorBrush x:Key="SuccessBackgroundBrush">#143429</SolidColorBrush>
-          <SolidColorBrush x:Key="WarningBackgroundBrush">#3A281B</SolidColorBrush>
-          <SolidColorBrush x:Key="SuccessTextBrush">#86EFAC</SolidColorBrush>
-          <SolidColorBrush x:Key="WarningTextBrush">#FDBA74</SolidColorBrush>
-          <SolidColorBrush x:Key="DangerTextBrush">#FCA5A5</SolidColorBrush>
-          <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-            <GradientStop Color="#153836" Offset="0" />
-            <GradientStop Color="#142728" Offset="0.58" />
-            <GradientStop Color="#352418" Offset="1" />
-          </LinearGradientBrush>
-        </ResourceDictionary>
-      </ResourceDictionary.ThemeDictionaries>
-
-      <SolidColorBrush x:Key="BrandBrush">#0D9488</SolidColorBrush>
-      <SolidColorBrush x:Key="BrandHoverBrush">#0F766E</SolidColorBrush>
-      <SolidColorBrush x:Key="BrandSoftBrush">#CCFBF1</SolidColorBrush>
-      <SolidColorBrush x:Key="ActionBrush">#C2410C</SolidColorBrush>
-      <SolidColorBrush x:Key="ActionHoverBrush">#9A3412</SolidColorBrush>
-      <SolidColorBrush x:Key="SuccessBrush">#15803D</SolidColorBrush>
-      <SolidColorBrush x:Key="WarningBrush">#B45309</SolidColorBrush>
-      <SolidColorBrush x:Key="DangerBrush">#DC2626</SolidColorBrush>
-      <SolidColorBrush x:Key="FocusRingBrush">#2DD4BF</SolidColorBrush>
     </ResourceDictionary>
   </Application.Resources>
 
@@ -76,7 +17,7 @@
     <Style Selector="Window">
       <Setter Property="Background" Value="{DynamicResource PageBackgroundBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-      <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
+      <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC, avares://Avalonia.Fonts.Inter/Assets#Inter" />
     </Style>
 
     <Style Selector="Border.card">
@@ -85,7 +26,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
       <Setter Property="Padding" Value="20" />
-      <Setter Property="BoxShadow" Value="0 8 24 0 #120F3D3A" />
+      <Setter Property="BoxShadow" Value="0 2 8 0 #08000000" />
     </Style>
 
     <Style Selector="Border.subtle-card">
@@ -121,8 +62,8 @@
     </Style>
 
     <Style Selector="Button.primary">
-      <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}" />
+      <Setter Property="Background" Value="{DynamicResource ActionFillBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ActionFillBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
 
@@ -232,8 +173,8 @@
     </Style>
 
     <Style Selector="ToggleButton.pin:checked">
-      <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}" />
+      <Setter Property="Background" Value="{DynamicResource ActionFillBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ActionFillBrush}" />
       <Setter Property="Foreground" Value="White" />
     </Style>
 
