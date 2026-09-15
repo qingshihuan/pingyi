@@ -51,13 +51,12 @@ public partial class SettingsWindow : Window
     public void SetGlobalStatus(string message, bool isError)
     {
         GlobalStatusText.Text = UiText.T(message);
-        GlobalStatusText.Foreground = isError
-            ? Application.Current?.FindResource("DangerTextBrush") as IBrush
-            : Application.Current?.FindResource("SecondaryTextBrush") as IBrush;
-        StatusIndicator.Background = Application.Current?.FindResource(
-            isError ? "DangerBrush" : "BrandBrush") as IBrush;
-        GlobalStatusBorder.Background = Application.Current?.FindResource(
-            isError ? "WarningBackgroundBrush" : "SubtleBackgroundBrush") as IBrush;
+        ThemeResources.Use(GlobalStatusText, TextBlock.ForegroundProperty,
+            isError ? "DangerTextBrush" : "SecondaryTextBrush");
+        ThemeResources.Use(StatusIndicator, Border.BackgroundProperty,
+            isError ? "DangerBrush" : "BrandBrush");
+        ThemeResources.Use(GlobalStatusBorder, Border.BackgroundProperty,
+            isError ? "WarningBackgroundBrush" : "SubtleBackgroundBrush");
     }
 
     private void LoadSettings()
@@ -275,7 +274,7 @@ public partial class SettingsWindow : Window
                         ? $"{ocrName} and {translationName} are available."
                         : $"{ocrName}、{translationName}均可用。"
                     : UiText.IsEnglish
-                        ? $"OCR: {UiText.T(ocrStatus.Message ?? "可用")}  Translation: {UiText.T(translationStatus.Message ?? "可用")}"
+                        ? $"OCR: {UiText.T(ocrStatus.Message ?? "可用")}  Translation: {UiText.T(translationStatus.Message ?? "可用")}" 
                         : $"OCR：{ocrStatus.Message ?? "可用"}  翻译：{translationStatus.Message ?? "可用"}",
                 isError: !ready);
             FinishButtonOperation(button, ready ? "状态正常" : "检查未通过", success: ready);
@@ -399,7 +398,7 @@ public partial class SettingsWindow : Window
     private static void SetInlineStatus(TextBlock textBlock, string message, string brushKey)
     {
         textBlock.Text = UiText.T(message);
-        textBlock.Foreground = Application.Current?.FindResource(brushKey) as IBrush;
+        ThemeResources.Use(textBlock, TextBlock.ForegroundProperty, brushKey);
     }
 
     private void BeginButtonOperation(Button? button, string message)

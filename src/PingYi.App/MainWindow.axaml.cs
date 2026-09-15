@@ -142,8 +142,8 @@ public partial class MainWindow : Window, IMainWindowShell
             if (currentModeReady && managedOnDemand)
             {
                 SetGlobalStatus(UiText.IsEnglish
-                    ? "Offline models are verified. The local model will be checked and started when you capture."
-                    : "离线基础模型已校验；本机大模型将在截图时检查并按需启动。", false);
+                    ? "The local model will be checked and started when you capture."
+                    : "本机大模型将在截图时检查并按需启动。", false);
                 TopStatusText.Text = UiText.IsEnglish ? "On demand" : "按需加载";
                 LiveStatusTitleText.Text = UiText.IsEnglish ? "Local model: on demand" : "本机大模型按需加载";
             }

@@ -173,8 +173,8 @@ public partial class ResultWindow : Window
     private void SetStatusVisual(string message, string foregroundKey, string indicatorKey, bool isProcessing)
     {
         StatusText.Text = UiText.T(message);
-        StatusText.Foreground = Application.Current?.FindResource(foregroundKey) as IBrush;
-        ResultStatusIndicator.Background = Application.Current?.FindResource(indicatorKey) as IBrush;
+        ThemeResources.Use(StatusText, TextBlock.ForegroundProperty, foregroundKey);
+        ThemeResources.Use(ResultStatusIndicator, Border.BackgroundProperty, indicatorKey);
         ProcessingProgress.IsVisible = isProcessing;
     }
 

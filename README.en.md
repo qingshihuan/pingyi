@@ -35,7 +35,7 @@ If PingYi helps your screenshot-OCR or translation workflow, please [star the re
   <img src="docs/demo.gif" width="800" alt="PingYi screenshot OCR and translation workflow demo">
 </p>
 
-The demo covers region capture, OCR results, translation, and local privacy status. Download [v0.3.0](https://github.com/qingshihuan/pingyi/releases/tag/v0.3.0); the Standard edition provides offline Chinese-English essentials immediately after installation.
+The demo covers region capture, OCR results, translation, and local privacy status. Download [the latest release](https://github.com/qingshihuan/pingyi/releases/latest); the Standard edition provides offline Chinese-English essentials immediately after installation.
 
 ## Why PingYi
 
@@ -84,14 +84,14 @@ The standard package includes no proprietary NVIDIA CUDA/cuDNN, AMD, or Intel GP
 
 1. Enable the [Cloud Vision API](https://cloud.google.com/vision/docs) and [Cloud Translation API](https://cloud.google.com/translate/docs/basic/translating-text) in your own Google Cloud project.
 2. Create an API key and restrict it to those two APIs. Add application or source restrictions when your deployment allows them.
-3. Open **Settings → Google Cloud OCR and Translation credentials**, select **Show**, paste the key, and choose **Save and verify Google credentials**.
-4. Select `Google Cloud Vision OCR` or `Google Cloud Translation` under Processing engines. Either can be combined with a local or another cloud provider.
+3. Open **Settings → Cloud services → Google Cloud OCR and Translation credentials**, select **Show**, paste the key, and choose **Save and verify Google credentials**.
+4. Select `Google Cloud Vision OCR` or `Google Cloud Translation` under Recognition & translation. Either can be combined with a local or another cloud provider.
 
 The key is stored with Windows DPAPI or Linux Secret Service and is never written to `settings.json`. OCR validation sends only a built-in transparent 1×1 test image; translation validation sends the fixed word `test`. During real use, a screenshot is uploaded only when Google OCR is selected, while Google Translation receives recognized text only. Enablement, quotas, and charges remain under your Google Cloud project.
 
 ## Complete edition one-click local models
 
-Open **Settings → Complete edition · one-click local multimodal model**, select a model and runtime backend, then choose **Download and configure**. Downloads resume after interruption and are checked against pinned file sizes and SHA-256 hashes. Model weights are not stored in this Git repository or bundled in the installer.
+Open **Settings → Local models → Complete edition · one-click local multimodal model**, select a model and runtime backend, then choose **Download and configure**. Downloads resume after interruption and are checked against pinned file sizes and SHA-256 hashes. Model weights are not stored in this Git repository or bundled in the installer.
 
 | Model | Download | Suggested hardware | Positioning |
 | --- | ---: | --- | --- |
@@ -118,7 +118,7 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 - Local multimodal OCR plus a PaddleOCR + vision-model correction mode for small text, terminals, and unusual fonts.
 - Copy source/translation/all, retry, pin, tray mode, and light/dark themes.
 - Single-instance operation: later launches wake the existing window or forward capture/settings commands instead of creating duplicate background processes; every processing task is cancelable and time-bounded.
-- Task-focused home screen, separate Settings window, contextual repair cards, and an optional classic interface.
+- One task-focused home screen, separate Settings window, contextual repair cards, and Help & About.
 - English and Simplified Chinese interfaces with automatic system-language selection.
 - Windows DPAPI and Linux Secret Service credential storage, with masked display, reveal, copy, and paste controls.
 - Compatible custom services may use HTTP only on loopback addresses; every non-loopback endpoint must use HTTPS so credentials, recognized text, and images are never sent in plaintext.
@@ -193,3 +193,13 @@ Bug reports, OCR failure samples, translation feedback, feature requests, and pu
 ## License
 
 PingYi source code is available under the [MIT License](LICENSE). Offline models and third-party runtime components retain their respective licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). The installed `licenses/` directory contains the complete texts and manifest for the components in that particular build.
+
+## Follow-up usability fixes (source)
+
+There is now one capture workspace and a separate settings window; the duplicate interface-style selector is removed. Legacy `interfaceStyle` values are ignored without resetting other preferences. Selecting a UI language persists that preference and updates open windows immediately, while preserving other unsaved input.
+
+The mode selector is a scrollable comparison window with a name, processing method, use case, and requirements for each actual provider combination. LLM modes keep the configured compatible endpoint and distinguish local from remote data handling. Privacy information lives in Help & About instead of occupying the home screen.
+
+Capture hides all visible PingYi windows, waits for presentation, then captures the desktop before creating per-monitor selection overlays. Original window visibility is restored on completion, cancellation, or failure. Windows transition suppression and supported capture exclusion are temporary and scoped to PingYi's own windows.
+
+These source changes do not replace the existing v0.4.0 binaries. See [the regression and manual validation checklist](docs/USABILITY_FIXES.md) and Releases for distribution status.
