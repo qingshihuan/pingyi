@@ -100,7 +100,7 @@ public class ApplePolishTests
             window.UpdateLayout();
             var first = C<TabItem>(window, "GeneralSettingsTab");
             Assert.True(first.Focus());
-            window.KeyPress(Key.Down);
+            window.KeyPress(Key.Down, Avalonia.Input.Raw.RawInputModifiers.None);
             Assert.Equal(1, C<TabControl>(window, "SettingsTabs").SelectedIndex);
             AssertFits(window, C<Button>(window, "SaveSettingsButton"));
             Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(C<Button>(window, "SaveSettingsButton"))));

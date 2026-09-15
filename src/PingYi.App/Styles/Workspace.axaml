@@ -67,7 +67,7 @@
     <Setter Property="Background" Value="#064A9F" />
   </Style>
   <Style Selector="Button.workspace-capture:disabled /template/ ContentPresenter">
-    <Setter Property="Opacity" Value="0.5" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
   <Style Selector="Button.toolbar-action">
     <Setter Property="CornerRadius" Value="999" /><Setter Property="MinHeight" Value="36" />
@@ -118,6 +118,9 @@
   <Style Selector="ScrollViewer.workspace-page">
     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
     <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="ToggleButton.pin:checked Path.symbol">
+    <Setter Property="Stroke" Value="White" />
   </Style>
   <Style Selector="Window.workspace Button:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource FocusRingBrush}" />
