@@ -15,7 +15,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
     private readonly SemaphoreSlim _inferenceGate = new(1, 1);
     private readonly TaskCompletionSource _disposeCompletion =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly Dictionary<string, (long Length, DateTime LastWriteUtc, string Hash)> _hashCache = [];
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (long Length, DateTime LastWriteUtc, string Hash)> _hashCache = new();
     private InferenceSession? _detectionSession;
     private InferenceSession? _recognitionSession;
     private IReadOnlyList<string>? _characters;
@@ -29,13 +29,14 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         RequiresSecret: false,
         ["zh", "en"]);
 
-    public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(TryResolveModelFiles(out _, out _, out _, out var message)
-            ? ProviderAvailability.Available
-            : new ProviderAvailability(false, message));
-    }
+    public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default) =>
+        new(Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return TryResolveModelFiles(out _, out _, out _, out var message)
+                ? ProviderAvailability.Available
+                : new ProviderAvailability(false, message);
+        }, cancellationToken));
 
     public async Task<OcrResult> RecognizeAsync(
         ImageFrame image,
@@ -43,37 +44,43 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
-        await _inferenceGate.WaitAsync(cancellationToken);
+        await _inferenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
-            EnsureInitialized();
-            using var bitmap = SKBitmap.Decode(image.PngBytes)
-                ?? throw new ProviderException("ocr_image_invalid", "无法读取所选截图。");
-
-            var boxes = DetectTextBoxes(bitmap, cancellationToken);
-            var blocks = new List<OcrBlock>(boxes.Count);
-            foreach (var box in boxes)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var recognition = RecognizeBox(bitmap, box);
-                if (!string.IsNullOrWhiteSpace(recognition.Text) && recognition.Confidence >= 0.28)
-                {
-                    blocks.Add(new OcrBlock(recognition.Text, box, recognition.Confidence));
-                }
-            }
-
-            var ordered = blocks
-                .OrderBy(block => block.Bounds.Y)
-                .ThenBy(block => block.Bounds.X)
-                .ToArray();
-            var plainText = TextProcessing.BuildPlainText(ordered);
-            return new OcrResult(ordered, plainText, TextProcessing.DetectLanguage(plainText));
+            return await Task.Run(() => RecognizeCore(image, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
             _inferenceGate.Release();
         }
+    }
+
+    private OcrResult RecognizeCore(ImageFrame image, CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+        using var bitmap = SKBitmap.Decode(image.PngBytes)
+            ?? throw new ProviderException("ocr_image_invalid", "无法读取所选截图。");
+
+        var boxes = DetectTextBoxes(bitmap, cancellationToken);
+        var blocks = new List<OcrBlock>(boxes.Count);
+        foreach (var box in boxes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var recognition = RecognizeBox(bitmap, box);
+            if (!string.IsNullOrWhiteSpace(recognition.Text) && recognition.Confidence >= 0.28)
+            {
+                blocks.Add(new OcrBlock(recognition.Text, box, recognition.Confidence));
+            }
+        }
+
+        var ordered = blocks
+            .OrderBy(block => block.Bounds.Y)
+            .ThenBy(block => block.Bounds.X)
+            .ToArray();
+        var plainText = TextProcessing.BuildPlainText(ordered);
+        return new OcrResult(ordered, plainText, TextProcessing.DetectLanguage(plainText));
     }
 
     public Task InstallModelsAsync(CancellationToken cancellationToken = default)
@@ -105,14 +112,26 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
             throw new ProviderException("ocr_models_missing", message);
         }
 
-        var sessionOptions = new SessionOptions
+        using var sessionOptions = OcrMemory.CreateSessionOptions();
+        // Commit initialization atomically; a failed second session/dictionary
+        // must not leak the first native session on the next attempt.
+        InferenceSession? detection = null;
+        InferenceSession? recognition = null;
+        try
         {
-            GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
-            ExecutionMode = ExecutionMode.ORT_SEQUENTIAL
-        };
-        _detectionSession = new InferenceSession(detectionModel, sessionOptions);
-        _recognitionSession = new InferenceSession(recognitionModel, sessionOptions);
-        _characters = ReadCharacterDictionary(recognitionConfig);
+            var characters = ReadCharacterDictionary(recognitionConfig);
+            detection = new InferenceSession(detectionModel, sessionOptions);
+            recognition = new InferenceSession(recognitionModel, sessionOptions);
+            _detectionSession = detection;
+            _recognitionSession = recognition;
+            _characters = characters;
+        }
+        catch
+        {
+            detection?.Dispose();
+            recognition?.Dispose();
+            throw;
+        }
     }
 
     private List<PixelRect> DetectTextBoxes(SKBitmap bitmap, CancellationToken cancellationToken)
@@ -192,7 +211,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         var dimensions = map.Dimensions.ToArray();
         var mapHeight = dimensions[^2];
         var mapWidth = dimensions[^1];
-        var probabilities = map.ToArray();
+        var probabilities = OcrMemory.ReadValues(map);
         return ExtractConnectedTextRegions(
             probabilities,
             mapWidth,
@@ -223,7 +242,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
     }
 
     private static List<PixelRect> ExtractConnectedTextRegions(
-        float[] probabilities,
+        ReadOnlySpan<float> probabilities,
         int width,
         int height,
         int originalWidth,
@@ -441,7 +460,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
         var dimensions = output.Dimensions.ToArray();
         var steps = dimensions[^2];
         var classes = dimensions[^1];
-        var values = output.ToArray();
+        var values = OcrMemory.ReadValues(output);
         var result = new StringBuilder();
         var confidence = 0d;
         var accepted = 0;
@@ -688,7 +707,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
     {
         if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
         {
-            await _disposeCompletion.Task;
+            await _disposeCompletion.Task.ConfigureAwait(false);
             return;
         }
 
@@ -697,7 +716,7 @@ public sealed class PaddleOcrProvider(AppDataPaths paths) : IOcrProvider, IDispo
             // InferenceSession.Run is native and is not interrupted immediately by a
             // canceled token. Never release ONNX sessions while an inference still owns
             // the gate; doing so can surface as an unrecoverable native access violation.
-            await _inferenceGate.WaitAsync();
+            await _inferenceGate.WaitAsync().ConfigureAwait(false);
             try
             {
                 _detectionSession?.Dispose();

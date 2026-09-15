@@ -174,13 +174,25 @@ public sealed class ManagedModelService : IAsyncDisposable
         {
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             EnsureCompleteRuntimeAvailable();
+            var normalizedBackend = ManagedRuntimeBackends.Normalize(backendId);
+            // A live owned process has already loaded verified weights. Reuse it
+            // without re-reading GiB from disk. A restart still verifies every file.
+            if (_ownedProcess is { HasExited: false } &&
+                string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&
+                (normalizedBackend == ManagedRuntimeBackends.Auto.Id ||
+                 string.Equals(_runningBackendId, normalizedBackend, StringComparison.OrdinalIgnoreCase)) &&
+                await EndpointServesModelAsync(model.ModelAlias, cancellationToken))
+            {
+                progress?.Report(new ManagedModelProgress("ready", "本机模型服务已经运行", model.TotalSize, model.TotalSize));
+                return $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
+            }
+
             var status = await GetStatusAsync(model, cancellationToken);
             if (!status.IsInstalled)
             {
                 throw new InvalidOperationException("模型文件尚未完整下载或校验失败。");
             }
 
-            var normalizedBackend = ManagedRuntimeBackends.Normalize(backendId);
             if (_ownedProcess is { HasExited: true })
             {
                 await StopOwnedProcessCoreAsync();

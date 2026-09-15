@@ -10,18 +10,30 @@ public sealed class EngineProcessClient : IAsyncDisposable
     private readonly CancellationTokenSource _disposeCancellation = new();
     private readonly AppDataPaths _paths;
     private readonly TimeSpan _requestTimeout;
+    private readonly TimeSpan _idleTimeout;
+    private readonly Timer _idleTimer;
+    private long _lastActivity;
+    private readonly TaskCompletionSource _disposeCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _disposeState;
     private Process? _process;
     private int _nextId;
-    private bool _disposed;
+    private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 
-    public EngineProcessClient(AppDataPaths paths, TimeSpan? requestTimeout = null)
+    public EngineProcessClient(AppDataPaths paths, TimeSpan? requestTimeout = null, TimeSpan? idleTimeout = null)
     {
         _paths = paths;
+        _idleTimeout = idleTimeout ?? TimeSpan.FromMinutes(5);
+        if (_idleTimeout != Timeout.InfiniteTimeSpan &&
+            (_idleTimeout <= TimeSpan.Zero || _idleTimeout.TotalMilliseconds > uint.MaxValue - 1))
+            throw new ArgumentOutOfRangeException(nameof(idleTimeout));
         _requestTimeout = requestTimeout ?? TimeSpan.FromMinutes(2);
         if (_requestTimeout <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(requestTimeout), "The request timeout must be positive.");
         }
+        // One timer per client; never wakes an unused engine and never polls.
+        _idleTimer = new Timer(static state => _ = ((EngineProcessClient)state!).ReleaseIdleProcessAsync(),
+            this, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     public async Task<JsonElement> CallAsync(
@@ -30,7 +42,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
         CancellationToken cancellationToken = default,
         TimeSpan? timeout = null)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             _disposeCancellation.Token);
@@ -47,7 +59,8 @@ public sealed class EngineProcessClient : IAsyncDisposable
         {
             await _gate.WaitAsync(requestCancellation.Token);
             enteredGate = true;
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
+            _idleTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             EnsureStarted();
             var id = Interlocked.Increment(ref _nextId);
             var request = new JsonObject
@@ -99,7 +112,13 @@ public sealed class EngineProcessClient : IAsyncDisposable
                         throw new Core.ProviderException(code, message);
                     }
 
-                    return root.GetProperty("result").Clone();
+                    var result = root.GetProperty("result").Clone();
+                    // Argos snapshots its package directory/translators at import.
+                    // Recycle after successful mutations so the next request sees
+                    // the new user package or bundled fallback, without restarting UI.
+                    if (method is "install_translation_models" or "delete_models" or "shutdown")
+                        ResetProcess(terminate: true);
+                    return result;
                 }
             }
         }
@@ -131,6 +150,11 @@ public sealed class EngineProcessClient : IAsyncDisposable
         {
             if (enteredGate)
             {
+                if (!IsDisposed && _process is not null)
+                {
+                    _lastActivity = Stopwatch.GetTimestamp();
+                    _idleTimer.Change(_idleTimeout, Timeout.InfiniteTimeSpan);
+                }
                 _gate.Release();
             }
         }
@@ -143,6 +167,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
             return;
         }
 
+        ResetProcess(); // Dispose the handle of an already-exited child before replacing it.
         var launch = ResolveLaunchCommand();
         var startInfo = new ProcessStartInfo(launch.FileName, launch.Arguments)
         {
@@ -214,9 +239,12 @@ public sealed class EngineProcessClient : IAsyncDisposable
     {
         try
         {
-            while (await process.StandardError.ReadLineAsync() is not null)
+            var buffer = new char[1024];
+            while (await process.StandardError.ReadAsync(buffer.AsMemory()) > 0)
             {
-                // Intentionally discard engine diagnostics: OCR text and credentials must never enter app logs.
+                // A dependency can emit an unbounded line. Drain in fixed-size
+                // chunks, discard immediately, and never accumulate/log text.
+                Array.Clear(buffer);
             }
         }
         catch
@@ -243,37 +271,64 @@ public sealed class EngineProcessClient : IAsyncDisposable
         _process = null;
     }
 
-    public async ValueTask DisposeAsync()
+    private async Task ReleaseIdleProcessAsync()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        await _disposeCancellation.CancelAsync();
-        await _gate.WaitAsync();
+        // An in-flight request owns the process until it finishes. Its finally
+        // block rearms the timer, so a busy/queued caller cannot be terminated.
+        if (!await _gate.WaitAsync(0).ConfigureAwait(false)) return;
         try
         {
-            if (_process is { HasExited: false })
+            if (IsDisposed || _process is null || _idleTimeout == Timeout.InfiniteTimeSpan) return;
+            var remaining = _idleTimeout - Stopwatch.GetElapsedTime(_lastActivity);
+            if (remaining > TimeSpan.Zero)
             {
-                try
-                {
-                    await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}");
-                    await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
-                }
-                catch
-                {
-                    _process.Kill(true);
-                }
+                _idleTimer.Change(remaining, Timeout.InfiniteTimeSpan);
+                return;
             }
-
             ResetProcess(terminate: true);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            // Shutdown races must not surface as unobserved timer exceptions.
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
+        {
+            await _disposeCompletion.Task.ConfigureAwait(false);
+            return;
+        }
+        try
+        {
+            await _disposeCancellation.CancelAsync().ConfigureAwait(false);
+            await _gate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                // Disarm under the same gate used to rearm after requests.
+                _idleTimer.Dispose();
+                if (_process is { HasExited: false })
+                {
+                    try
+                    {
+                        await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}");
+                        await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                    }
+                    catch
+                    {
+                        // ResetProcess below handles exit/kill races.
+                    }
+                }
+                ResetProcess(terminate: true);
+            }
+            finally { _gate.Release(); }
         }
         finally
         {
-            _gate.Release();
-            _disposeCancellation.Dispose();
+            Volatile.Write(ref _disposeState, 2);
+            _disposeCompletion.TrySetResult();
         }
     }
 }

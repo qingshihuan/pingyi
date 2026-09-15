@@ -152,21 +152,28 @@ def verify_translation_manifest(root: Path) -> bool:
 
 
 def installed_argos_pairs() -> set[tuple[str, str]]:
-    if not module_available("argostranslate"):
-        return set()
-    import argostranslate.translate
+    """Inspect package metadata, never import the inference runtime for a status badge.
 
+    This is installation readiness, not a prediction that native inference will
+    succeed. translate() still verifies hashes and resolves the real translator.
+    """
     pairs: set[tuple[str, str]] = set()
-    languages = argostranslate.translate.get_installed_languages()
-    for source in languages:
-        for target in languages:
-            if source.code == target.code:
+    for metadata_path in (ACTIVE_MODEL_DIR / "argos").glob("*/metadata.json"):
+        try:
+            # Bound reads even when a malformed local package has huge metadata.
+            with metadata_path.open("r", encoding="utf-8") as stream:
+                raw = stream.read(65537)
+            if len(raw) > 65536:
                 continue
-            try:
-                if source.get_translation(target) is not None:
-                    pairs.add((source.code, target.code))
-            except Exception:
-                pass
+            metadata = json.loads(raw)
+            source, target = metadata["from_code"], metadata["to_code"]
+            package = metadata_path.parent
+            required = ("model/model.bin", "model/config.json", "model/shared_vocabulary.json", "sentencepiece.model")
+            if (isinstance(source, str) and isinstance(target, str) and source != target
+                    and all((package / item).is_file() for item in required)):
+                pairs.add((source, target))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
     return pairs
 
 
@@ -233,16 +240,17 @@ def configure_unicode_safe_sentencepiece() -> None:
 
 
 def health(_: dict[str, Any]) -> dict[str, Any]:
-    pairs = installed_argos_pairs()
+    argos_available = module_available("argostranslate")
+    pairs = installed_argos_pairs() if argos_available else set()
     ready = (
-        ("zh", "en") in pairs
+        argos_available and ("zh", "en") in pairs
         and ("en", "zh") in pairs
         and verify_translation_manifest(ACTIVE_MODEL_DIR)
     )
     return {
         "paddleocr": False,
         "ocrModelsReady": False,
-        "argos": module_available("argostranslate"),
+        "argos": argos_available,
         "translationModelsReady": ready,
         "sentenceModelsReady": True,
         "modelDirectory": str(ACTIVE_MODEL_DIR),

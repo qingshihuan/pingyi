@@ -29,6 +29,10 @@ public sealed class ArgosTranslationProvider(EngineProcessClient engine) : ITran
                 ? ProviderAvailability.Available
                 : new ProviderAvailability(false, "尚未安装中英离线翻译模型，请在设置中下载。");
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception exception)
         {
             return new ProviderAvailability(false, exception.Message);
