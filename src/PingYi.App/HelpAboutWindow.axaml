@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PingYi.App.HelpAboutWindow" Classes="workspace" Width="800" Height="740" MinWidth="620" MinHeight="460"
+        Title="{DynamicResource String.HelpTitle}" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" WindowStartupLocation="CenterOwner">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
+  <Grid Margin="28" RowDefinitions="Auto,*,Auto" RowSpacing="18">
+    <StackPanel Spacing="6">
+      <TextBlock Text="{DynamicResource String.HelpTitle}" Classes="workspace-title"/>
+      <TextBlock Text="{DynamicResource String.HelpHint}" Classes="workspace-help"/>
+    </StackPanel>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <StackPanel Spacing="16" Margin="0,0,8,8">
+        <Border Classes="workspace-card">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+            <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="48" Height="48"/>
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock x:Name="ProductText" Classes="workspace-section"/>
+              <TextBlock x:Name="VersionText" Classes="workspace-help"/>
+              <TextBlock Text="MIT · Windows / Ubuntu X11" Classes="workspace-help"/>
+            </StackPanel>
+          </Grid>
+        </Border>
+        <Border Classes="workspace-card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource String.QuickHelp}" Classes="workspace-section"/>
+            <TextBlock Text="{DynamicResource String.QuickHelpBody}" Classes="workspace-help"/>
+            <Border Height="1" Background="{DynamicResource DividerBrush}"/>
+            <TextBlock x:Name="CaptureShortcutText" Classes="workspace-label"/>
+            <TextBlock Text="{DynamicResource String.OtherShortcuts}" Classes="workspace-help"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="workspace-card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource String.PrivacyTitle}" Classes="workspace-section"/>
+            <TextBlock Text="{DynamicResource String.CurrentDataRoute}" Classes="workspace-label"/>
+            <TextBlock x:Name="PrivacySummaryText" Classes="workspace-help"/>
+            <Border Height="1" Background="{DynamicResource DividerBrush}"/>
+            <TextBlock Text="{DynamicResource String.PrivacyBody}" Classes="workspace-help"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Right">
+      <Button Classes="secondary" Content="{DynamicResource String.Repository}" Click="Repository_OnClick" Margin="0,0,10,4"/>
+      <Button Classes="primary" Content="{DynamicResource String.Close}" Click="Close_OnClick" Margin="0,0,0,4"/>
+    </WrapPanel>
+  </Grid>
+</Window>

@@ -22,10 +22,9 @@ public class NativeFinishingTests
     public void Grouped_preferences_fit_default_window_and_keep_inputs(bool dark, string language)
     {
         UiText.Configure(language);
-        var window = new MainWindow { RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
+        var window = new SettingsWindow { RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         try
         {
-            C<Border>(window, "CaptureHero").IsVisible = false;
             C<TextBlock>(window, "GlobalStatusText").Text = WorkspaceText.Preview;
             Choice(window, "OcrProviderCombo", "PaddleOCR · ONNX");
             Choice(window, "TranslationProviderCombo", "Argos · Offline");
@@ -60,7 +59,7 @@ public class NativeFinishingTests
     public void Capture_action_remains_visible_at_both_sizes(int width, int height, string language)
     {
         UiText.Configure(language);
-        var window = new MainWindowV2 { Width = width, Height = height };
+        var window = new MainWindow { Width = width, Height = height };
         try
         {
             C<TextBlock>(window, "LiveStatusTitleText").Text = UiText.IsEnglish ? "UI preview" : "界面预览";
@@ -71,9 +70,8 @@ public class NativeFinishingTests
             if (width >= 1040)
             {
                 AssertInScrollViewport(C<Button>(window, "RefreshWorkspaceButton"));
-                var privacy = window.GetVisualDescendants().OfType<TextBlock>()
-                    .Single(t => t.Text == WorkspaceText.NoHistory);
-                AssertInScrollViewport(privacy);
+                Assert.Null(window.FindControl<Control>("PrivacySummaryText"));
+                AssertInScrollViewport(C<Button>(window, "ChooseModeButton"));
             }
             var button = C<Button>(window, "CaptureButtonV2");
             button.IsEnabled = false;

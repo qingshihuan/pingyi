@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 namespace PingYi.App;
 
-public sealed class AppServices : IAsyncDisposable
+public sealed partial class AppServices : IAsyncDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly CancellationTokenSource _lifetime = new();

@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using PingYi.Core;
 
@@ -25,6 +28,8 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
     private long _nextOperationId;
     private int _disposeState;
 
+    public bool IsCapturingScreen { get; private set; }
+
     public async Task StartCaptureAsync(IMainWindowShell? mainWindow)
     {
         var operation = BeginOperation();
@@ -35,9 +40,6 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
 
         _mainWindow = mainWindow;
         var enteredGate = false;
-        var restoreMainWindow = false;
-        var restoreResultWindow = false;
-        ResultWindow? hiddenResultWindow = null;
         try
         {
             await _operationGate.WaitAsync(operation.Token);
@@ -50,37 +52,36 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
                 _resultWindow = null;
             }
 
-            restoreMainWindow = mainWindow?.IsVisible == true;
-            hiddenResultWindow = _resultWindow;
-            restoreResultWindow = hiddenResultWindow?.IsVisible == true;
-            mainWindow?.Hide();
-            hiddenResultWindow?.HideTemporarily();
-
-            await Task.Delay(140, operation.Token);
-            var desktop = await WithTimeoutAsync(
-                token => services.ScreenCaptureService.CaptureDesktopAsync(token),
-                CaptureTimeout,
-                operation.Token,
-                "capture_timeout",
-                "屏幕捕获超时，请重试。");
-            EnsureCurrent(operation);
-
             var displays = mainWindow?.GetCaptureDisplays();
-            if (displays is null || displays.Count == 0)
+            var windows = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime
+                ? desktopLifetime.Windows.ToList() : new List<Window>();
+            if (mainWindow is Window shell) windows.Add(shell);
+            windows.AddRange(_pinnedWindows);
+            if (_resultWindow is not null) windows.Add(_resultWindow);
+            ImageFrame? selectedImage;
+            IsCapturingScreen = true;
+            try
             {
-                displays = [new CaptureDisplay(desktop.DesktopBounds, 1)];
+                selectedImage = await CaptureWindowScope.RunAsync(windows,
+                    DesktopCaptureBarrier.WaitAsync,
+                    async token =>
+                    {
+                        var desktop = await WithTimeoutAsync(
+                            captureToken => services.ScreenCaptureService.CaptureDesktopAsync(captureToken),
+                            CaptureTimeout, token, "capture_timeout", "屏幕捕获超时，请重试。");
+                        EnsureCurrent(operation);
+                        var captureDisplays = displays is { Count: > 0 }
+                            ? displays : new[] { new CaptureDisplay(desktop.DesktopBounds, 1) };
+                        var overlay = new CaptureOverlaySession(desktop, captureDisplays, services.ImageCropper);
+                        var selection = await overlay.ShowAndSelectAsync(token);
+                        EnsureCurrent(operation);
+                        return selection is null ? null : services.ImageCropper.Crop(desktop, selection.Value);
+                    }, operation.Token, () => Volatile.Read(ref _disposeState) == 0);
             }
-
-            var overlay = new CaptureOverlaySession(desktop, displays, services.ImageCropper);
-            var selection = await overlay.ShowAndSelectAsync(operation.Token);
+            finally { IsCapturingScreen = false; }
             EnsureCurrent(operation);
-            if (selection is null)
-            {
-                RestoreWindows(mainWindow, restoreMainWindow, hiddenResultWindow, restoreResultWindow);
-                return;
-            }
+            if (selectedImage is null) return;
 
-            var selectedImage = services.ImageCropper.Crop(desktop, selection.Value);
             var resultWindow = GetResultWindow();
             operation.TargetWindow = resultWindow;
             _windowImages[resultWindow] = selectedImage;
@@ -95,7 +96,6 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         {
             if (IsCurrent(operation))
             {
-                RestoreWindows(mainWindow, restoreMainWindow, hiddenResultWindow, restoreResultWindow);
                 mainWindow?.SetGlobalStatus(UiText.Error(exception), isError: true);
             }
         }
@@ -557,23 +557,6 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         catch (OperationCanceledException exception) when (!operationToken.IsCancellationRequested)
         {
             throw new ProviderException(errorCode, timeoutMessage, exception);
-        }
-    }
-
-    private static void RestoreWindows(
-        IMainWindowShell? mainWindow,
-        bool restoreMainWindow,
-        ResultWindow? resultWindow,
-        bool restoreResultWindow)
-    {
-        if (restoreMainWindow)
-        {
-            mainWindow?.Show();
-        }
-
-        if (restoreResultWindow)
-        {
-            resultWindow?.ShowCurrent();
         }
     }
 

@@ -22,10 +22,10 @@
         <StackPanel Orientation="Horizontal" Spacing="9">
           <PathIcon Width="18" Height="18" Foreground="#5EEAD4"
                     Data="M4 8V5A1 1 0 0 1 5 4H8 M16 4H19A1 1 0 0 1 20 5V8 M20 16V19A1 1 0 0 1 19 20H16 M8 20H5A1 1 0 0 1 4 19V16" />
-          <TextBlock Text="拖动框选文字区域" Foreground="White" FontSize="13"
+          <TextBlock Text="{DynamicResource Text.cec60643bd05}" Foreground="White" FontSize="13"
                      FontWeight="SemiBold" VerticalAlignment="Center" />
           <Border Width="1" Height="15" Background="#4DFFFFFF" Margin="4,0" />
-          <TextBlock Text="Esc 取消" Foreground="#B8D5D2" FontSize="12"
+          <TextBlock Text="{DynamicResource Text.517daccd5094}" Foreground="#B8D5D2" FontSize="12"
                      VerticalAlignment="Center" />
         </StackPanel>
       </Border>

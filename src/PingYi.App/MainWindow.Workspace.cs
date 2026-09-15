@@ -5,14 +5,34 @@ namespace PingYi.App;
 
 public partial class MainWindow
 {
+    private async void RefreshWorkspaceButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_isRefreshing || !RefreshWorkspaceButton.IsEnabled)
+            return;
+
+        RefreshWorkspaceButton.IsEnabled = false;
+        try
+        {
+            LoadSettings();
+            await RefreshDashboardAsync();
+        }
+        finally
+        {
+            RefreshWorkspaceButton.IsEnabled = true;
+        }
+    }
+
     private void Workspace_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        // Reuse validation, secure storage, rollback and busy feedback.
-        if (e.Key == Key.S && e.KeyModifiers == KeyModifiers.Control)
+        if (e.Key == Key.F5 && e.KeyModifiers == KeyModifiers.None)
         {
             e.Handled = true;
-            if (SaveSettingsButton.IsEnabled)
-                SaveButton_OnClick(SaveSettingsButton, new RoutedEventArgs());
+            RefreshWorkspaceButton_OnClick(RefreshWorkspaceButton, new RoutedEventArgs());
+        }
+        else if (e.Key == Key.OemComma && e.KeyModifiers == KeyModifiers.Control)
+        {
+            e.Handled = true;
+            OpenSettings();
         }
     }
 }

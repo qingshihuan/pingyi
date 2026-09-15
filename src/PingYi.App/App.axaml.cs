@@ -27,6 +27,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        UiText.Configure(UiText.Auto);
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -48,15 +49,7 @@ public partial class App : Application
             UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
-            _mainWindow = openSettings
-                ? new MainWindow(_services, _captureCoordinator, settingsMode: true)
-                : _services.Settings.InterfaceStyle == "classic"
-                    ? new MainWindow(_services, _captureCoordinator)
-                    : new MainWindowV2(_services, _captureCoordinator, OpenSettingsWindowAsync);
-            if (openSettings)
-            {
-                _settingsWindow = _mainWindow;
-            }
+            _mainWindow = new MainWindow(_services, _captureCoordinator, OpenSettingsWindowAsync);
             _mainShell = (IMainWindowShell)_mainWindow;
             _mainWindow.Closing += (_, eventArgs) =>
             {
@@ -86,6 +79,9 @@ public partial class App : Application
                 _mainWindow.Show();
                 _mainWindow.Activate();
             }
+
+            UiText.LanguageChanged += RefreshTrayLanguage;
+            if (openSettings) await OpenSettingsWindowAsync();
 
             if (_services.Settings.CheckForUpdates)
             {
@@ -182,7 +178,7 @@ public partial class App : Application
 
     private void ShowMainWindow()
     {
-        if (_mainWindow is null)
+        if (_mainWindow is null || _captureCoordinator?.IsCapturingScreen == true)
         {
             return;
         }
@@ -216,27 +212,30 @@ public partial class App : Application
         }
     }
 
-    private async Task OpenSettingsWindowAsync()
+    private Task OpenSettingsWindowAsync()
     {
-        if (_services is null || _captureCoordinator is null || _mainWindow is null)
-        {
-            ShowMainWindow();
-            return;
-        }
-
+        if (_captureCoordinator?.IsCapturingScreen == true) return Task.CompletedTask;
+        if (_services is null || _mainWindow is null) return Task.CompletedTask;
         ShowMainWindow();
         if (_settingsWindow is not null)
         {
             _settingsWindow.Show();
             _settingsWindow.WindowState = WindowState.Normal;
             _settingsWindow.Activate();
-            return;
+            return Task.CompletedTask;
         }
-
-        var settingsWindow = new MainWindow(_services, _captureCoordinator, settingsMode: true);
+        var settingsWindow = new SettingsWindow(_services);
         _settingsWindow = settingsWindow;
         settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        await settingsWindow.ShowDialog(_mainWindow);
+        settingsWindow.Show(_mainWindow);
+        return Task.CompletedTask;
+    }
+
+    private void RefreshTrayLanguage(object? sender, EventArgs e)
+    {
+        if (_isExiting) return;
+        _trayIcon?.Dispose();
+        _trayIcon = CreateTrayIcon();
     }
 
     private async Task CheckForUpdatesAsync(bool userInitiated)
@@ -288,6 +287,7 @@ public partial class App : Application
     private async Task ExitAsync()
     {
         _isExiting = true;
+        UiText.LanguageChanged -= RefreshTrayLanguage;
         _trayIcon?.Dispose();
         if (_captureCoordinator is not null)
         {

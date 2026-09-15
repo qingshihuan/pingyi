@@ -1,0 +1,328 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.SettingsWindow" x:Name="RootWindow" Classes="workspace" Title="{DynamicResource Text.3a57aee6d162}" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" Width="1040" Height="760" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
+  <!-- Native categories, quiet grouped forms and a fixed action bar. -->
+  <Grid RowDefinitions="76,*,Auto" ColumnDefinitions="220,*">
+    <Border Grid.RowSpan="3" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"/>
+    <StackPanel Margin="24,20,18,16" Orientation="Horizontal" Spacing="10">
+      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="32" Height="32"/>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="{DynamicResource String.AppName}" FontWeight="SemiBold" FontSize="16"/>
+        <TextBlock Text="{DynamicResource Workspace.Preferences}" Classes="workspace-help" FontSize="11"/>
+      </StackPanel>
+    </StackPanel>
+    <Grid Grid.Column="1" Margin="28,20,28,16" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock x:Name="WindowHeadingText" Text="{DynamicResource Text.df3d58c7d84b}" Classes="workspace-help"/>
+        <TextBlock x:Name="WindowSubtitleText" Text="{DynamicResource String.AppTagline}" IsVisible="False"/>
+      </StackPanel>
+    </Grid>
+    <TabControl Grid.Row="1" Grid.ColumnSpan="2" Margin="14,0,0,0" x:Name="SettingsTabs" TabStripPlacement="Left" SelectedIndex="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" AutomationProperties.Name="{DynamicResource Text.dfb699c54378}">
+      <TabItem Classes="workspace-tab" x:Name="GeneralSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavBlueBrush}">
+              <Path Classes="symbol" Data="M4 7V4H7 M17 4H20V7 M20 17V20H17 M7 20H4V17 M8 9H16 M8 13H16 M8 17H13" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{DynamicResource Workspace.General}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="12">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock Text="{DynamicResource Workspace.General}" Classes="workspace-title"/>
+              <TextBlock Text="{DynamicResource Workspace.GeneralHint}" Classes="workspace-help"/>
+            </StackPanel>
+            <Border Classes="preference-note" Padding="0,0,0,2"><TextBlock Text="{DynamicResource Workspace.Immediate}" Classes="workspace-help"/></Border>
+            <TextBlock Text="{DynamicResource Polish.RecognitionGroup}" Classes="preference-heading"/>
+            <Border Classes="preference-group">
+              <StackPanel>
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
+                  <TextBlock Text="{DynamicResource Text.5fd5df38157d}" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="OcrProviderCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.8d767b02e434}" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="{DynamicResource Polish.TranslationGroup}" Classes="preference-heading"/>
+            <Border Classes="preference-group">
+              <StackPanel>
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
+                  <TextBlock Text="{DynamicResource Text.da4ace1c0a46}" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="TranslationProviderCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.160fa36bfe38}" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
+                </Grid>
+                <Border Height="1" Margin="18,0" Background="{DynamicResource DividerBrush}"/>
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
+                  <TextBlock Text="{DynamicResource Text.966a23e84aed}" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="TargetLanguageCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.a5088fbb7cd7}" SelectionChanged="TargetLanguageCombo_OnSelectionChanged" Grid.Column="1"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <Border Classes="workspace-inset" Padding="16">
+              <StackPanel Spacing="7">
+                <TextBlock Text="{DynamicResource Polish.DataBoundary}" Classes="workspace-label"/>
+                <TextBlock Text="{DynamicResource Text.7ebc37fcf513}" Classes="workspace-help"/>
+                <TextBlock x:Name="TranslationLanguageHintText" Text="{DynamicResource Text.cf826c0b58ff}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <Button Classes="secondary" Content="{DynamicResource Text.90b0a90e2226}" HorizontalAlignment="Left" Click="CheckStatusButton_OnClick" AutomationProperties.Name="{DynamicResource Text.2888370272ee}" Grid.Column="1"/>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="ModelsSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavGreenBrush}">
+              <Path Classes="symbol" Data="M5 7L12 3L19 7V17L12 21L5 17Z M5 7L12 11L19 7 M12 11V21" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{DynamicResource Workspace.Models}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock Text="{DynamicResource Workspace.Models}" Classes="workspace-title"/>
+              <TextBlock Text="{DynamicResource Workspace.ModelHint}" Classes="workspace-help"/>
+            </StackPanel>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{DynamicResource Text.5fd5df38157d}" Classes="workspace-section"/>
+                <Button x:Name="InstallOcrModelsButton" Classes="secondary" HorizontalAlignment="Left" Click="InstallOcrModelsButton_OnClick" AutomationProperties.Name="{DynamicResource Text.e9f94a5c7ff6}">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon x:Name="OcrModelDownloadIcon" Width="18" Height="18" Data="M11 3H13V12L16 9L17.4 10.4L12 15.8L6.6 10.4L8 9L11 12Z M4 18H20V20H4Z"/>
+                    <PathIcon x:Name="OcrModelInstalledIcon" Width="18" Height="18" IsVisible="False" Data="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"/>
+                    <TextBlock x:Name="OcrModelButtonText" Text="{DynamicResource Text.e9f94a5c7ff6}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <TextBlock x:Name="OcrModelStatusText" Text="{DynamicResource Text.72a5e7ce2caf}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{DynamicResource Text.da4ace1c0a46}" Classes="workspace-section"/>
+                <Button x:Name="InstallTranslationModelsButton" Classes="secondary" HorizontalAlignment="Left" Click="InstallTranslationModelsButton_OnClick" AutomationProperties.Name="{DynamicResource Text.4986d0c80645}">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon x:Name="TranslationModelDownloadIcon" Width="18" Height="18" Data="M11 3H13V12L16 9L17.4 10.4L12 15.8L6.6 10.4L8 9L11 12Z M4 18H20V20H4Z"/>
+                    <PathIcon x:Name="TranslationModelInstalledIcon" Width="18" Height="18" IsVisible="False" Data="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"/>
+                    <TextBlock x:Name="TranslationModelButtonText" Text="{DynamicResource Text.4986d0c80645}" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <TextBlock x:Name="TranslationModelStatusText" Text="{DynamicResource Text.415c32ababe7}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+            <Expander x:Name="ManagedModelExpander" Header="{DynamicResource Text.28137e0aafbe}" IsExpanded="True" IsVisible="False">
+              <StackPanel Spacing="14" Margin="0,14,0,0">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.fe43e358e6d1}" Classes="workspace-label"/>
+                  <ComboBox x:Name="ManagedModelCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.9a0552ac7454}" SelectionChanged="ManagedModelCombo_OnSelectionChanged"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.b7600b964f62}" Classes="workspace-label"/>
+                  <ComboBox x:Name="ManagedRuntimeBackendCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.92a84411fed4}" SelectionChanged="ManagedRuntimeBackendCombo_OnSelectionChanged"/>
+                </StackPanel>
+                <TextBlock x:Name="ManagedRuntimeBackendHintText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <TextBlock x:Name="ManagedModelSummaryText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <TextBlock x:Name="ManagedModelHardwareText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <ProgressBar x:Name="ManagedModelProgressBar" Minimum="0" Maximum="100" Height="8" Value="0" IsVisible="False"/>
+                <TextBlock x:Name="ManagedModelStatusText" Text="{DynamicResource Text.21a71618bad2}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <WrapPanel>
+                  <Button x:Name="ManagedModelSourceButton" Content="{DynamicResource Text.a1573c4da535}" Classes="ghost" Click="ManagedModelSourceButton_OnClick" AutomationProperties.Name="{DynamicResource Text.a1573c4da535}" Margin="0,0,8,8"/>
+                  <Button x:Name="ManagedModelFolderButton" Content="{DynamicResource Text.4e435fe44aef}" Classes="ghost" Click="ManagedModelFolderButton_OnClick" AutomationProperties.Name="{DynamicResource Text.4e435fe44aef}" Margin="0,0,8,8"/>
+                  <Button x:Name="ManagedModelCancelButton" Content="{DynamicResource Text.2cd0f3be8738}" Classes="secondary" Click="ManagedModelCancelButton_OnClick" AutomationProperties.Name="{DynamicResource Text.2cd0f3be8738}" Margin="0,0,8,8" IsVisible="False"/>
+                  <Button x:Name="ManagedModelStartButton" Content="{DynamicResource Text.5412c737687b}" Classes="secondary" Click="ManagedModelStartButton_OnClick" AutomationProperties.Name="{DynamicResource Text.5412c737687b}" Margin="0,0,8,8"/>
+                  <Button x:Name="ManagedModelInstallButton" Content="{DynamicResource Text.cd5aa45e3fef}" Classes="primary" Click="ManagedModelInstallButton_OnClick" AutomationProperties.Name="{DynamicResource Text.cd5aa45e3fef}" Margin="0,0,8,8"/>
+                </WrapPanel>
+                <TextBlock Text="{DynamicResource Text.7e0abe191612}" Classes="workspace-help"/>
+              </StackPanel>
+            </Expander>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{DynamicResource Workspace.CleanupHint}" Classes="workspace-help"/>
+                <Button x:Name="DeleteModelsButton" Content="{DynamicResource Text.f14f03fae6b1}" Classes="danger-ghost" Click="DeleteModelsButton_OnClick" AutomationProperties.Name="{DynamicResource Text.f14f03fae6b1}" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="CloudSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavCyanBrush}">
+              <Path Classes="symbol" Data="M7 18H18C24 17 23 10 18 10C17 3 7 3 6 10C0 11 1 18 7 18" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{DynamicResource Workspace.Cloud}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock Text="{DynamicResource Workspace.Cloud}" Classes="workspace-title"/>
+              <TextBlock Text="{DynamicResource Workspace.CloudHint}" Classes="workspace-help"/>
+            </StackPanel>
+            <Border Classes="workspace-inset"><TextBlock Text="{DynamicResource Workspace.SecretHint}" Classes="workspace-help"/></Border>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="16">
+                <TextBlock Text="{DynamicResource Text.77bad5f6137e}" Classes="workspace-section"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="OCR API Key" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="BaiduOcrApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.520b00e114f7}" AutomationProperties.Name="{DynamicResource Text.69f42967a6d8}"/>
+                    <Button Grid.Column="1" x:Name="BaiduOcrApiKeyRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="baidu-ocr-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.49c172bca9d1}"/>
+                  </Grid>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="OCR Secret Key" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="BaiduOcrSecretBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.520b00e114f7}" AutomationProperties.Name="{DynamicResource Text.1fef86b64588}"/>
+                    <Button Grid.Column="1" x:Name="BaiduOcrSecretRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="baidu-ocr-secret-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.cebd8d1bf16d}"/>
+                  </Grid>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.0f66607cd07e}" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="BaiduTranslateAppIdBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.520b00e114f7}" AutomationProperties.Name="{DynamicResource Text.23daf4d7881a}"/>
+                    <Button Grid.Column="1" x:Name="BaiduTranslateAppIdRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="baidu-translate-app-id" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.52e1279ef29c}"/>
+                  </Grid>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.f3a95ab3397b}" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="BaiduTranslateSecretBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.520b00e114f7}" AutomationProperties.Name="{DynamicResource Text.88989b081187}"/>
+                    <Button Grid.Column="1" x:Name="BaiduTranslateSecretRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="baidu-translate-secret" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.8f5175f993e2}"/>
+                  </Grid>
+                </StackPanel>
+                <Border Classes="workspace-inset">
+                  <StackPanel Spacing="6">
+                    <TextBlock x:Name="BaiduOcrCredentialStatusText" Text="{DynamicResource Text.94aebfb0a33b}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="BaiduTranslationCredentialStatusText" Text="{DynamicResource Text.378c7842fe76}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                  </StackPanel>
+                </Border>
+                <Button x:Name="ValidateBaiduCredentialsButton" Content="{DynamicResource Text.0af5623919d4}" Classes="secondary" Click="ValidateBaiduCredentialsButton_OnClick" AutomationProperties.Name="{DynamicResource Text.0af5623919d4}" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="16">
+                <TextBlock Text="{DynamicResource Text.8b6e7cf003a3}" Classes="workspace-section"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Google Cloud API Key" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="GoogleCloudApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.520b00e114f7}" AutomationProperties.Name="Google Cloud API Key"/>
+                    <Button Grid.Column="1" x:Name="GoogleCloudApiKeyRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="google-cloud-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.4a2df84f92d0}"/>
+                  </Grid>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Text.301e7d783f53}" Classes="workspace-help"/>
+                <Border Classes="workspace-inset">
+                  <StackPanel Spacing="6">
+                    <TextBlock x:Name="GoogleOcrCredentialStatusText" Text="{DynamicResource Text.035be0663f55}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="GoogleTranslationCredentialStatusText" Text="{DynamicResource Text.1f06472ae882}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                  </StackPanel>
+                </Border>
+                <Button x:Name="ValidateGoogleCredentialsButton" Content="{DynamicResource Text.71456ea2891f}" Classes="secondary" Click="ValidateGoogleCredentialsButton_OnClick" AutomationProperties.Name="{DynamicResource Text.71456ea2891f}" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="CustomSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavPurpleBrush}">
+              <Path Classes="symbol" Data="M8 6L2 12L8 18 M16 6L22 12L16 18 M14 3L10 21" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{DynamicResource Workspace.Custom}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock Text="{DynamicResource Workspace.Custom}" Classes="workspace-title"/>
+              <TextBlock Text="{DynamicResource Workspace.CustomHint}" Classes="workspace-help"/>
+            </StackPanel>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="16">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.42910cbc1cab}" Classes="workspace-label"/>
+                  <ComboBox x:Name="LocalServicePresetCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.8ccdcad15f65}"/>
+                </StackPanel>
+                <Button x:Name="UseLocalLlamaPresetButton" Content="{DynamicResource Text.4daf6c2b1b4f}" Classes="secondary" Click="UseLocalLlamaPresetButton_OnClick" AutomationProperties.Name="{DynamicResource Text.4daf6c2b1b4f}" HorizontalAlignment="Left"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.02739d1bae8b}" Classes="workspace-label"/>
+                  <TextBox x:Name="CustomEndpointBox" Classes="workspace-field" PlaceholderText="http://127.0.0.1:8080/v1/chat/completions" AutomationProperties.Name="{DynamicResource Text.e48775667c9f}"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.90bd954a5853}" Classes="workspace-label"/>
+                  <TextBox x:Name="CustomModelBox" Classes="workspace-field" PlaceholderText="{DynamicResource Text.13434c003ced}" AutomationProperties.Name="{DynamicResource Text.a2f2682c6200}"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="API Key" Classes="workspace-label"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBox x:Name="CustomApiKeyBox" Classes="workspace-field" IsReadOnly="True" PlaceholderText="{DynamicResource Text.e27bfc62bfd4}" AutomationProperties.Name="{DynamicResource Text.5850d0183e6c}"/>
+                    <Button Grid.Column="1" x:Name="CustomApiKeyRevealButton" Classes="ghost secret-action" Content="{DynamicResource Text.4e1449e7d5e5}" Tag="custom-translation-api-key" Click="ToggleSecretVisibility_OnClick" ToolTip.Tip="{DynamicResource Text.01197746a1c6}" AutomationProperties.Name="{DynamicResource Text.5eda20b4e81b}"/>
+                  </Grid>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Workspace.SecretHint}" Classes="workspace-help"/>
+                <Border Classes="workspace-inset"><TextBlock x:Name="CustomTranslationStatusText" Text="{DynamicResource Text.e55a9d121ead}" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/></Border>
+                <WrapPanel>
+                  <Button x:Name="TestCustomTranslationButton" Content="{DynamicResource Text.33af5784c71b}" Classes="secondary" Click="TestCustomTranslationButton_OnClick" AutomationProperties.Name="{DynamicResource Text.33af5784c71b}" Margin="0,0,8,8"/>
+                  <Button x:Name="TestCustomVisionButton" Content="{DynamicResource Text.2b153304b138}" Classes="secondary" Click="TestCustomVisionButton_OnClick" AutomationProperties.Name="{DynamicResource Text.2b153304b138}" Margin="0,0,8,8"/>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="AppearanceSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavGrayBrush}">
+              <Path Classes="symbol" Data="M4 5H20 M4 12H20 M4 19H20 M8 2V8 M16 9V15 M10 16V22" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock Grid.Column="1" Text="{DynamicResource Workspace.Appearance}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock Text="{DynamicResource Workspace.Appearance}" Classes="workspace-title"/>
+              <TextBlock Text="{DynamicResource Workspace.AppearanceHint}" Classes="workspace-help"/>
+            </StackPanel>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="16">
+
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.3d13868593ae}" Classes="workspace-label"/>
+                  <ComboBox x:Name="UiLanguageCombo" SelectionChanged="UiLanguageCombo_OnSelectionChanged" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.4a456bc2336f}"/>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Text.914b460edf64}" Classes="workspace-help"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{DynamicResource Text.0299dc01919c}" Classes="workspace-label"/>
+                  <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Text.ef1361324428}" Classes="workspace-help"/>
+                <CheckBox x:Name="StartMinimizedCheckBox" AutomationProperties.Name="{DynamicResource Text.98267fd4ed54}"><TextBlock Text="{DynamicResource Text.98267fd4ed54}" TextWrapping="Wrap"/></CheckBox>
+                <CheckBox x:Name="CheckForUpdatesCheckBox" AutomationProperties.Name="{DynamicResource Text.d95bc1d6f25a}"><TextBlock Text="{DynamicResource Text.b68a94c0e3fb}" TextWrapping="Wrap"/></CheckBox>
+                <WrapPanel>
+                  <Button x:Name="CheckUpdatesNowButton" Content="{DynamicResource Text.faaa0cb2ce66}" Classes="secondary" Click="CheckUpdatesNowButton_OnClick" AutomationProperties.Name="{DynamicResource Text.faaa0cb2ce66}" Margin="0,0,8,8"/>
+                  <Button x:Name="OpenLatestReleaseButton" Content="{DynamicResource Text.492a56a00f11}" Classes="secondary" Click="OpenLatestReleaseButton_OnClick" AutomationProperties.Name="{DynamicResource Text.492a56a00f11}" Margin="0,0,8,8" IsVisible="False"/>
+                </WrapPanel>
+                <TextBlock x:Name="UpdateStatusText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+    <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource PageBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="28,14,28,18">
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="16">
+        <Border x:Name="GlobalStatusBorder" Background="{DynamicResource SubtleBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" MinHeight="46">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <Border x:Name="StatusIndicator" Width="8" Height="8" CornerRadius="4" Background="{DynamicResource BrandBrush}" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" x:Name="GlobalStatusText" Text="{DynamicResource Text.9866f869b0bd}" Classes="workspace-help" VerticalAlignment="Center" MaxHeight="64" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
+          </Grid>
+        </Border>
+        <Button Grid.Column="1" x:Name="SaveSettingsButton" Classes="primary" Content="{DynamicResource Text.a7ec01a65f09}" MinWidth="136" VerticalAlignment="Center" Click="SaveButton_OnClick" ToolTip.Tip="Ctrl+S" AutomationProperties.Name="{DynamicResource Text.24cd2dadb9a2}"/>
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{DynamicResource Workspace.SaveHint}" Classes="workspace-help" FontSize="11" LineHeight="17"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

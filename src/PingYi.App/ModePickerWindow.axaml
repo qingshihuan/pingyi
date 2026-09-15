@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PingYi.App.ModePickerWindow" Classes="workspace"
+        Title="{DynamicResource String.PickerTitle}" Width="740" Height="740" MinWidth="620" MinHeight="460"
+        Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" WindowStartupLocation="CenterOwner">
+  <Window.Styles>
+    <StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/>
+    <Style Selector="RadioButton.mode-choice">
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="RadioButton.mode-choice:checked">
+      <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}"/>
+    </Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" Margin="24" RowSpacing="16">
+    <StackPanel Spacing="6">
+      <TextBlock Text="{DynamicResource String.PickerTitle}" Classes="workspace-title"/>
+      <TextBlock Text="{DynamicResource String.PickerHint}" Classes="workspace-help"/>
+    </StackPanel>
+    <ScrollViewer Grid.Row="1" x:Name="ModesScroll" Classes="workspace-page">
+      <StackPanel x:Name="ModeChoices" Spacing="10" Margin="1,1,8,8"/>
+    </ScrollViewer>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+      <TextBlock x:Name="CurrentModeText" Classes="workspace-help" VerticalAlignment="Center"/>
+      <Button Grid.Column="1" Classes="secondary" Content="{DynamicResource String.Cancel}" Click="Cancel_OnClick"/>
+      <Button Grid.Column="2" x:Name="ApplyModeButton" Classes="primary" MinWidth="126"
+              Content="{DynamicResource String.UseMode}" Click="Apply_OnClick"/>
+    </Grid>
+  </Grid>
+</Window>

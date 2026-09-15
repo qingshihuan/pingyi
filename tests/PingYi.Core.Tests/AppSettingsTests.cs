@@ -1,4 +1,5 @@
 using PingYi.Core;
+using PingYi.Infrastructure;
 
 namespace PingYi.Core.Tests;
 
@@ -16,8 +17,7 @@ public sealed class AppSettingsTests
             SourceLanguage = "not-a-language",
             TargetLanguage = "xx",
             CustomTranslationEndpoint = "not a uri",
-            CustomTranslationModel = "  model-name  ",
-            InterfaceStyle = "unknown"
+            CustomTranslationModel = "  model-name  "
         };
 
         var normalized = settings.Normalize();
@@ -29,7 +29,6 @@ public sealed class AppSettingsTests
         Assert.Equal("auto", normalized.SourceLanguage);
         Assert.Equal("auto-opposite", normalized.TargetLanguage);
         Assert.Equal("model-name", normalized.CustomTranslationModel);
-        Assert.Equal("modern", normalized.InterfaceStyle);
         Assert.True(Uri.TryCreate(normalized.CustomTranslationEndpoint, UriKind.Absolute, out _));
     }
 
@@ -48,15 +47,32 @@ public sealed class AppSettingsTests
         Assert.Equal(expected, normalized.TargetLanguage);
     }
 
-    [Theory]
-    [InlineData("modern", "modern")]
-    [InlineData("classic", "classic")]
-    [InlineData("", "modern")]
-    public void Normalize_PreservesOnlySupportedInterfaceStyles(string value, string expected)
+    [Fact]
+    public async Task LegacyInterfaceStyle_IsIgnoredWithoutResettingPreferences()
     {
-        var normalized = new AppSettings { InterfaceStyle = value }.Normalize();
-
-        Assert.Equal(expected, normalized.InterfaceStyle);
+        var directory = Path.Combine(Path.GetTempPath(), "pingyi-migration-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var file = Path.Combine(directory, "settings.json");
+            await File.WriteAllTextAsync(file, """
+                {"schemaVersion":7,"interfaceStyle":"classic","uiLanguage":"en-US",
+                 "hotkey":"Ctrl+Alt+G","translationProviderId":"custom-chat",
+                 "customTranslationEndpoint":"https://example.com/v1/chat/completions",
+                 "customTranslationModel":"kept-model","checkForUpdates":true}
+                """);
+            var store = new JsonSettingsStore(file);
+            var settings = await store.LoadAsync();
+            Assert.Equal(8, settings.SchemaVersion);
+            Assert.Equal("en-US", settings.UiLanguage);
+            Assert.Equal("Ctrl+Alt+G", settings.Hotkey);
+            Assert.Equal("kept-model", settings.CustomTranslationModel);
+            Assert.Equal("custom-chat", settings.TranslationProviderId);
+            Assert.True(settings.CheckForUpdates);
+            await store.SaveAsync(settings);
+            Assert.DoesNotContain("interfaceStyle", await File.ReadAllTextAsync(file));
+        }
+        finally { Directory.Delete(directory, true); }
     }
 
     [Theory]
