@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Threading;
 using PingYi.Core;
 
@@ -35,9 +36,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
 
         _mainWindow = mainWindow;
         var enteredGate = false;
-        var restoreMainWindow = false;
-        var restoreResultWindow = false;
-        ResultWindow? hiddenResultWindow = null;
+        CaptureVisibilityScope? visibility = null;
         try
         {
             await _operationGate.WaitAsync(operation.Token);
@@ -50,37 +49,30 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
                 _resultWindow = null;
             }
 
-            restoreMainWindow = mainWindow?.IsVisible == true;
-            hiddenResultWindow = _resultWindow;
-            restoreResultWindow = hiddenResultWindow?.IsVisible == true;
-            mainWindow?.Hide();
-            hiddenResultWindow?.HideTemporarily();
-
-            await Task.Delay(140, operation.Token);
-            var desktop = await WithTimeoutAsync(
-                token => services.ScreenCaptureService.CaptureDesktopAsync(token),
-                CaptureTimeout,
-                operation.Token,
-                "capture_timeout",
-                "屏幕捕获超时，请重试。");
-            EnsureCurrent(operation);
-
+            // Resolve monitor geometry while the caller is visible; then hide ALL app windows.
             var displays = mainWindow?.GetCaptureDisplays();
-            if (displays is null || displays.Count == 0)
+            visibility = CaptureVisibilityScope.HideAll(mainWindow as Window);
+            var desktop = await WithTimeoutAsync(async token =>
             {
+                await visibility.WaitForDesktopAsync(token);
+                return await Task.Run(() => services.ScreenCaptureService.CaptureDesktopAsync(token), token);
+            }, CaptureTimeout, operation.Token, "capture_timeout", "屏幕捕获超时，请重试。");
+            EnsureCurrent(operation);
+            if (displays is null || displays.Count == 0)
                 displays = [new CaptureDisplay(desktop.DesktopBounds, 1)];
-            }
 
             var overlay = new CaptureOverlaySession(desktop, displays, services.ImageCropper);
             var selection = await overlay.ShowAndSelectAsync(operation.Token);
             EnsureCurrent(operation);
             if (selection is null)
             {
-                RestoreWindows(mainWindow, restoreMainWindow, hiddenResultWindow, restoreResultWindow);
                 return;
             }
 
             var selectedImage = services.ImageCropper.Crop(desktop, selection.Value);
+            // The overlay has closed and the pixels are frozen. Only now restore ordinary windows.
+            visibility.Dispose();
+            visibility = null;
             var resultWindow = GetResultWindow();
             operation.TargetWindow = resultWindow;
             _windowImages[resultWindow] = selectedImage;
@@ -95,18 +87,17 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         {
             if (IsCurrent(operation))
             {
-                RestoreWindows(mainWindow, restoreMainWindow, hiddenResultWindow, restoreResultWindow);
                 mainWindow?.SetGlobalStatus(UiText.Error(exception), isError: true);
             }
         }
         finally
         {
-            if (enteredGate)
+            try { visibility?.Restore(showWindows: Volatile.Read(ref _disposeState) == 0); }
+            finally
             {
-                _operationGate.Release();
+                if (enteredGate) _operationGate.Release();
+                EndOperation(operation);
             }
-
-            EndOperation(operation);
         }
     }
 
@@ -557,23 +548,6 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         catch (OperationCanceledException exception) when (!operationToken.IsCancellationRequested)
         {
             throw new ProviderException(errorCode, timeoutMessage, exception);
-        }
-    }
-
-    private static void RestoreWindows(
-        IMainWindowShell? mainWindow,
-        bool restoreMainWindow,
-        ResultWindow? resultWindow,
-        bool restoreResultWindow)
-    {
-        if (restoreMainWindow)
-        {
-            mainWindow?.Show();
-        }
-
-        if (restoreResultWindow)
-        {
-            resultWindow?.ShowCurrent();
         }
     }
 

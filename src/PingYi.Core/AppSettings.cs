@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
     public const string DefaultHotkey = "Ctrl+Alt+D";
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -21,6 +21,8 @@ public sealed record AppSettings
     public bool ManagedRuntimeEnabled { get; init; }
     public bool StartMinimized { get; init; }
     public bool CheckForUpdates { get; init; }
+    // Read legacy files without restoring the removed UI variant. Do not write it back.
+    [System.Text.Json.Serialization.JsonIgnore]
     public string InterfaceStyle { get; init; } = "modern";
     public string UiLanguage { get; init; } = "auto";
 
@@ -60,7 +62,7 @@ public sealed record AppSettings
                                     ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
                                     string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
             CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
-            InterfaceStyle = InterfaceStyle is "classic" ? "classic" : "modern",
+            InterfaceStyle = "modern",
             UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
     }

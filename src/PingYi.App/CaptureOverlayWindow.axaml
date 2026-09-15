@@ -1,40 +1,20 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:PingYi.App"
-        x:Class="PingYi.App.CaptureOverlayWindow"
-        WindowDecorations="None"
-        ShowInTaskbar="False"
-        Topmost="True"
-        CanResize="False"
-        WindowStartupLocation="Manual"
-        Background="Black">
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.CaptureOverlayWindow" WindowDecorations="None" ShowInTaskbar="False" Topmost="True" CanResize="False" WindowStartupLocation="Manual" Background="Black">
   <Grid>
-    <Image x:Name="ScreenshotImage" Stretch="Fill" />
-    <local:SelectionOverlayControl x:Name="SelectionOverlay" Cursor="Cross"
-                                   PointerPressed="SelectionOverlay_OnPointerPressed"
-                                   PointerMoved="SelectionOverlay_OnPointerMoved"
-                                   PointerReleased="SelectionOverlay_OnPointerReleased" />
+    <Image x:Name="ScreenshotImage" Stretch="Fill"/>
+    <local:SelectionOverlayControl x:Name="SelectionOverlay" Cursor="Cross" PointerPressed="SelectionOverlay_OnPointerPressed" PointerMoved="SelectionOverlay_OnPointerMoved" PointerReleased="SelectionOverlay_OnPointerReleased"/>
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,24,0,0"
-                Spacing="8" IsHitTestVisible="False">
-      <Border Background="#F21A2E2D" BorderBrush="#703DD6C8" BorderThickness="1"
-              CornerRadius="12" Padding="15,10" BoxShadow="0 8 24 0 #66000000">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,24,0,0" Spacing="8" IsHitTestVisible="False">
+      <Border Background="#F21A2E2D" BorderBrush="#703DD6C8" BorderThickness="1" CornerRadius="12" Padding="15,10" BoxShadow="0 8 24 0 #66000000">
         <StackPanel Orientation="Horizontal" Spacing="9">
-          <PathIcon Width="18" Height="18" Foreground="#5EEAD4"
-                    Data="M4 8V5A1 1 0 0 1 5 4H8 M16 4H19A1 1 0 0 1 20 5V8 M20 16V19A1 1 0 0 1 19 20H16 M8 20H5A1 1 0 0 1 4 19V16" />
-          <TextBlock Text="拖动框选文字区域" Foreground="White" FontSize="13"
-                     FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Border Width="1" Height="15" Background="#4DFFFFFF" Margin="4,0" />
-          <TextBlock Text="Esc 取消" Foreground="#B8D5D2" FontSize="12"
-                     VerticalAlignment="Center" />
+          <PathIcon Width="18" Height="18" Foreground="#5EEAD4" Data="M4 8V5A1 1 0 0 1 5 4H8 M16 4H19A1 1 0 0 1 20 5V8 M20 16V19A1 1 0 0 1 19 20H16 M8 20H5A1 1 0 0 1 4 19V16"/>
+          <TextBlock Text="{DynamicResource Ui.Text.cec60643bd05}" Foreground="White" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <Border Width="1" Height="15" Background="#4DFFFFFF" Margin="4,0"/>
+          <TextBlock Text="{DynamicResource Ui.Text.517daccd5094}" Foreground="#B8D5D2" FontSize="12" VerticalAlignment="Center"/>
         </StackPanel>
       </Border>
 
-      <Border x:Name="SelectionSizeBorder" HorizontalAlignment="Center"
-              Background="#E6EA580C" CornerRadius="999" Padding="10,5"
-              IsVisible="False">
-        <TextBlock x:Name="SelectionSizeText" Text="0 × 0 px" Foreground="White"
-                   FontFamily="Consolas" FontSize="11" FontWeight="SemiBold" />
+      <Border x:Name="SelectionSizeBorder" HorizontalAlignment="Center" Background="#E6EA580C" CornerRadius="999" Padding="10,5" IsVisible="False">
+        <TextBlock x:Name="SelectionSizeText" Text="0 × 0 px" Foreground="White" FontFamily="Consolas" FontSize="11" FontWeight="SemiBold"/>
       </Border>
     </StackPanel>
   </Grid>

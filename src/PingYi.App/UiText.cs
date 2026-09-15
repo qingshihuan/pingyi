@@ -18,6 +18,9 @@ public static partial class UiText
     private static readonly ConditionalWeakTable<AvaloniaObject, object> AttachedObjects = new();
     private static readonly object AttachedMarker = new();
     private static bool _isApplying;
+    private static readonly List<WeakReference<Control>> LocalizedControls = [];
+    private static readonly ConditionalWeakTable<Control, Dictionary<AvaloniaProperty, (string Source, string Rendered)>> ControlLabels = new();
+    public static event EventHandler? LanguageChanged;
 
     private static readonly IReadOnlyDictionary<string, string> EnglishResources =
         new Dictionary<string, string>(StringComparer.Ordinal)
@@ -364,17 +367,18 @@ public static partial class UiText
 
     public static void Configure(string? language)
     {
+        var changed = CurrentLanguage != Resolve(language);
         CurrentLanguage = Resolve(language);
         var culture = CultureInfo.GetCultureInfo(CurrentLanguage);
         CultureInfo.CurrentUICulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
-        if (IsEnglish && Application.Current?.Resources is { } resources)
+        ApplyLanguageResources();
+        for (var i = LocalizedControls.Count - 1; i >= 0; i--)
         {
-            foreach (var (key, value) in EnglishResources)
-            {
-                resources[key] = value;
-            }
+            if (LocalizedControls[i].TryGetTarget(out var control)) LocalizeControl(control);
+            else LocalizedControls.RemoveAt(i);
         }
+        if (changed) LanguageChanged?.Invoke(null, EventArgs.Empty);
     }
 
     public static string Resolve(string? language)
@@ -399,7 +403,7 @@ public static partial class UiText
             return translated;
         }
 
-        return TranslateDynamic(text);
+        return ResourceTranslation(text) ?? TranslateDynamic(text);
     }
 
     public static string Error(Exception exception)
@@ -526,9 +530,10 @@ public static partial class UiText
         }
 
         AttachedObjects.Add(control, AttachedMarker);
+        LocalizedControls.Add(new WeakReference<Control>(control));
         control.PropertyChanged += (_, eventArgs) =>
         {
-            if (!IsEnglish || _isApplying)
+            if (_isApplying)
             {
                 return;
             }
@@ -549,45 +554,34 @@ public static partial class UiText
 
     private static void LocalizeControl(Control control)
     {
-        if (!IsEnglish)
-        {
-            return;
-        }
-
+        if (_isApplying) return;
         _isApplying = true;
         try
         {
-            if (control is Window window) window.Title = T(window.Title);
-            if (control is TextBlock textBlock) textBlock.Text = T(textBlock.Text);
-            if (control is ContentControl contentControl && contentControl.Content is string content)
+            var labels = ControlLabels.GetOrCreateValue(control);
+            void Apply(AvaloniaProperty property)
             {
-                contentControl.Content = T(content);
+                // Never touch TextBox.Text: model names, endpoints, credentials and captured
+                // source/translation content are user data, not interface strings.
+                if (control.GetValue(property) is not string value) return;
+                var source = labels.TryGetValue(property, out var prior) && prior.Rendered == value
+                    ? prior.Source : CanonicalLabel(value);
+                var translated = T(source);
+                labels[property] = (source, translated);
+                // SetCurrentValue preserves DynamicResource/binding expressions. Avoid even a
+                // same-value local assignment, which would otherwise freeze a live resource.
+                if (value != translated) control.SetCurrentValue(property, translated);
             }
-            if (control is Expander expander && expander.Header is string header)
-            {
-                expander.Header = T(header);
-            }
-            if (control is MenuItem menuItem && menuItem.Header is string menuHeader)
-            {
-                menuItem.Header = T(menuHeader);
-            }
-            if (control is TextBox textBox) textBox.PlaceholderText = T(textBox.PlaceholderText);
-
-            var automationName = AutomationProperties.GetName(control);
-            if (!string.IsNullOrWhiteSpace(automationName))
-            {
-                AutomationProperties.SetName(control, T(automationName));
-            }
-
-            if (ToolTip.GetTip(control) is string tip)
-            {
-                ToolTip.SetTip(control, T(tip));
-            }
+            if (control is Window) Apply(Window.TitleProperty);
+            if (control is TextBlock) Apply(TextBlock.TextProperty);
+            if (control is ContentControl) Apply(ContentControl.ContentProperty);
+            if (control is Expander) Apply(Expander.HeaderProperty);
+            if (control is MenuItem) Apply(MenuItem.HeaderProperty);
+            if (control is TextBox) Apply(TextBox.PlaceholderTextProperty);
+            Apply(AutomationProperties.NameProperty);
+            Apply(ToolTip.TipProperty);
         }
-        finally
-        {
-            _isApplying = false;
-        }
+        finally { _isApplying = false; }
     }
 
     private static string TranslateDynamic(string text)

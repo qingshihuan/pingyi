@@ -20,6 +20,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
     {
         InitializeComponent();
         UiText.Attach(this);
+        UiText.LanguageChanged += WindowLanguageChanged;
+        Closed += (_, _) => UiText.LanguageChanged -= WindowLanguageChanged;
     }
 
     public MainWindowV2(
@@ -64,17 +66,20 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         var settings = _services.Settings;
         var ocr = _services.Providers.GetOcrProvider(settings.OcrProviderId).Metadata;
         var translation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId).Metadata;
-        ModeSummaryText.Text = DescribeMode(settings, ocr, translation);
+        var mode = ModeChoice.For(settings);
+        ModeSummaryText.Text = mode.Title;
+        ModePurposeText.Text = mode.Purpose;
+        ModeRequirementsText.Text = mode.Requirements;
         OcrSummaryText.Text = UiText.ProviderName(ocr.Id, ocr.DisplayName);
         var targetLanguage = UiText.LanguageName(settings.TargetLanguage);
-        TranslationSummaryText.Text = $"{UiText.ProviderName(translation.Id, translation.DisplayName)} · → {targetLanguage}";
-        PrivacySummaryText.Text = BuildPrivacyDescription(settings, ocr, translation);
+        TranslationSummaryText.Text = UiText.ProviderName(translation.Id, translation.DisplayName);
+        TargetSummaryText.Text = $"→ {targetLanguage}";
         CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
     }
 
     private async Task RefreshSettingsFromStoreAsync()
     {
-        if (_services is null || !IsVisible || _isRefreshing)
+        if (_services is null || !IsVisible || _isRefreshing || CaptureVisibilityScope.IsActive)
         {
             return;
         }
@@ -186,64 +191,35 @@ public partial class MainWindowV2 : Window, IMainWindowShell
         }
     }
 
-    private async void LocalFirstMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyModeAsync("local-paddle", "local-argos", "本地优先");
-
-    private async void LocalLlmMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyLocalModelModeAsync("local-paddle", "本机大模型");
-
-    private async void LocalMultimodalMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyLocalModelModeAsync("local-vlm-corrected", "本机多模态");
-
-    private async void CloudModeMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await ApplyModeAsync("baidu-ocr", "baidu-translate", "云端增强");
-
-    private async void CustomModeMenuItem_OnClick(object? sender, RoutedEventArgs e) =>
-        await OpenSettingsWindowAsync();
-
-    private async Task ApplyModeAsync(string ocrProviderId, string translationProviderId, string modeName)
+    private async void ChooseModeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_services is null)
-        {
-            return;
-        }
-
+        if (CaptureVisibilityScope.IsActive) return;
+        var picker = new ModePickerWindow(_services?.Settings ?? new AppSettings());
+        var mode = await DialogPresentation.ShowAsync<string?>(picker, this);
+        if (mode is null) return;
+        if (mode == ProcessingModes.Custom) { await OpenSettingsWindowAsync(); return; }
+        if (_services is null) return;
         try
         {
-            await _services.SaveSettingsAsync(_services.Settings with
-            {
-                OcrProviderId = ocrProviderId,
-                TranslationProviderId = translationProviderId
-            });
+            ChooseModeButton.IsEnabled = false;
+            await _services.SaveSettingsAsync(ProcessingModes.Apply(_services.Settings, mode));
             LoadSettings();
-            SetGlobalStatus($"已切换到“{modeName}”，正在检查可用性。", isError: false);
             await RefreshDashboardAsync();
         }
-        catch (Exception exception)
-        {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
-        }
+        catch (Exception exception) { SetGlobalStatus(UiText.Error(exception), true); }
+        finally { ChooseModeButton.IsEnabled = true; }
     }
 
-    private async Task ApplyLocalModelModeAsync(string ocrProviderId, string modeName)
+    private async void HelpButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_services is null)
-        {
-            return;
-        }
+        if (CaptureVisibilityScope.IsActive) return;
+        await DialogPresentation.ShowAsync(new HelpWindow(_services?.Settings), this);
+    }
 
-        try
-        {
-            var localSettings = LocalLlmPresets.ApplyLocalMode(_services.Settings, ocrProviderId);
-            await _services.SaveSettingsAsync(localSettings);
-            LoadSettings();
-            SetGlobalStatus($"已切换到“{modeName}”，正在检查可用性。", isError: false);
-            await RefreshDashboardAsync();
-        }
-        catch (Exception exception)
-        {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
-        }
+    private void WindowLanguageChanged(object? sender, EventArgs e)
+    {
+        Title = UiText.T(AppEdition.ProductName);
+        LoadSettings();
     }
 
     private async void OpenSettingsButton_OnClick(object? sender, RoutedEventArgs e) =>
@@ -254,6 +230,7 @@ public partial class MainWindowV2 : Window, IMainWindowShell
 
     private async Task OpenSettingsWindowAsync()
     {
+        if (CaptureVisibilityScope.IsActive) return;
         if (_openSettings is not null)
         {
             await _openSettings();
@@ -268,8 +245,8 @@ public partial class MainWindowV2 : Window, IMainWindowShell
             return;
         }
 
-        var settingsWindow = new MainWindow(_services, _captureCoordinator, settingsMode: true);
-        await settingsWindow.ShowDialog(this);
+        var settingsWindow = new MainWindow(_services, _captureCoordinator);
+        await DialogPresentation.ShowAsync(settingsWindow, this);
         LoadSettings();
         await RefreshDashboardAsync();
     }
@@ -300,65 +277,6 @@ public partial class MainWindowV2 : Window, IMainWindowShell
 
     private static string DescribeAvailability(ProviderAvailability availability) =>
         availability.IsAvailable ? UiText.T("可用") : UiText.T(availability.Message ?? "不可用");
-
-    private static string DescribeMode(
-        AppSettings settings,
-        ProviderMetadata ocr,
-        ProviderMetadata translation)
-    {
-        if (settings.TranslationProviderId == "custom-chat")
-        {
-            return Uri.TryCreate(settings.CustomTranslationEndpoint, UriKind.Absolute, out var endpoint) &&
-                   endpoint.IsLoopback
-                ? UiText.T("本机大模型")
-                : UiText.T("自定义服务");
-        }
-
-        if (ocr.Location == ProviderExecutionLocation.Cloud ||
-            translation.Location == ProviderExecutionLocation.Cloud)
-        {
-            return UiText.T("云端增强");
-        }
-
-        return ocr.Location == ProviderExecutionLocation.Local &&
-               translation.Location == ProviderExecutionLocation.Local
-            ? UiText.T("本地优先")
-            : UiText.T("自定义组合");
-    }
-
-    private static string BuildPrivacyDescription(
-        AppSettings settings,
-        ProviderMetadata ocr,
-        ProviderMetadata translation)
-    {
-        var localModelEndpoint = Uri.TryCreate(
-            settings.CustomTranslationEndpoint,
-            UriKind.Absolute,
-            out var endpoint) && endpoint.IsLoopback;
-        var usesLocalVision = (ocr.Id is "local-vlm-ocr" or "local-vlm-corrected") && localModelEndpoint;
-        var usesSameLocalTranslation = translation.Id == "custom-chat" && localModelEndpoint;
-        if (usesLocalVision && (translation.Location == ProviderExecutionLocation.Local || usesSameLocalTranslation))
-        {
-            return UiText.T("图片与文字只发送到本机大模型服务，不会离开设备。");
-        }
-
-        if (ocr.Location == ProviderExecutionLocation.Local &&
-            translation.Location == ProviderExecutionLocation.Local)
-        {
-            return UiText.T("全程在本机处理；截图、原文和译文不会离开设备。");
-        }
-
-        if (ocr.UploadsImage)
-        {
-            return UiText.IsEnglish
-                ? $"The selected image is sent to {UiText.ProviderName(ocr.Id, ocr.DisplayName)}; recognized text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}."
-                : $"所选图片发送给 {ocr.DisplayName}；识别文字发送给 {translation.DisplayName}。";
-        }
-
-        return UiText.IsEnglish
-            ? $"The image is recognized locally; only recognized text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}."
-            : $"图片在本地识别；只有识别文字会发送给 {translation.DisplayName}。";
-    }
 
     private IBrush FindBrush(string key) =>
         TryGetResource(key, ActualThemeVariant, out var resource) && resource is IBrush brush

@@ -27,6 +27,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        UiText.Configure(UiText.CurrentLanguage);
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -48,15 +49,7 @@ public partial class App : Application
             UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
-            _mainWindow = openSettings
-                ? new MainWindow(_services, _captureCoordinator, settingsMode: true)
-                : _services.Settings.InterfaceStyle == "classic"
-                    ? new MainWindow(_services, _captureCoordinator)
-                    : new MainWindowV2(_services, _captureCoordinator, OpenSettingsWindowAsync);
-            if (openSettings)
-            {
-                _settingsWindow = _mainWindow;
-            }
+            _mainWindow = new MainWindowV2(_services, _captureCoordinator, OpenSettingsWindowAsync);
             _mainShell = (IMainWindowShell)_mainWindow;
             _mainWindow.Closing += (_, eventArgs) =>
             {
@@ -86,6 +79,8 @@ public partial class App : Application
                 _mainWindow.Show();
                 _mainWindow.Activate();
             }
+            if (openSettings) _ = OpenSettingsWindowAsync();
+            UiText.LanguageChanged += AppLanguageChanged;
 
             if (_services.Settings.CheckForUpdates)
             {
@@ -182,7 +177,7 @@ public partial class App : Application
 
     private void ShowMainWindow()
     {
-        if (_mainWindow is null)
+        if (_mainWindow is null || CaptureVisibilityScope.IsActive)
         {
             return;
         }
@@ -218,6 +213,7 @@ public partial class App : Application
 
     private async Task OpenSettingsWindowAsync()
     {
+        if (CaptureVisibilityScope.IsActive) return;
         if (_services is null || _captureCoordinator is null || _mainWindow is null)
         {
             ShowMainWindow();
@@ -233,10 +229,10 @@ public partial class App : Application
             return;
         }
 
-        var settingsWindow = new MainWindow(_services, _captureCoordinator, settingsMode: true);
+        var settingsWindow = new MainWindow(_services, _captureCoordinator);
         _settingsWindow = settingsWindow;
         settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        await settingsWindow.ShowDialog(_mainWindow);
+        await DialogPresentation.ShowAsync(settingsWindow, _mainWindow);
     }
 
     private async Task CheckForUpdatesAsync(bool userInitiated)
@@ -285,9 +281,17 @@ public partial class App : Application
         }
     }
 
+    private void AppLanguageChanged(object? sender, EventArgs e)
+    {
+        if (_isExiting) return;
+        _trayIcon?.Dispose();
+        _trayIcon = CreateTrayIcon();
+    }
+
     private async Task ExitAsync()
     {
         _isExiting = true;
+        UiText.LanguageChanged -= AppLanguageChanged;
         _trayIcon?.Dispose();
         if (_captureCoordinator is not null)
         {

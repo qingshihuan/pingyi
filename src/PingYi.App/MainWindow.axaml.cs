@@ -14,7 +14,6 @@ public partial class MainWindow : Window, IMainWindowShell
 {
     private readonly AppServices? _services;
     private readonly CaptureCoordinator? _captureCoordinator;
-    private readonly bool _settingsMode;
     private readonly Dictionary<Button, object?> _buttonDefaultContents = [];
     private readonly Dictionary<Button, bool> _buttonDefaultEnabledStates = [];
     private readonly Dictionary<Button, CancellationTokenSource> _buttonFeedbackResetTokens = [];
@@ -29,18 +28,19 @@ public partial class MainWindow : Window, IMainWindowShell
     {
         InitializeComponent();
         UiText.Attach(this);
+        ConfigureWindowMode();
+        InitializeLanguageSelection();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
     }
 
     public MainWindow(
         AppServices services,
-        CaptureCoordinator captureCoordinator,
-        bool settingsMode = false) : this()
+        CaptureCoordinator captureCoordinator) : this()
     {
         _services = services;
         _captureCoordinator = captureCoordinator;
-        _settingsMode = settingsMode;
+        PersistLanguageAsync = services.SaveUiLanguageAsync;
         ConfigureWindowMode();
         LoadSettings();
         Opened += async (_, _) =>
@@ -94,9 +94,6 @@ public partial class MainWindow : Window, IMainWindowShell
                 LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint) ?? LocalLlmPresets.Default;
             CustomEndpointBox.Text = settings.CustomTranslationEndpoint;
             CustomModelBox.Text = settings.CustomTranslationModel;
-            InterfaceStyleCombo.ItemsSource = UiStyleChoice.All;
-            InterfaceStyleCombo.SelectedItem = UiStyleChoice.All
-                .First(choice => choice.Id == settings.InterfaceStyle);
             var languageChoices = UiLanguageChoice.Create();
             UiLanguageCombo.ItemsSource = languageChoices;
             UiLanguageCombo.SelectedItem = languageChoices
@@ -125,23 +122,6 @@ public partial class MainWindow : Window, IMainWindowShell
         }
 
         SetGlobalStatus($"就绪。按 {_services.Settings.Hotkey} 或点击“开始截图”。", isError: false);
-    }
-
-    private async void CaptureButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        CaptureButton.IsEnabled = false;
-        try
-        {
-            if (_captureCoordinator is not null)
-            {
-                await ApplyProviderSelectionAsync(showStatus: false);
-                await _captureCoordinator.StartCaptureAsync(this);
-            }
-        }
-        finally
-        {
-            CaptureButton.IsEnabled = true;
-        }
     }
 
     private async void SaveButton_OnClick(object? sender, RoutedEventArgs e)
@@ -936,29 +916,15 @@ public partial class MainWindow : Window, IMainWindowShell
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked == true,
-            InterfaceStyle = (InterfaceStyleCombo.SelectedItem as UiStyleChoice)?.Id ?? "modern",
             UiLanguage = (UiLanguageCombo.SelectedItem as UiLanguageChoice)?.Id ?? "auto"
         };
     }
 
     private void ConfigureWindowMode()
     {
-        Title = UiText.IsEnglish
-            ? _settingsMode ? "PingYi Settings" : "PingYi"
-            : _settingsMode ? $"{AppEdition.ProductName}设置" : AppEdition.ProductName;
-        if (_settingsMode)
-        {
-            Title = UiText.IsEnglish ? "PingYi Settings" : $"{AppEdition.ProductName}设置";
-            WindowHeadingText.Text = "设置";
-            WindowSubtitleText.Text = "处理、模型、服务、快捷键与外观";
-            CaptureHero.IsVisible = false;
-            OpenClassicInterfaceButton.IsEnabled = true;
-            OpenClassicInterfaceButton.Content = "打开经典界面";
-            return;
-        }
-
-        OpenClassicInterfaceButton.IsEnabled = false;
-        OpenClassicInterfaceButton.Content = "当前为经典界面";
+        Title = UiText.IsEnglish ? "PingYi Settings" : $"{AppEdition.ProductName}设置";
+        WindowHeadingText.Text = UiText.T("设置");
+        WindowSubtitleText.Text = UiText.T("处理、模型、服务、快捷键与外观");
     }
 
     public void OpenSettings()
@@ -1014,20 +980,6 @@ public partial class MainWindow : Window, IMainWindowShell
         }
 
         Process.Start(new ProcessStartInfo(_latestReleasePage.AbsoluteUri) { UseShellExecute = true });
-    }
-
-    private async void OpenClassicInterfaceButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_services is null || _captureCoordinator is null || !_settingsMode)
-        {
-            return;
-        }
-
-        var classicWindow = new MainWindow(_services, _captureCoordinator);
-        await classicWindow.ShowDialog(this);
-        LoadSettings();
-        await RefreshCredentialStatusAsync();
-        await RefreshLocalModelStatusAsync();
     }
 
     private async Task ApplyProviderSelectionAsync(bool showStatus)
@@ -1630,7 +1582,7 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private sealed record ProviderChoice(string Id, string Name)
     {
-        public override string ToString() => Name;
+        public override string ToString() => UiText.ProviderName(Id, Name);
     }
 
     private void LoadTargetLanguageChoices(string providerId, string configuredLanguage)
@@ -1664,18 +1616,7 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private sealed record LanguageChoice(string Code, string Name)
     {
-        public override string ToString() => Name;
-    }
-
-    private sealed record UiStyleChoice(string Id, string Name)
-    {
-        public static IReadOnlyList<UiStyleChoice> All { get; } =
-        [
-            new("modern", "新版精简主界面"),
-            new("classic", "经典完整界面")
-        ];
-
-        public override string ToString() => Name;
+        public override string ToString() => UiText.LanguageName(Code);
     }
 
     private sealed record UiLanguageChoice(string Id, string Name)

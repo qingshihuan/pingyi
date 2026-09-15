@@ -50,9 +50,9 @@ public sealed class AppSettingsTests
 
     [Theory]
     [InlineData("modern", "modern")]
-    [InlineData("classic", "classic")]
+    [InlineData("classic", "modern")]
     [InlineData("", "modern")]
-    public void Normalize_PreservesOnlySupportedInterfaceStyles(string value, string expected)
+    public void Normalize_MigratesAllInterfaceStylesToSingleWorkspace(string value, string expected)
     {
         var normalized = new AppSettings { InterfaceStyle = value }.Normalize();
 

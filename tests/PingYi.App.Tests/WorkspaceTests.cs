@@ -61,7 +61,6 @@ public class WorkspaceTests
         var window = new MainWindow { Width = width, Height = height,
             RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         // Equivalent visual state to settingsMode, without creating real AppServices.
-        Required<Border>(window, "CaptureHero").IsVisible = false;
         var tabs = Required<TabControl>(window, "SettingsTabs");
         var endpoint = Required<TextBox>(window, "CustomEndpointBox");
         endpoint.Text = "http://127.0.0.1:8080/v1/chat/completions";
@@ -92,7 +91,7 @@ public class WorkspaceTests
     }
 
     [AvaloniaFact]
-    public void Classic_capture_and_sidebar_fit_the_minimum_window()
+    public void Settings_help_and_sidebar_fit_the_minimum_window()
     {
         UiText.Configure("zh-CN");
         var window = new MainWindow { Width = 800, Height = 560 };
@@ -100,7 +99,7 @@ public class WorkspaceTests
         {
             window.Show();
             window.UpdateLayout();
-            AssertVisibleWithinWindow(window, Required<Button>(window, "CaptureButton"));
+            AssertVisibleWithinWindow(window, Required<Button>(window, "HelpButton"));
             AssertVisibleWithinWindow(window, Required<TabItem>(window, "AppearanceSettingsTab"));
             AssertVisibleWithinWindow(window, Required<Button>(window, "SaveSettingsButton"));
         }

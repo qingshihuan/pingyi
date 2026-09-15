@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.ModePickerWindow" Classes="workspace" Title="{DynamicResource Ui.Text.7116a6da8a30}" Width="700" Height="700" MinWidth="540" MinHeight="480" WindowStartupLocation="CenterOwner" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png">
+  <Window.Styles>
+    <StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/>
+    <Style Selector="ListBoxItem">
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Padding" Value="16,12"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}"/>
+    </Style>
+  </Window.Styles>
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <StackPanel Spacing="6">
+      <TextBlock Text="{DynamicResource Ui.Text.7116a6da8a30}" Classes="workspace-title"/>
+      <TextBlock Text="{DynamicResource Ui.Text.c2ec0bca09ab}" Classes="workspace-help"/>
+    </StackPanel>
+    <ListBox Grid.Row="1" x:Name="ModesList" Background="Transparent" BorderThickness="0" SelectionChanged="ModesList_OnSelectionChanged" AutomationProperties.Name="{DynamicResource Ui.Text.e1d715452e7f}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="local:ModeChoice">
+          <StackPanel Spacing="5">
+            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding Method}" FontSize="12" Foreground="{DynamicResource BrandBrush}" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding Purpose}" Classes="workspace-help"/>
+            <TextBlock Text="{Binding Requirements}" Classes="workspace-help" FontSize="12"/>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+      <TextBlock Text="{DynamicResource Ui.Text.cf15f4b8b319}" Classes="workspace-help" VerticalAlignment="Center"/>
+      <Button Grid.Column="1" Content="{DynamicResource Ui.Text.2cd0f3be8738}" Click="Cancel_OnClick"/>
+      <Button Grid.Column="2" x:Name="ApplyModeButton" Classes="primary" Content="{DynamicResource Ui.Text.487c5545cad9}" IsDefault="True" Click="Apply_OnClick"/>
+    </Grid>
+  </Grid>
+</Window>

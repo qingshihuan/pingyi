@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.HelpWindow" Classes="workspace" Title="{DynamicResource Ui.Text.4b9659ed544c}" Width="800" Height="690" MinWidth="560" MinHeight="440" WindowStartupLocation="CenterOwner" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
+  <Grid Margin="28" RowDefinitions="Auto,*,Auto" RowSpacing="18">
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="42" Height="42"/>
+      <StackPanel Grid.Column="1" Spacing="3">
+        <TextBlock Text="{DynamicResource Ui.Text.4b9659ed544c}" Classes="workspace-title"/>
+        <TextBlock x:Name="VersionText" Classes="workspace-help"/>
+      </StackPanel>
+    </Grid>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <StackPanel Spacing="16" Margin="0,0,6,0">
+        <Border Classes="workspace-card" Padding="20">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource Ui.Text.899432d83d98}" Classes="workspace-section"/>
+            <TextBlock x:Name="ShortcutsText" Classes="workspace-help"/>
+            <TextBlock Text="{DynamicResource Ui.Text.2f3956618152}" Classes="workspace-help"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="workspace-card" Padding="20">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource Ui.Text.d51db0e60727}" Classes="workspace-section"/>
+            <TextBlock Text="{DynamicResource Ui.Text.e5145676985f}" Classes="workspace-label"/>
+            <TextBlock x:Name="DataFlowText" Classes="workspace-help"/>
+            <Border Height="1" Background="{DynamicResource DividerBrush}"/>
+            <TextBlock Text="{DynamicResource Ui.Text.122f7fe9c7c6}" Classes="workspace-help"/>
+            <TextBlock Text="{DynamicResource Ui.Text.ef342590f8ff}" Classes="workspace-help"/>
+            <TextBlock Text="{DynamicResource Ui.Text.63b8870a1ef4}" Classes="workspace-help"/>
+            <TextBlock Text="{DynamicResource Ui.Text.8659f29af9af}" Classes="workspace-help"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="workspace-card" Padding="20">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{DynamicResource Ui.Text.fef9c07b0efe}" Classes="workspace-section"/>
+            <TextBlock Text="{DynamicResource Ui.Text.8480e4db725a}" Classes="workspace-help"/>
+            <WrapPanel>
+              <Button Content="{DynamicResource Ui.Text.cb4ba40bf823}" Tag="readme" Click="OpenProjectLink_OnClick" Margin="0,0,8,8"/>
+              <Button Content="{DynamicResource Ui.Text.31882138222f}" Tag="issues" Click="OpenProjectLink_OnClick" Margin="0,0,8,8"/>
+              <Button Content="{DynamicResource Ui.Text.ffdbe22ed8d6}" Tag="releases" Click="OpenProjectLink_OnClick" Margin="0,0,8,8"/>
+            </WrapPanel>
+            <TextBlock x:Name="HelpStatusText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <Button Grid.Row="2" Content="{DynamicResource Ui.Text.3fd47edce45b}" HorizontalAlignment="Right" IsDefault="True" Click="Close_OnClick"/>
+  </Grid>
+</Window>

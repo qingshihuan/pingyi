@@ -113,3 +113,14 @@ geometry and project-authored text. Microsoft YaHei and Noto CJK family names
 select installed host fonts; these fonts are not distributed by this change.
 The additional layout tests reuse the existing test packages. Native window
 controls, model providers and runtime resource policies are unchanged.
+
+## Post-0.4.0 feedback fixes
+
+The single workspace, live bilingual resources, processing-scheme chooser and
+Help/About page add no production dependency, model, font or icon package.
+Windows capture preparation calls the operating-system dwmapi.dll to temporarily
+suppress this application's window transitions and synchronize pending surface
+updates. It does not change capture affinity, global animation settings or any
+third-party window. The documentation and issue buttons open this repository
+only when the user activates them. Model/service use remains governed by the
+existing provider choices, transport restrictions and licenses.

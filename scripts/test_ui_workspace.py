@@ -16,7 +16,7 @@ class WorkspaceStructureTests(unittest.TestCase):
         self.home = ET.parse(APP / 'MainWindowV2.axaml').getroot()
 
     def test_settings_retains_backing_code_controls(self):
-        expected = '''RootWindow WindowHeadingText WindowSubtitleText CaptureHero CaptureButton
+        expected = '''RootWindow WindowHeadingText WindowSubtitleText HelpButton
         OcrProviderCombo TranslationProviderCombo TargetLanguageCombo TranslationLanguageHintText
         InstallOcrModelsButton OcrModelDownloadIcon OcrModelInstalledIcon OcrModelButtonText OcrModelStatusText
         InstallTranslationModelsButton TranslationModelDownloadIcon TranslationModelInstalledIcon
@@ -30,16 +30,16 @@ class WorkspaceStructureTests(unittest.TestCase):
         GoogleCloudApiKeyBox GoogleCloudApiKeyRevealButton GoogleOcrCredentialStatusText GoogleTranslationCredentialStatusText
         ValidateGoogleCredentialsButton LocalServicePresetCombo CustomEndpointBox CustomModelBox
         CustomApiKeyBox CustomApiKeyRevealButton CustomTranslationStatusText UseLocalLlamaPresetButton
-        TestCustomTranslationButton TestCustomVisionButton InterfaceStyleCombo HotkeyBox UiLanguageCombo
+        TestCustomTranslationButton TestCustomVisionButton HotkeyBox UiLanguageCombo
         StartMinimizedCheckBox CheckForUpdatesCheckBox CheckUpdatesNowButton OpenLatestReleaseButton
-        UpdateStatusText OpenClassicInterfaceButton GlobalStatusBorder StatusIndicator GlobalStatusText SaveSettingsButton'''.split()
+        UpdateStatusText GlobalStatusBorder StatusIndicator GlobalStatusText SaveSettingsButton'''.split()
         actual = {n.get(NAME) for n in self.settings.iter()}
         self.assertEqual(set(expected) - actual, set())
 
     def test_home_retains_status_and_capture_controls(self):
         expected = '''TopStatusText TopStatusDot LiveStatusTitleText LiveStatusDetailText LiveStatusDot
         RecoveryBorder RecoveryDetailText ModeSummaryText OcrSummaryText TranslationSummaryText
-        PrivacySummaryText CaptureHotkeyText ModelStatusDot ModelStatusTitleText ModelStatusDetailText CaptureButtonV2'''.split()
+        ModePurposeText ModeRequirementsText ChooseModeButton TargetSummaryText CaptureHotkeyText ModelStatusDot ModelStatusTitleText ModelStatusDetailText CaptureButtonV2'''.split()
         self.assertTrue(set(expected) <= {n.get(NAME) for n in self.home.iter()})
 
     def test_named_controls_are_unique(self):
@@ -79,14 +79,14 @@ class WorkspaceStructureTests(unittest.TestCase):
             self.assertFalse(used - defined)
 
     def test_existing_handlers_remain_connected(self):
-        expected = '''CaptureButton_OnClick ProviderCombo_OnSelectionChanged TargetLanguageCombo_OnSelectionChanged
+        expected = '''HelpButton_OnClick UiLanguageCombo_OnSelectionChanged ProviderCombo_OnSelectionChanged TargetLanguageCombo_OnSelectionChanged
         CheckStatusButton_OnClick InstallOcrModelsButton_OnClick InstallTranslationModelsButton_OnClick
         DeleteModelsButton_OnClick ManagedModelCombo_OnSelectionChanged ManagedRuntimeBackendCombo_OnSelectionChanged
         ManagedModelSourceButton_OnClick ManagedModelFolderButton_OnClick ManagedModelCancelButton_OnClick
         ManagedModelStartButton_OnClick ManagedModelInstallButton_OnClick ToggleSecretVisibility_OnClick
         ValidateBaiduCredentialsButton_OnClick ValidateGoogleCredentialsButton_OnClick UseLocalLlamaPresetButton_OnClick
         TestCustomTranslationButton_OnClick TestCustomVisionButton_OnClick CheckUpdatesNowButton_OnClick
-        OpenLatestReleaseButton_OnClick OpenClassicInterfaceButton_OnClick SaveButton_OnClick'''.split()
+        OpenLatestReleaseButton_OnClick SaveButton_OnClick'''.split()
         used = {n.get(a) for n in self.settings.iter() for a in ('Click', 'SelectionChanged')}
         self.assertTrue(set(expected) <= used)
 

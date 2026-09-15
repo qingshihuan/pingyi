@@ -25,7 +25,6 @@ public class NativeFinishingTests
         var window = new MainWindow { RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         try
         {
-            C<Border>(window, "CaptureHero").IsVisible = false;
             C<TextBlock>(window, "GlobalStatusText").Text = WorkspaceText.Preview;
             Choice(window, "OcrProviderCombo", "PaddleOCR · ONNX");
             Choice(window, "TranslationProviderCombo", "Argos · Offline");
@@ -71,9 +70,7 @@ public class NativeFinishingTests
             if (width >= 1040)
             {
                 AssertInScrollViewport(C<Button>(window, "RefreshWorkspaceButton"));
-                var privacy = window.GetVisualDescendants().OfType<TextBlock>()
-                    .Single(t => t.Text == WorkspaceText.NoHistory);
-                AssertInScrollViewport(privacy);
+                AssertInScrollViewport(C<TextBlock>(window, "ModeRequirementsText"));
             }
             var button = C<Button>(window, "CaptureButtonV2");
             button.IsEnabled = false;
