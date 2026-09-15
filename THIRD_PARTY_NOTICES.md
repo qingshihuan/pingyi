@@ -86,3 +86,13 @@ Microsoft.NET.Test.Sdk and xunit.runner.visualstudio. These packages are test
 infrastructure only and are not part of PingYi application publishing.
 CI may install Noto CJK fonts on the test runner to render Chinese snapshots;
 those runner fonts and generated test snapshots are not bundled in releases.
+
+## Startup and resource policy
+
+The startup/resource changes use the existing pinned Avalonia, ONNX Runtime,
+Argos and CTranslate2 dependencies. No production dependency or model version
+is added or upgraded. ONNX session threading is configured according to its
+upstream API, and dense output buffers are borrowed only while their output
+owners remain alive. The optional CI performance workflow installs the existing
+CPU-only requirements without transitive optional NLP stacks; its measurements
+contain no user screenshots, recognized text, translations or credentials.
