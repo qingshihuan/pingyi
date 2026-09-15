@@ -41,4 +41,4 @@ python -m unittest discover -s engine_host -p 'test_*.py'
 
 ## 第三方说明补充
 
-未增加生产依赖。开发测试使用与主应用同版本的 Avalonia.Headless.XUnit 12.1.1（Avalonia，MIT），以及仓库既有版本的 xUnit 和 Microsoft.NET.Test.Sdk；均只属于测试项目，不打进生产发布。截图图标为项目内简单矢量路径，品牌图标沿用仓库现有资源。
+未增加生产依赖。UI 测试使用 Avalonia.Headless.XUnit 12.1.1（Avalonia，MIT）与兼容它的 xUnit v3 3.2.2（Apache-2.0）；Core 测试继续保留原来的 xUnit v2，不混用程序集。Microsoft.NET.Test.Sdk 和 Visual Studio runner 沿用仓库既有版本。测试依赖不打进生产发布。截图图标为项目内简单矢量路径，品牌图标沿用仓库现有资源。完整说明见 `THIRD_PARTY_NOTICES.md`。

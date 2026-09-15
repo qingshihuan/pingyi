@@ -65,6 +65,16 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 
 > Windows SmartScreen 可能会提示未识别的发布者，因为当前开源版本尚未购买商业代码签名证书。请只从本仓库 Releases 下载，并使用随 Release 提供的 SHA-256 校验文件核对成品。
 
+## 新版工作台与分类设置
+
+源码中的主界面已改为截图工作台：截图按钮和当前快捷键优先展示，模型可用性、处理方案与隐私范围继续读取真实配置。主界面与设置窗口共用浅色/深色资源，支持中文与 English。
+
+设置使用左侧五类导航：**识别与翻译、本地模型、云端服务、自定义接口、外观与启动**。各页独立滚动，底部状态与“保存并应用”固定显示，切换分类保留未保存输入。识别引擎、翻译引擎及目标语言沿用立即生效；其他设置仍按保存、应用预设或验证按钮生效。
+
+工作台支持 `Ctrl+,` 打开设置、`F5` 刷新状态；设置及完整界面支持 `Ctrl+S` 保存。默认全局截图键仍为 `Ctrl+Alt+D`，没有重置现有用户配置。“经典完整界面”入口仍提供同窗截图与全部配置，但也改用分类布局。
+
+实现、测试与平台验收边界见 [UI 改造说明](docs/UI_WORKSPACE.md)。顶部演示素材尚未更新为此次布局；真实 XAML 测试截图由 CI 的 `ui-snapshots-*` 工件提供。此次源码改造没有自动发布安装包，发布状态以 Releases 为准。
+
 ## 本地、云端与显卡边界
 
 | 能力 | 默认实现 | 是否联网 | 计算设备 |
@@ -84,14 +94,14 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 
 1. 在自己的 Google Cloud 项目中启用 [Cloud Vision API](https://cloud.google.com/vision/docs) 与 [Cloud Translation API](https://cloud.google.com/translate/docs/basic/translating-text)。
 2. 创建 API Key，并按 Google 的建议限制其只能访问这两个 API；如果平台条件允许，再增加应用或来源限制。
-3. 打开“设置 → Google Cloud OCR 与翻译凭据”，点击“显示”后粘贴 Key，再选择“保存并验证 Google 凭据”。
-4. 在处理引擎中分别选择 `Google Cloud Vision OCR` 或 `Google Cloud Translation`。两者可以与本地或其他云端提供商自由组合。
+3. 打开“设置 → 云端服务 → Google Cloud OCR 与翻译凭据”，点击“显示”后粘贴 Key，再选择“保存并验证 Google 凭据”。
+4. 在“识别与翻译”中分别选择 `Google Cloud Vision OCR` 或 `Google Cloud Translation`。两者可以与本地或其他云端提供商自由组合。
 
 Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `settings.json`。验证 OCR 时只上传内置的 1×1 透明测试图，验证翻译时只发送固定单词 `test`。实际使用中，只有选择 Google OCR 才会上传所选截图；Google 翻译只接收识别后的文字。Google Cloud 的启用、配额和费用由用户自己的项目承担。
 
 ## 完全版一键本机模型
 
-在“设置 → 完全版 · 一键本机多模态模型”中先选模型，再选择运行后端并点击“一键下载并配置”。下载支持断点续传，完成后按固定文件大小和 SHA-256 校验；模型文件不会打进 Git 仓库或安装包。
+在“设置 → 本地模型 → 完全版 · 一键本机多模态模型”中先选模型，再选择运行后端并点击“一键下载并配置”。下载支持断点续传，完成后按固定文件大小和 SHA-256 校验；模型文件不会打进 Git 仓库或安装包。
 
 | 模型 | 下载量 | 建议设备 | 定位 |
 | --- | ---: | --- | --- |

@@ -72,3 +72,17 @@ health and translation requests. Explicit model installation remains a separate
 network-capable operation. These adapter changes do not add, replace, or upgrade
 third-party packages, models, native runtimes, or their license terms. They are
 not an operating-system network sandbox or a guarantee about native-library I/O.
+
+## Workspace UI development tests
+
+The workspace redesign reuses the existing Avalonia/Fluent/Skia runtime and
+repository branding assets. It adds no production runtime, font, icon-pack,
+model or service dependency.
+
+The separate `PingYi.App.Tests` project uses Avalonia.Headless.XUnit 12.1.1
+(from Avalonia, MIT; https://github.com/AvaloniaUI/Avalonia), xUnit v3 3.2.2
+(Apache-2.0; https://github.com/xunit/xunit), and the existing versions of
+Microsoft.NET.Test.Sdk and xunit.runner.visualstudio. These packages are test
+infrastructure only and are not part of PingYi application publishing.
+CI may install Noto CJK fonts on the test runner to render Chinese snapshots;
+those runner fonts and generated test snapshots are not bundled in releases.
