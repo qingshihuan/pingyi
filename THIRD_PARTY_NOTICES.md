@@ -107,3 +107,9 @@ with the existing Inter package retained as a fallback. This visual refinement
 does not add macOS platform support, a web runtime, or additional production
 dependencies. Synthetic text in UI test previews is authored for this project;
 the previews do not contain real captures, credentials, or connected services.
+
+The grouped-preferences finishing pass adds only original static document-card
+geometry and project-authored text. Microsoft YaHei and Noto CJK family names
+select installed host fonts; these fonts are not distributed by this change.
+The additional layout tests reuse the existing test packages. Native window
+controls, model providers and runtime resource policies are unchanged.
