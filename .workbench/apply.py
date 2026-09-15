@@ -35,3 +35,7 @@ for manifest in sorted((root / '.workbench').glob('edits-*.json')):
 print('Applied reviewed edits to', len(paths), 'source files.')
 if '--stage' in __import__('sys').argv:
     subprocess.run(['git', 'add', '--', *paths], cwd=root, check=True)
+post = root / '.workbench/after.py'
+if post.exists():
+    import runpy
+    runpy.run_path(str(post))
