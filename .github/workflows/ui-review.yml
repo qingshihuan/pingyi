@@ -1,0 +1,26 @@
+name: UI review inputs
+on:
+  push:
+    paths:
+      - 'src/PingYi.App/**'
+      - 'tests/PingYi.App.Tests/**'
+      - 'scripts/test_ui*'
+      - '.github/workflows/ui-review.yml'
+permissions:
+  contents: read
+jobs:
+  source-and-structure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: python3 -m unittest discover -s scripts -p 'test_ui*.py'
+      - name: Archive exact tracked source for UI review
+        run: |
+          mkdir -p artifacts/ui-review
+          git archive --format=zip --output=artifacts/ui-review/source.zip HEAD
+          git rev-parse HEAD > artifacts/ui-review/commit.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-review-source
+          path: artifacts/ui-review/
+          retention-days: 3
