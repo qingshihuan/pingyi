@@ -96,3 +96,14 @@ upstream API, and dense output buffers are borrowed only while their output
 owners remain alive. The optional CI performance workflow installs the existing
 CPU-only requirements without transitive optional NLP stacks; its measurements
 contain no user screenshots, recognized text, translations or credentials.
+
+## macOS-inspired visual refinement
+
+The refined interface uses original XAML geometry, a project-authored semantic
+palette, and the existing PingYi branding. No Apple artwork, SF Symbols,
+San Francisco font files, or new third-party icon/font packages are bundled.
+Font-family names refer only to fonts already installed on the host system,
+with the existing Inter package retained as a fallback. This visual refinement
+does not add macOS platform support, a web runtime, or additional production
+dependencies. Synthetic text in UI test previews is authored for this project;
+the previews do not contain real captures, credentials, or connected services.
