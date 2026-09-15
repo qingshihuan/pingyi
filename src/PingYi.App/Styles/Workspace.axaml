@@ -1,0 +1,79 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Deliberately reuse App's light/dark tokens and native Fluent controls. -->
+  <Style Selector="Window.workspace"><Setter Property="FontSize" Value="14" /></Style>
+  <Style Selector="Border.workspace-card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="24" />
+  </Style>
+  <Style Selector="Border.workspace-inset">
+    <Setter Property="Background" Value="{DynamicResource SubtleBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+  <Style Selector="TextBlock.workspace-title">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.workspace-section">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.workspace-help">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="LineHeight" Value="21" />
+    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.workspace-label">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="Button.workspace-capture">
+    <Setter Property="MinHeight" Value="54" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource BrandHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BrandHoverBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.workspace-capture:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource BrandBrush}" /></Style>
+  <Style Selector="Button.workspace-capture:disabled /template/ ContentPresenter"><Setter Property="Opacity" Value="0.55" /></Style>
+  <Style Selector="Button.secret-action">
+    <Setter Property="MinWidth" Value="72" />
+    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+  <Style Selector="TextBox.workspace-field">
+    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="ComboBox.workspace-field">
+    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <!-- Keep the native tab template, selection indicator, and keyboard semantics. -->
+  <Style Selector="TabItem.workspace-tab">
+    <Setter Property="Width" Value="168" />
+    <Setter Property="MinHeight" Value="52" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Margin" Value="0,0,12,4" />
+  </Style>
+  <Style Selector="TabItem.workspace-tab:selected">
+    <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="ScrollViewer.workspace-page">
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+</Styles>
