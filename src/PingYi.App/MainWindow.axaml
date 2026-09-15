@@ -30,7 +30,7 @@
           </Grid>
         </TabItem.Header>
         <ScrollViewer Classes="workspace-page">
-          <StackPanel Margin="28,4,28,20" Spacing="14">
+          <StackPanel Margin="28,4,28,20" Spacing="12">
             <StackPanel Spacing="6" Margin="0,0,0,4">
               <TextBlock Text="{x:Static local:WorkspaceText.General}" Classes="workspace-title"/>
               <TextBlock Text="{x:Static local:WorkspaceText.GeneralHint}" Classes="workspace-help"/>
@@ -39,7 +39,7 @@
             <TextBlock Text="{x:Static local:PolishText.RecognitionGroup}" Classes="preference-heading"/>
             <Border Classes="preference-group">
               <StackPanel>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,16">
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
                   <TextBlock Text="文字识别" Classes="workspace-label" VerticalAlignment="Center"/>
                   <ComboBox x:Name="OcrProviderCombo" Classes="workspace-field" AutomationProperties.Name="文字识别提供商" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
                 </Grid>
@@ -48,12 +48,12 @@
             <TextBlock Text="{x:Static local:PolishText.TranslationGroup}" Classes="preference-heading"/>
             <Border Classes="preference-group">
               <StackPanel>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,16">
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
                   <TextBlock Text="翻译方式" Classes="workspace-label" VerticalAlignment="Center"/>
                   <ComboBox x:Name="TranslationProviderCombo" Classes="workspace-field" AutomationProperties.Name="翻译提供商" SelectionChanged="ProviderCombo_OnSelectionChanged" Grid.Column="1"/>
                 </Grid>
                 <Border Height="1" Margin="18,0" Background="{DynamicResource DividerBrush}"/>
-                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,16">
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="18" Margin="18,12">
                   <TextBlock Text="目标语言" Classes="workspace-label" VerticalAlignment="Center"/>
                   <ComboBox x:Name="TargetLanguageCombo" Classes="workspace-field" AutomationProperties.Name="翻译目标语言" SelectionChanged="TargetLanguageCombo_OnSelectionChanged" Grid.Column="1"/>
                 </Grid>

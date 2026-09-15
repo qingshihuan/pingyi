@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Automation;
+using SkiaSharp;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
@@ -32,6 +34,9 @@ public class NativeFinishingTests
             window.UpdateLayout();
             foreach (var name in new[] { "OcrProviderCombo", "TranslationProviderCombo", "TargetLanguageCombo", "SaveSettingsButton" })
                 AssertInWindow(window, C<Control>(window, name));
+            var check = window.GetVisualDescendants().OfType<Button>()
+                .Single(b => AutomationProperties.GetName(b) == UiText.T("检查处理引擎状态"));
+            AssertInScrollViewport(check);
             Assert.DoesNotContain(C<Button>(window, "SaveSettingsButton").GetVisualAncestors(), c => c is ScrollViewer);
             C<TextBox>(window, "CustomModelBox").Text = "unsaved-example";
             var tabs = C<TabControl>(window, "SettingsTabs");
@@ -63,12 +68,38 @@ public class NativeFinishingTests
             window.Show(); window.UpdateLayout();
             AssertInWindow(window, C<Button>(window, "CaptureButtonV2"));
             AssertInWindow(window, C<TextBlock>(window, "LiveStatusTitleText"));
+            if (width >= 1040)
+            {
+                AssertInScrollViewport(C<Button>(window, "RefreshWorkspaceButton"));
+                var privacy = window.GetVisualDescendants().OfType<TextBlock>()
+                    .Single(t => t.Text == WorkspaceText.NoHistory);
+                AssertInScrollViewport(privacy);
+            }
             var button = C<Button>(window, "CaptureButtonV2");
             button.IsEnabled = false;
             Assert.False(button.IsEffectivelyEnabled);
             Frame(window, $"polished-busy-{width}-{language}");
         }
         finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public void Resolves_an_available_sans_family_instead_of_a_mixed_asset_uri()
+    {
+        var installed = SKFontManager.Default.FontFamilies.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string[] preferred = ["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC",
+            "Noto Sans SC", "PingFang SC", "WenQuanYi Micro Hei", "Segoe UI", "DejaVu Sans"];
+        var expected = preferred.FirstOrDefault(installed.Contains);
+        Assert.Equal(expected ?? "Inter", DesktopTypography.Interface.Name);
+    }
+
+    private static void AssertInScrollViewport(Control c)
+    {
+        var scroll = c.GetVisualAncestors().OfType<ScrollViewer>().First();
+        var p = c.TranslatePoint(default, scroll);
+        Assert.True(p.HasValue && p.Value.Y >= 0);
+        Assert.True(p.Value.Y + c.Bounds.Height <= scroll.Bounds.Height + 1,
+            $"{c.Name ?? c.GetType().Name} extends below its scroll viewport.");
     }
 
     private static T C<T>(Window w, string n) where T : Control => w.FindControl<T>(n) ?? throw new InvalidOperationException(n);

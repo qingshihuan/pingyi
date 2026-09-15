@@ -1,7 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App">
   <!-- Native controls, static materials and original vectors. No render loop or blur. -->
   <Style Selector="Window.workspace">
-    <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Noto Sans CJK SC, Noto Sans SC, Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter" />
+    <Setter Property="FontFamily" Value="{x:Static local:DesktopTypography.Interface}" />
     <Setter Property="FontSize" Value="14" />
   </Style>
   <Style Selector="Border.workspace-card">
