@@ -2,7 +2,7 @@
   <!-- Original semantic palette. No Apple fonts, symbols or platform effects are bundled. -->
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
-      <SolidColorBrush x:Key="PageBackgroundBrush">#F5F5F7</SolidColorBrush>
+      <SolidColorBrush x:Key="PageBackgroundBrush">#F8F9FC</SolidColorBrush>
       <SolidColorBrush x:Key="CardBackgroundBrush">#FFFFFF</SolidColorBrush>
       <SolidColorBrush x:Key="ElevatedBackgroundBrush">#FFFFFF</SolidColorBrush>
       <SolidColorBrush x:Key="SubtleBackgroundBrush">#F0F1F4</SolidColorBrush>
@@ -10,11 +10,11 @@
       <SolidColorBrush x:Key="PrimaryTextBrush">#1D1D1F</SolidColorBrush>
       <SolidColorBrush x:Key="SecondaryTextBrush">#62646C</SolidColorBrush>
       <SolidColorBrush x:Key="TertiaryTextBrush">#70727A</SolidColorBrush>
-      <SolidColorBrush x:Key="BorderBrush">#DFE1E6</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderBrush">#E0E2E8</SolidColorBrush>
       <SolidColorBrush x:Key="DividerBrush">#E9EAEE</SolidColorBrush>
       <SolidColorBrush x:Key="InputBackgroundBrush">#FFFFFF</SolidColorBrush>
-      <SolidColorBrush x:Key="SidebarBrush">#ECEEF2</SolidColorBrush>
-      <SolidColorBrush x:Key="SidebarSelectionBrush">#FFFFFF</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarBrush">#F0F1F5</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarSelectionBrush">#DEE9FC</SolidColorBrush>
       <SolidColorBrush x:Key="BrandBrush">#0865D9</SolidColorBrush>
       <SolidColorBrush x:Key="BrandSoftBrush">#EAF2FF</SolidColorBrush>
       <SolidColorBrush x:Key="SuccessBackgroundBrush">#EAF6EF</SolidColorBrush>
@@ -25,11 +25,22 @@
       <SolidColorBrush x:Key="PurpleSoftBrush">#F1EDFC</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleInkBrush">#7451B7</SolidColorBrush>
       <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-        <GradientStop Color="#FFFFFF" Offset="0" /><GradientStop Color="#F8FAFF" Offset="0.55" /><GradientStop Color="#EDF2FC" Offset="1" />
+        <GradientStop Color="#FFFFFF" Offset="0"/>
+        <GradientStop Color="#F8FAFF" Offset="0.55"/>
+        <GradientStop Color="#EDF2FC" Offset="1"/>
       </LinearGradientBrush>
+      <SolidColorBrush x:Key="NavBlueBrush">#0877F9</SolidColorBrush>
+      <SolidColorBrush x:Key="NavGreenBrush">#27864D</SolidColorBrush>
+      <SolidColorBrush x:Key="NavCyanBrush">#14889B</SolidColorBrush>
+      <SolidColorBrush x:Key="NavPurpleBrush">#8657CE</SolidColorBrush>
+      <SolidColorBrush x:Key="NavGrayBrush">#687487</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarSelectedTextBrush">#1458BD</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroAccentBrush">#DDEBFF</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroPaperBrush">#FFFFFF</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroLineBrush">#D7DDEA</SolidColorBrush>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
-      <SolidColorBrush x:Key="PageBackgroundBrush">#18191D</SolidColorBrush>
+      <SolidColorBrush x:Key="PageBackgroundBrush">#191B20</SolidColorBrush>
       <SolidColorBrush x:Key="CardBackgroundBrush">#23252B</SolidColorBrush>
       <SolidColorBrush x:Key="ElevatedBackgroundBrush">#2C2E35</SolidColorBrush>
       <SolidColorBrush x:Key="SubtleBackgroundBrush">#2D3038</SolidColorBrush>
@@ -37,11 +48,11 @@
       <SolidColorBrush x:Key="PrimaryTextBrush">#F2F2F7</SolidColorBrush>
       <SolidColorBrush x:Key="SecondaryTextBrush">#AFB2BE</SolidColorBrush>
       <SolidColorBrush x:Key="TertiaryTextBrush">#A1A5B2</SolidColorBrush>
-      <SolidColorBrush x:Key="BorderBrush">#3C3F49</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderBrush">#3D404A</SolidColorBrush>
       <SolidColorBrush x:Key="DividerBrush">#34363F</SolidColorBrush>
       <SolidColorBrush x:Key="InputBackgroundBrush">#1C1E24</SolidColorBrush>
-      <SolidColorBrush x:Key="SidebarBrush">#202228</SolidColorBrush>
-      <SolidColorBrush x:Key="SidebarSelectionBrush">#363A44</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarBrush">#202127</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarSelectionBrush">#2B3C58</SolidColorBrush>
       <SolidColorBrush x:Key="BrandBrush">#75ADFF</SolidColorBrush>
       <SolidColorBrush x:Key="BrandSoftBrush">#283C58</SolidColorBrush>
       <SolidColorBrush x:Key="SuccessBackgroundBrush">#233C30</SolidColorBrush>
@@ -52,8 +63,19 @@
       <SolidColorBrush x:Key="PurpleSoftBrush">#38304A</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleInkBrush">#C4A7F4</SolidColorBrush>
       <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
-        <GradientStop Color="#282B34" Offset="0" /><GradientStop Color="#242B3A" Offset="0.55" /><GradientStop Color="#24344D" Offset="1" />
+        <GradientStop Color="#282B34" Offset="0"/>
+        <GradientStop Color="#242B3A" Offset="0.55"/>
+        <GradientStop Color="#24344D" Offset="1"/>
       </LinearGradientBrush>
+      <SolidColorBrush x:Key="NavBlueBrush">#0877F9</SolidColorBrush>
+      <SolidColorBrush x:Key="NavGreenBrush">#27864D</SolidColorBrush>
+      <SolidColorBrush x:Key="NavCyanBrush">#14889B</SolidColorBrush>
+      <SolidColorBrush x:Key="NavPurpleBrush">#8657CE</SolidColorBrush>
+      <SolidColorBrush x:Key="NavGrayBrush">#687487</SolidColorBrush>
+      <SolidColorBrush x:Key="SidebarSelectedTextBrush">#E5EFFF</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroAccentBrush">#33456B</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroPaperBrush">#303440</SolidColorBrush>
+      <SolidColorBrush x:Key="HeroLineBrush">#565F72</SolidColorBrush>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
   <SolidColorBrush x:Key="ActionFillBrush">#0765DB</SolidColorBrush>
@@ -65,3 +87,4 @@
   <SolidColorBrush x:Key="DangerBrush">#D74750</SolidColorBrush>
   <SolidColorBrush x:Key="FocusRingBrush">#408AEE</SolidColorBrush>
 </ResourceDictionary>
+
