@@ -1,0 +1,71 @@
+name: Validate five feedback fixes
+
+on:
+  push:
+    branches: [fix/five-feedback-issues]
+    paths: ['.workbench/**', '.github/workflows/feedback-workbench.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - run: python .workbench/apply.py
+      - run: python .workbench/finalize.py
+      - name: Fonts for Linux UI checks
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+      - run: dotnet restore PingYi.slnx
+      - run: dotnet build PingYi.slnx -c Release --no-restore
+      - run: dotnet test PingYi.slnx -c Release --no-build --logger trx --results-directory artifacts/tests
+        env:
+          PINGYI_UI_ARTIFACTS: ${{ github.workspace }}/artifacts/ui
+      - run: python -m unittest discover -s engine_host -p "test_*.py"
+      - run: python -m unittest discover -s scripts -p "test_*.py"
+      - run: git diff --check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: five-fixes-checks-${{ matrix.os }}
+          path: artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+  materialize:
+    needs: validate
+    if: github.ref == 'refs/heads/fix/five-feedback-issues'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: python3 .workbench/apply.py
+      - run: python3 .workbench/finalize.py
+      - name: Commit only tested application sources
+        run: |
+          git add src tests scripts docs README.md THIRD_PARTY_NOTICES.md
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix five feedback issues: single workspace, capture isolation, live language, scheme chooser and help'
+          git push origin HEAD:refs/heads/fix/five-feedback-issues
+          mkdir -p artifacts
+          git archive HEAD --format=zip --output=artifacts/five-fixes-source.zip
+          git rev-parse HEAD > artifacts/commit.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: five-fixes-source
+          path: artifacts
+          retention-days: 7
