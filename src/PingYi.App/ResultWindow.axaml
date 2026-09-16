@@ -2,7 +2,7 @@
         x:Class="PingYi.App.ResultWindow" Classes="workspace" Title="{DynamicResource Text.43fb060119c0}"
         Width="660" Height="580" MinWidth="460" MinHeight="440" ShowInTaskbar="False" WindowStartupLocation="Manual">
   <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml" /></Window.Styles>
-  <Grid Margin="22" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+  <Grid Margin="18" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
       <StackPanel Spacing="5">
         <TextBlock x:Name="ResultHeading" Text="{DynamicResource String.ResultTitle}" FontSize="20" FontWeight="SemiBold" />
@@ -26,8 +26,8 @@
     </Grid>
     <ProgressBar Grid.Row="1" x:Name="ProcessingProgress" Height="3" IsIndeterminate="True" Foreground="{DynamicResource BrandBrush}" AutomationProperties.Name="{DynamicResource Text.01f61382b4b0}" />
     <Grid Grid.Row="2" x:Name="ResultContentGrid" RowDefinitions="*,*" RowSpacing="14">
-      <Border x:Name="SourceCard" Classes="workspace-card" Padding="18">
-        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+      <Border x:Name="SourceCard" Classes="workspace-card" Padding="12">
+        <Grid RowDefinitions="Auto,*" RowSpacing="6">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{DynamicResource Text.354b28c85333}" Classes="workspace-label" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
             <Button Grid.Column="1" Classes="ghost" Click="CopySourceButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="{DynamicResource Text.2e8a27d3a971}">
@@ -41,8 +41,8 @@
                    IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{DynamicResource Text.07dfec93a84e}" />
         </Grid>
       </Border>
-      <Border Grid.Row="1" Classes="workspace-card" Padding="18" BorderBrush="{DynamicResource BrandSoftBrush}">
-        <Grid RowDefinitions="Auto,*" RowSpacing="10">
+      <Border Grid.Row="1" Classes="workspace-card" Padding="12" BorderBrush="{DynamicResource BrandSoftBrush}">
+        <Grid RowDefinitions="Auto,*" RowSpacing="6">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock x:Name="OutputHeading" Text="{DynamicResource Text.80461c2decc5}" Classes="workspace-label" Foreground="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
             <Button Grid.Column="1" x:Name="CopyOutputButton" Classes="ghost" Click="CopyTranslationButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="{DynamicResource Text.032eb48c7a43}">
@@ -61,7 +61,7 @@
       <WrapPanel x:Name="ImageActionPanel">
         <Button x:Name="DescribeResultButton" Content="{DynamicResource String.DescribeImage}" Classes="secondary" Click="DescribeResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
         <Button x:Name="PromptResultButton" Content="{DynamicResource String.ReconstructPrompt}" Classes="secondary" Click="PromptResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
-        <Button x:Name="TranslateResultButton" Content="{DynamicResource String.TranslateText}" Classes="ghost" Click="TranslateResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,0,4"/>
+        <Button x:Name="TranslateResultButton" IsVisible="False" Content="{DynamicResource String.TranslateText}" Classes="ghost" Click="TranslateResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,0,4"/>
       </WrapPanel>
       <TextBlock x:Name="AnalysisHint" Text="{DynamicResource String.AnalysisCaution}" IsVisible="False" Classes="workspace-help" FontSize="11" LineHeight="16"/>
       <WrapPanel HorizontalAlignment="Right">

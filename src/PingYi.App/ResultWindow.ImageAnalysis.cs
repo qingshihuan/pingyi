@@ -13,10 +13,11 @@ public partial class ResultWindow
 
     public void SetPurpose(CapturePurpose purpose)
     {
+        if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
         Purpose = purpose;
         var isText = purpose == CapturePurpose.TranslateText;
         var key = purpose == CapturePurpose.DescribeImage ? "String.DescribeImage" : "String.ReconstructPrompt";
-        if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
+        TranslateResultButton.IsVisible = !isText;
         SourceCard.IsVisible = isText;
         AnalysisHint.IsVisible = !isText;
         ResultContentGrid.RowDefinitions = new RowDefinitions(isText ? "*,*" : "0,*");
