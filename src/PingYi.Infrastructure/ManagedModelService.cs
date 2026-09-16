@@ -40,6 +40,7 @@ public sealed class ManagedModelService : IAsyncDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<string> _recentServerErrors = new();
     private Process? _ownedProcess;
+    private Task[] _outputReaders = [];
     private string? _runningModelId;
     private string? _runningBackendId;
     private int _disposeState;
@@ -52,7 +53,7 @@ public sealed class ManagedModelService : IAsyncDisposable
             Timeout = Timeout.InfiniteTimeSpan
         };
         _downloadClient.DefaultRequestHeaders.UserAgent.ParseAdd("PingYi-Complete/0.2");
-        _probeClient = new HttpClient
+        _probeClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
         {
             Timeout = TimeSpan.FromSeconds(2)
         };
@@ -191,7 +192,12 @@ public sealed class ManagedModelService : IAsyncDisposable
                     return $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-                catch (Exception exception) when (exception is TimeoutException or InvalidOperationException)
+                catch (TimeoutException)
+                {
+                    throw new ProviderException("managed_runtime_busy",
+                        "本机模型进程仍在运行，但状态检查暂时未响应。没有重启或重新加载模型，请稍后重试。");
+                }
+                catch (InvalidOperationException)
                 {
                     await StopOwnedProcessCoreAsync();
                 }
@@ -210,6 +216,7 @@ public sealed class ManagedModelService : IAsyncDisposable
 
             if (await EndpointServesModelAsync(model.ModelAlias, cancellationToken))
             {
+                await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(12), cancellationToken);
                 var ownedProcessMatches = _ownedProcess is not null &&
                                           string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&
                                           (normalizedBackend == ManagedRuntimeBackends.Auto.Id ||
@@ -519,8 +526,6 @@ public sealed class ManagedModelService : IAsyncDisposable
         startInfo.ArgumentList.Add("--log-disable");
 
         var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-        process.OutputDataReceived += CaptureServerLine;
-        process.ErrorDataReceived += CaptureServerLine;
         if (!process.Start())
         {
             process.Dispose();
@@ -529,28 +534,16 @@ public sealed class ManagedModelService : IAsyncDisposable
 
         // Own the process before starting readers, so a reader setup failure is cleaned up.
         _ownedProcess = process;
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        _outputReaders = [
+            ManagedServerDiagnostics.DrainAsync(process.StandardOutput, _recentServerErrors),
+            ManagedServerDiagnostics.DrainAsync(process.StandardError, _recentServerErrors)
+        ];
     }
 
     private static void AddArgument(ProcessStartInfo startInfo, string name, string value)
     {
         startInfo.ArgumentList.Add(name);
         startInfo.ArgumentList.Add(value);
-    }
-
-    private void CaptureServerLine(object sender, DataReceivedEventArgs eventArgs)
-    {
-        if (string.IsNullOrWhiteSpace(eventArgs.Data))
-        {
-            return;
-        }
-
-        _recentServerErrors.Enqueue(eventArgs.Data);
-        while (_recentServerErrors.Count > 12)
-        {
-            _recentServerErrors.TryDequeue(out _);
-        }
     }
 
     private Task WaitUntilReadyAsync(
@@ -635,15 +628,16 @@ public sealed class ManagedModelService : IAsyncDisposable
                 _runningModelId = null;
                 _runningBackendId = null;
                 process.Dispose();
+                try { await Task.WhenAll(_outputReaders).WaitAsync(TimeSpan.FromSeconds(2)); }
+                catch (TimeoutException) { }
+                _outputReaders = [];
             }
         }
     }
 
     private string BuildServerErrorMessage(Exception? exception)
     {
-        var detail = _recentServerErrors.LastOrDefault(line =>
-            line.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-            line.Contains("failed", StringComparison.OrdinalIgnoreCase));
+        var detail = _recentServerErrors.LastOrDefault();
         return !string.IsNullOrWhiteSpace(detail)
             ? detail
             : exception?.Message ?? "请确认显卡驱动正常，或重新安装完全版运行时。";

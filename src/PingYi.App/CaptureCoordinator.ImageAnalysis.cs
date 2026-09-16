@@ -8,8 +8,14 @@ public sealed partial class CaptureCoordinator
 {
     private Task RetryAsImageAnalysisAsync(ResultWindow window, CapturePurpose purpose)
     {
-        window.SetPurpose(purpose);
-        return RetrySelectionAsync(window);
+        return RetrySelectionAsync(window, purpose);
+    }
+
+    private void CancelForWindow(ResultWindow window)
+    {
+        OperationContext? operation;
+        lock (_operationSync) operation = _currentOperation;
+        if (ReferenceEquals(operation?.TargetWindow, window)) Cancel(operation);
     }
 
     private async Task<ProviderAvailability> WaitForModelAsync(OperationContext operation, ResultWindow window,
@@ -39,7 +45,7 @@ public sealed partial class CaptureCoordinator
         {
             EnsureCurrent(operation);
             if (!AppSettings.TryParseChatCompletionsEndpoint(snapshot.CustomTranslationEndpoint, out var endpoint) ||
-                string.IsNullOrWhiteSpace(snapshot.CustomTranslationModel))
+                string.IsNullOrWhiteSpace(snapshot.CustomTranslationModel) || !string.IsNullOrEmpty(endpoint.UserInfo))
                 throw new ProviderException("image_analysis_configuration", UiText.Get("String.VisionConfiguration"));
             if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
                 throw new ProviderException("custom_endpoint_insecure_transport", UiText.Get("String.VisionHttps"));
@@ -76,7 +82,7 @@ public sealed partial class CaptureCoordinator
         catch (Exception exception)
         {
             EnsureCurrent(operation);
-            window.SetError(UiText.Error(exception));
+            window.SetError(VisionErrors.Describe(exception));
         }
     }
 }

@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PingYi.App.ImageAnalysisConsentWindow" Classes="workspace"
+        Title="{DynamicResource String.VisionConsentTitle}" Width="580" Height="400" MinWidth="460" MinHeight="320"
+        ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <TextBlock Text="{DynamicResource String.VisionConsentTitle}" Classes="workspace-title"/>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <StackPanel Spacing="14" Margin="0,0,6,6">
+        <TextBlock Text="{DynamicResource String.VisionConsentBody}" Classes="workspace-help"/>
+        <Border Classes="workspace-inset">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{DynamicResource String.VisionDestination}" Classes="workspace-label"/>
+            <TextBlock x:Name="DestinationText" Classes="workspace-help"/>
+            <TextBlock x:Name="ModelText" Classes="workspace-help"/>
+          </StackPanel>
+        </Border>
+        <TextBlock Text="{DynamicResource String.VisionConsentHint}" Classes="workspace-help"/>
+      </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+      <Button x:Name="RejectButton" Classes="secondary" Content="{DynamicResource String.VisionDoNotSend}" Click="Cancel_OnClick"/>
+      <Button x:Name="ConfirmButton" Classes="primary" Content="{DynamicResource String.VisionSendOnce}" Click="Confirm_OnClick"/>
+    </StackPanel>
+  </Grid>
+</Window>

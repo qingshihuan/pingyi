@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="PingYi.App.Localization.VisionEnglishStrings">
+  <x:String x:Key="String.DescribeImage">Describe image</x:String>
+  <x:String x:Key="String.ReconstructPrompt">Reconstruct prompt</x:String>
+  <x:String x:Key="String.TranslateText">Translate text</x:String>
+  <x:String x:Key="String.VisionEntryHint">Analyze images without text · Vision model required</x:String>
+  <x:String x:Key="String.ModelCpuFallback">GPU startup failed. Trying CPU; you can cancel waiting…</x:String>
+  <x:String x:Key="String.ModelLoadingElapsed">Loading local model ({0}s)… Cold starts can take longer. You can cancel waiting.</x:String>
+  <x:String x:Key="String.ModelLoadingWait">Checking and loading the local model… You can cancel waiting.</x:String>
+  <x:String x:Key="String.ModelStartTimeout">Local model startup timed out. Check memory, GPU drivers or use a smaller model.</x:String>
+  <x:String x:Key="String.VisionConfiguration">Configure an image-capable model in Custom endpoint, or install and apply a managed multimodal model in Complete edition.</x:String>
+  <x:String x:Key="String.VisionHttps">Remote image analysis requires HTTPS; only loopback endpoints may use HTTP.</x:String>
+  <x:String x:Key="String.VisionLocal">Image sent to the loopback vision service · PingYi keeps no analysis history</x:String>
+  <x:String x:Key="String.VisionRemote">The full selected image will be sent to {0} · Confirmation required</x:String>
+  <x:String x:Key="String.AnalysisPreparing">Preparing image analysis…</x:String>
+  <x:String x:Key="String.VisionNotSent">Cancelled: no image was sent.</x:String>
+  <x:String x:Key="String.VisionConfigurationChanged">The endpoint or model changed. Run again and confirm the new destination.</x:String>
+  <x:String x:Key="String.AnalysisDescribing">Describing image content…</x:String>
+  <x:String x:Key="String.AnalysisPrompting">Reconstructing a prompt from the image…</x:String>
+  <x:String x:Key="String.AnalysisComplete">Image analysis complete · Review uncertain details</x:String>
+  <x:String x:Key="String.CopyAnalysis">Copy image analysis</x:String>
+  <x:String x:Key="String.AnalysisCopied">Image analysis copied</x:String>
+  <x:String x:Key="String.ProcessingCancelled">Processing cancelled; a shared model still loading can be reused next time.</x:String>
+  <x:String x:Key="String.CancelProcessing">Cancel</x:String>
+  <x:String x:Key="String.AnalysisCaution">Generated from visible image content and may be inaccurate. This does not recover the original prompt or generation parameters.</x:String>
+  <x:String x:Key="String.VisionConsentTitle">Confirm image upload</x:String>
+  <x:String x:Key="String.VisionConsentBody">This task sends the full selected image, not just recognized text. The receiving service may retain data or charge fees under its own terms.</x:String>
+  <x:String x:Key="String.VisionDestination">Destination and model</x:String>
+  <x:String x:Key="String.VisionConsentHint">Check that the image contains nothing you wish to keep private. Permission is for this request only; retries require confirmation again.</x:String>
+  <x:String x:Key="String.VisionDoNotSend">Do not send</x:String>
+  <x:String x:Key="String.VisionSendOnce">Send this image</x:String>
+  <x:String x:Key="String.VisionHelpTitle">Image description and prompt reconstruction</x:String>
+  <x:String x:Key="String.VisionHelp">Use Describe image or Reconstruct prompt on Home to capture images even without text. Switch tasks or retry the same image in the result window. Output follows the interface language. An image_url-capable vision model is required; PaddleOCR and Argos cannot describe image semantics. Uses the configured compatible model; Complete edition can start an applied local multimodal model on demand. Each remote HTTPS upload requires confirmation, separately from text translation. No persistent history is added; models can be wrong and cannot recover the original prompt.</x:String>
+</ResourceDictionary>

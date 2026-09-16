@@ -357,13 +357,19 @@ public sealed partial class AppServices : IAsyncDisposable
         string backend,
         CancellationToken cancellationToken)
     {
+        using var startupDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        startupDeadline.CancelAfter(ManagedRuntimeReadiness.OperationTimeout);
         try
         {
             Volatile.Write(ref _managedProgress, null);
             await ManagedModels.EnsureStartedAsync(model, backend,
                 new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)),
-                cancellationToken);
+                startupDeadline.Token);
             return ProviderAvailability.Available;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new ProviderAvailability(false, "本机大模型启动超时，请在设置中检查运行状态。");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

@@ -12,7 +12,8 @@ class UsabilityStructureTests(unittest.TestCase):
     def test_locale_keys_match_and_every_dynamic_ui_text_exists(self):
         dictionaries = []
         for locale in ('zh-CN', 'en-US'):
-            nodes = list(ET.parse(APP / 'Localization' / f'Strings.{locale}.axaml').getroot())
+            nodes = [node for name in ('Strings', 'Vision')
+                     for node in ET.parse(APP / 'Localization' / f'{name}.{locale}.axaml').getroot()]
             values = {n.get(X + 'Key'): n.text for n in nodes}
             self.assertEqual(len(nodes), len(values))
             self.assertTrue(all(values.values()))

@@ -45,7 +45,13 @@
                   </Border>
                 </Grid>
               </Button>
-              <TextBlock Text="{DynamicResource Polish.CaptureCancelHint}" Classes="workspace-help" FontSize="11" LineHeight="16"/>
+              <WrapPanel>
+                <Button x:Name="DescribeImageButton" Classes="secondary" Content="{DynamicResource String.DescribeImage}"
+                        Click="DescribeImage_OnClick" MinHeight="32" Padding="12,5" Margin="0,0,8,0"/>
+                <Button x:Name="ReconstructPromptButton" Classes="secondary" Content="{DynamicResource String.ReconstructPrompt}"
+                        Click="ReconstructPrompt_OnClick" MinHeight="32" Padding="12,5"/>
+              </WrapPanel>
+              <TextBlock Text="{DynamicResource String.VisionEntryHint}" Classes="workspace-help" FontSize="11" LineHeight="16"/>
             </StackPanel>
             <!-- Original static vector illustration; no user content or rendering loop. -->
             <Viewbox Grid.Column="1" MaxWidth="220" Stretch="Uniform" Margin="0,4,6,0" IsHitTestVisible="False">

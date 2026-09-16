@@ -16,7 +16,9 @@ public partial class ResultWindow
         Purpose = purpose;
         var isText = purpose == CapturePurpose.TranslateText;
         var key = purpose == CapturePurpose.DescribeImage ? "String.DescribeImage" : "String.ReconstructPrompt";
+        if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
         SourceCard.IsVisible = isText;
+        AnalysisHint.IsVisible = !isText;
         ResultContentGrid.RowDefinitions = new RowDefinitions(isText ? "*,*" : "0,*");
         ResultContentGrid.RowSpacing = isText ? 14 : 0;
         ThemeResources.Use(ResultHeading, TextBlock.TextProperty, isText ? "String.ResultTitle" : key);
@@ -48,6 +50,15 @@ public partial class ResultWindow
         CancelRequested?.Invoke();
         SetStatusVisual(UiText.Get("String.ProcessingCancelled"), "SecondaryTextBrush", "BrandBrush", false);
     }
+
+    private async void TranslateResult_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.TranslateText);
+    }
+
+    internal string BuildCopyText() => Purpose == CapturePurpose.TranslateText
+        ? $"{UiText.T("原文")}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{UiText.T("译文")}{Environment.NewLine}{TranslationTextBox.Text}"
+        : TranslationTextBox.Text ?? string.Empty;
 
     private async void DescribeResult_OnClick(object? sender, RoutedEventArgs e)
     {

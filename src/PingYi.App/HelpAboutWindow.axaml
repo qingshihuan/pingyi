@@ -26,6 +26,9 @@
             <Border Height="1" Background="{DynamicResource DividerBrush}"/>
             <TextBlock x:Name="CaptureShortcutText" Classes="workspace-label"/>
             <TextBlock Text="{DynamicResource String.OtherShortcuts}" Classes="workspace-help"/>
+            <Border Height="1" Background="{DynamicResource DividerBrush}"/>
+            <TextBlock Text="{DynamicResource String.VisionHelpTitle}" Classes="workspace-label"/>
+            <TextBlock Text="{DynamicResource String.VisionHelp}" Classes="workspace-help"/>
           </StackPanel>
         </Border>
         <Border Classes="workspace-card">

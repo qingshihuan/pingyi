@@ -5,7 +5,7 @@
   <Grid Margin="22" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
       <StackPanel Spacing="5">
-        <TextBlock Text="{DynamicResource String.ResultTitle}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock x:Name="ResultHeading" Text="{DynamicResource String.ResultTitle}" FontSize="20" FontWeight="SemiBold" />
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
           <Border x:Name="ResultStatusIndicator" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" x:Name="StatusText" Text="{DynamicResource Text.660640f5b06f}" Classes="workspace-help" FontSize="12" MaxHeight="42" TextTrimming="CharacterEllipsis"
@@ -25,8 +25,8 @@
       </StackPanel>
     </Grid>
     <ProgressBar Grid.Row="1" x:Name="ProcessingProgress" Height="3" IsIndeterminate="True" Foreground="{DynamicResource BrandBrush}" AutomationProperties.Name="{DynamicResource Text.01f61382b4b0}" />
-    <Grid Grid.Row="2" RowDefinitions="*,*" RowSpacing="14">
-      <Border Classes="workspace-card" Padding="18">
+    <Grid Grid.Row="2" x:Name="ResultContentGrid" RowDefinitions="*,*" RowSpacing="14">
+      <Border x:Name="SourceCard" Classes="workspace-card" Padding="18">
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{DynamicResource Text.354b28c85333}" Classes="workspace-label" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
@@ -44,8 +44,8 @@
       <Border Grid.Row="1" Classes="workspace-card" Padding="18" BorderBrush="{DynamicResource BrandSoftBrush}">
         <Grid RowDefinitions="Auto,*" RowSpacing="10">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{DynamicResource Text.80461c2decc5}" Classes="workspace-label" Foreground="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="ghost" Click="CopyTranslationButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="{DynamicResource Text.032eb48c7a43}">
+            <TextBlock x:Name="OutputHeading" Text="{DynamicResource Text.80461c2decc5}" Classes="workspace-label" Foreground="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" x:Name="CopyOutputButton" Classes="ghost" Click="CopyTranslationButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="{DynamicResource Text.032eb48c7a43}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Path Classes="symbol" Width="13" Height="13" Data="M8 8H20V20H8Z M4 16H3V3H16V4" />
                 <TextBlock Text="{DynamicResource Text.63d90d977348}" FontSize="12" Foreground="{DynamicResource BrandBrush}" />
@@ -57,10 +57,17 @@
         </Grid>
       </Border>
     </Grid>
-    <StackPanel Grid.Row="3" Spacing="10">
+    <StackPanel Grid.Row="3" Spacing="8">
+      <WrapPanel x:Name="ImageActionPanel">
+        <Button x:Name="DescribeResultButton" Content="{DynamicResource String.DescribeImage}" Classes="secondary" Click="DescribeResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
+        <Button x:Name="PromptResultButton" Content="{DynamicResource String.ReconstructPrompt}" Classes="secondary" Click="PromptResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
+        <Button x:Name="TranslateResultButton" Content="{DynamicResource String.TranslateText}" Classes="ghost" Click="TranslateResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,0,4"/>
+      </WrapPanel>
+      <TextBlock x:Name="AnalysisHint" Text="{DynamicResource String.AnalysisCaution}" IsVisible="False" Classes="workspace-help" FontSize="11" LineHeight="16"/>
       <WrapPanel HorizontalAlignment="Right">
+        <Button x:Name="CancelProcessingButton" Content="{DynamicResource String.CancelProcessing}" Classes="secondary" IsVisible="False" Click="CancelProcessing_OnClick" Margin="0,0,6,4"/>
         <Button x:Name="RepairButton" Content="{DynamicResource String.OpenSettings}" Classes="secondary" IsVisible="False" Click="RepairButton_OnClick" AutomationProperties.Name="{DynamicResource Text.b46b3d4ca814}" Margin="0,0,6,4" />
-        <Button Content="{DynamicResource String.Retry}" Classes="secondary" Click="RetryButton_OnClick" AutomationProperties.Name="{DynamicResource Text.3ce928cae715}" Margin="0,0,6,4" />
+        <Button x:Name="RetryButton" Content="{DynamicResource String.Retry}" Classes="secondary" Click="RetryButton_OnClick" AutomationProperties.Name="{DynamicResource Text.3ce928cae715}" Margin="0,0,6,4" />
         <Button Content="{DynamicResource String.CopyAll}" Classes="primary" Click="CopyAllButton_OnClick" AutomationProperties.Name="{DynamicResource Text.5159e7c4e585}" Margin="0,0,0,4" />
       </WrapPanel>
       <TextBlock x:Name="PrivacyText" Text="{DynamicResource Text.93be5e37dda7}" Classes="workspace-help" FontSize="11" LineHeight="17" TextAlignment="Center" MaxHeight="34" TextTrimming="CharacterEllipsis"

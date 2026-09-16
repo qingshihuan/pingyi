@@ -20,7 +20,7 @@ public sealed class ChatCompatibleImageAnalysisProvider(
     {
         var prompt = ImageAnalysisPrompts.Build(options);
         if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint) ||
-            string.IsNullOrWhiteSpace(settings.CustomTranslationModel))
+            string.IsNullOrWhiteSpace(settings.CustomTranslationModel) || !string.IsNullOrEmpty(endpoint.UserInfo))
             throw new ProviderException("image_analysis_configuration", "请在自定义接口中配置支持图片的模型，或在完全版中安装本机多模态模型。");
         if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
             throw new ProviderException("custom_endpoint_insecure_transport", "远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。");
@@ -73,7 +73,7 @@ public sealed class ChatCompatibleImageAnalysisProvider(
         {
             throw new ProviderException("image_analysis_timeout", "图片分析超时。可缩小截图，选择更小的视觉模型或检查运行后端后重试。");
         }
-        catch (HttpRequestException)
+        catch (Exception exception) when (exception is HttpRequestException or IOException)
         {
             // Never expose remote response bodies, request data or credentials in diagnostics.
             throw new ProviderException("image_analysis_connection", "无法连接图片分析服务。请确认模型服务已启动后重试。");
