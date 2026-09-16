@@ -117,3 +117,13 @@ controls, model providers and runtime resource policies are unchanged.
 ## Usability regression fixes
 
 The unified workspace, live language resources, descriptive mode picker, and Help & About page add no production dependencies, fonts, artwork, telemetry, or web runtime. Language dictionaries are compiled into the existing Avalonia application. Windows capture preparation uses documented DWM and User32 APIs for the application's own windows; temporary display-affinity and transition settings are restored afterwards. The Windows 10 2004 capture-exclusion value is never used on older Windows builds. Synthetic UI/capture tests do not access user credentials or persist real screenshots.
+
+## Image analysis and model readiness
+
+Image description and prompt reconstruction reuse the already-declared SkiaSharp,
+.NET HTTP/JSON, Avalonia, and user-configured compatible model services. No new
+production package, font, model weight or provider credential is bundled. Native
+model diagnostics retain only authored categories; image-analysis output remains
+in memory and is not added to logs or persistent history. Model licenses and
+third-party service terms remain applicable; no original-prompt recovery or
+model-accuracy guarantee is implied.

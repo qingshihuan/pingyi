@@ -112,14 +112,13 @@ public partial class ResultWindow : Window
         await CopyAsync(SourceTextBox.Text ?? string.Empty, "原文已复制");
 
     private async void CopyTranslationButton_OnClick(object? sender, RoutedEventArgs e) =>
-        await CopyAsync(TranslationTextBox.Text ?? string.Empty, "译文已复制");
+        await CopyAsync(TranslationTextBox.Text ?? string.Empty,
+            Purpose == CapturePurpose.TranslateText ? "译文已复制" : UiText.Get("String.AnalysisCopied"));
 
     private async void CopyAllButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        var sourceLabel = UiText.T("原文");
-        var translationLabel = UiText.T("译文");
-        var text = $"{sourceLabel}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{translationLabel}{Environment.NewLine}{TranslationTextBox.Text}";
-        await CopyAsync(text, "原文与译文已复制");
+        await CopyAsync(BuildCopyText(), Purpose == CapturePurpose.TranslateText
+            ? "原文与译文已复制" : UiText.Get("String.AnalysisCopied"));
     }
 
     private async Task CopyAsync(string text, string status)
@@ -176,6 +175,9 @@ public partial class ResultWindow : Window
         ThemeResources.Use(StatusText, TextBlock.ForegroundProperty, foregroundKey);
         ThemeResources.Use(ResultStatusIndicator, Border.BackgroundProperty, indicatorKey);
         ProcessingProgress.IsVisible = isProcessing;
+        CancelProcessingButton.IsVisible = isProcessing;
+        ImageActionPanel.IsEnabled = !isProcessing;
+        RetryButton.IsEnabled = !isProcessing;
     }
 
     private void ClampToScreen()

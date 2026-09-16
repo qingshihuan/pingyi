@@ -3,15 +3,16 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using PingYi.Core;
+using PingYi.Infrastructure;
 
 namespace PingYi.App;
 
-public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
+public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDisposable
 {
     private const int MaximumPinnedWindows = 5;
     private static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan AvailabilityTimeout = TimeSpan.FromSeconds(15);
-    private static readonly TimeSpan ManagedRuntimeTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan ManagedRuntimeTimeout = ManagedRuntimeReadiness.OperationTimeout;
     private static readonly TimeSpan OcrTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan TranslationTimeout = TimeSpan.FromMinutes(2);
 
@@ -30,7 +31,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
 
     public bool IsCapturingScreen { get; private set; }
 
-    public async Task StartCaptureAsync(IMainWindowShell? mainWindow)
+    public async Task StartCaptureAsync(IMainWindowShell? mainWindow, CapturePurpose purpose = CapturePurpose.TranslateText)
     {
         var operation = BeginOperation();
         if (operation is null)
@@ -84,6 +85,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
 
             var resultWindow = GetResultWindow();
             operation.TargetWindow = resultWindow;
+            resultWindow.SetPurpose(purpose);
             _windowImages[resultWindow] = selectedImage;
             resultWindow.ShowAt(selectedImage.DesktopBounds);
             await ProcessAsync(operation, resultWindow, selectedImage);
@@ -251,6 +253,8 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
 
         var window = new ResultWindow();
         window.RetryRequested += () => RetrySelectionAsync(window);
+        window.AnalyzeRequested += purpose => RetryAsImageAnalysisAsync(window, purpose);
+        window.CancelRequested += () => CancelForWindow(window);
         window.OpenSettingsRequested += () =>
         {
             _mainWindow?.OpenSettings();
@@ -307,13 +311,14 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         }
     }
 
-    private async Task RetrySelectionAsync(ResultWindow window)
+    private async Task RetrySelectionAsync(ResultWindow window, CapturePurpose? requestedPurpose = null)
     {
         if (!_windowImages.TryGetValue(window, out var image))
         {
             return;
         }
 
+        var purpose = requestedPurpose ?? window.Purpose;
         var operation = BeginOperation(window);
         if (operation is null)
         {
@@ -326,6 +331,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
             await _operationGate.WaitAsync(operation.Token);
             enteredGate = true;
             EnsureCurrent(operation);
+            window.SetPurpose(purpose);
             window.ShowCurrent();
             await ProcessAsync(operation, window, image);
         }
@@ -356,6 +362,11 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
         ResultWindow window,
         ImageFrame image)
     {
+        if (window.Purpose != CapturePurpose.TranslateText)
+        {
+            await ProcessImageAnalysisAsync(operation, window, image);
+            return;
+        }
         var settings = services.Settings;
         var ocrProvider = services.Providers.GetOcrProvider(settings.OcrProviderId);
         var translationProvider = services.Providers.GetTranslationProvider(settings.TranslationProviderId);
@@ -373,7 +384,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
                     UiText.IsEnglish ? "Starting the local model…" : "正在启动本机大模型…",
                     privacy);
                 await WithTimeoutAsync(
-                    token => services.WaitForManagedRuntimeAsync(token),
+                    token => WaitForModelAsync(operation, window, token),
                     ManagedRuntimeTimeout,
                     operation.Token,
                     "managed_runtime_timeout",
@@ -387,7 +398,7 @@ public sealed class CaptureCoordinator(AppServices services) : IAsyncDisposable
             catch (Exception exception)
             {
                 EnsureCurrent(operation);
-                window.SetError(UiText.Error(exception));
+                window.SetError(VisionErrors.Describe(exception));
                 return;
             }
         }

@@ -7,6 +7,13 @@ namespace PingYi.App;
 public sealed partial class AppServices : IAsyncDisposable
 {
     private readonly HttpClient _httpClient;
+    // Visual inference has its own bounded request token (CPU may exceed 30 seconds).
+    private readonly HttpClient _imageAnalysisClient = new(new HttpClientHandler { AllowAutoRedirect = false })
+        { Timeout = Timeout.InfiniteTimeSpan };
+    private ManagedModelProgress? _managedProgress;
+
+    public IImageAnalysisProvider CreateImageAnalyzer(AppSettings snapshot) =>
+        new ChatCompatibleImageAnalysisProvider(_imageAnalysisClient, SecretStore, snapshot);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _managedRuntimeLock = new();
     private readonly SemaphoreSlim _settingsTransitionGate = new(1, 1);
@@ -180,7 +187,8 @@ public sealed partial class AppServices : IAsyncDisposable
         }
     }
 
-    public async Task<ProviderAvailability> WaitForManagedRuntimeAsync(CancellationToken cancellationToken = default)
+    public async Task<ProviderAvailability> WaitForManagedRuntimeAsync(CancellationToken cancellationToken = default,
+        bool forImageAnalysis = false, IProgress<ManagedModelProgress>? progress = null)
     {
         while (true)
         {
@@ -190,7 +198,7 @@ public sealed partial class AppServices : IAsyncDisposable
             }
 
             var settings = Settings;
-            if (!RuntimePolicy.UsesManagedRuntime(settings))
+            if (!(forImageAnalysis ? RuntimePolicy.HasConfiguredManagedRuntime(settings) : RuntimePolicy.UsesManagedRuntime(settings)))
             {
                 return ProviderAvailability.Available;
             }
@@ -201,7 +209,7 @@ public sealed partial class AppServices : IAsyncDisposable
                     "未找到已配置的本机大模型。请在设置中重新选择模型。");
             }
 
-            WarmManagedRuntimeIfConfigured();
+            WarmManagedRuntimeIfConfigured(forImageAnalysis);
             var expectedConfiguration = BuildManagedRuntimeConfiguration(model, settings);
             string configuration;
             Task<ProviderAvailability> startupTask;
@@ -211,7 +219,14 @@ public sealed partial class AppServices : IAsyncDisposable
                 startupTask = _managedRuntimeStartupTask;
             }
 
-            var availability = await startupTask.WaitAsync(cancellationToken);
+            var wait = startupTask.WaitAsync(cancellationToken);
+            while (!wait.IsCompleted && progress is not null)
+            {
+                if (Volatile.Read(ref _managedProgress) is { } update) progress.Report(update);
+                await Task.WhenAny(wait, Task.Delay(1000, cancellationToken));
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            var availability = await wait;
             if (Volatile.Read(ref _disposeState) != 0)
             {
                 throw new ObjectDisposedException(nameof(AppServices));
@@ -228,7 +243,7 @@ public sealed partial class AppServices : IAsyncDisposable
             }
 
             var currentSettings = Settings;
-            if (!RuntimePolicy.UsesManagedRuntime(currentSettings))
+            if (!(forImageAnalysis ? RuntimePolicy.HasConfiguredManagedRuntime(currentSettings) : RuntimePolicy.UsesManagedRuntime(currentSettings)))
             {
                 return ProviderAvailability.Available;
             }
@@ -252,7 +267,7 @@ public sealed partial class AppServices : IAsyncDisposable
         }
     }
 
-    private void WarmManagedRuntimeIfConfigured()
+    private void WarmManagedRuntimeIfConfigured(bool forImageAnalysis = false)
     {
         if (Volatile.Read(ref _disposeState) != 0)
         {
@@ -260,7 +275,7 @@ public sealed partial class AppServices : IAsyncDisposable
         }
 
         var settings = Settings;
-        if (!RuntimePolicy.UsesManagedRuntime(settings) ||
+        if (!(forImageAnalysis ? RuntimePolicy.HasConfiguredManagedRuntime(settings) : RuntimePolicy.UsesManagedRuntime(settings)) ||
             !ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var model))
         {
             return;
@@ -342,10 +357,19 @@ public sealed partial class AppServices : IAsyncDisposable
         string backend,
         CancellationToken cancellationToken)
     {
+        using var startupDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        startupDeadline.CancelAfter(ManagedRuntimeReadiness.OperationTimeout);
         try
         {
-            await ManagedModels.EnsureStartedAsync(model, backend, cancellationToken: cancellationToken);
+            Volatile.Write(ref _managedProgress, null);
+            await ManagedModels.EnsureStartedAsync(model, backend,
+                new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)),
+                startupDeadline.Token);
             return ProviderAvailability.Available;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new ProviderAvailability(false, "本机大模型启动超时，请在设置中检查运行状态。");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -383,6 +407,7 @@ public sealed partial class AppServices : IAsyncDisposable
                 await Engine.DisposeAsync();
                 await PaddleProvider.DisposeAsync();
                 _httpClient.Dispose();
+                _imageAnalysisClient.Dispose();
             }
             finally
             {

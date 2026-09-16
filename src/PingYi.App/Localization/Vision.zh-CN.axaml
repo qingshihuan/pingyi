@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="PingYi.App.Localization.VisionChineseStrings">
+  <x:String x:Key="String.DescribeImage">描述图片</x:String>
+  <x:String x:Key="String.ReconstructPrompt">反推提示词</x:String>
+  <x:String x:Key="String.TranslateText">文字翻译</x:String>
+  <x:String x:Key="String.VisionEntryHint">纯图片也能分析 · 需配置视觉模型</x:String>
+  <x:String x:Key="String.ModelCpuFallback">显卡后端启动失败，正在尝试 CPU，可取消等待…</x:String>
+  <x:String x:Key="String.ModelLoadingElapsed">正在加载本机模型（{0} 秒）…冷启动可能较慢，可取消等待。</x:String>
+  <x:String x:Key="String.ModelLoadingWait">正在检查并加载本机模型…可取消等待。</x:String>
+  <x:String x:Key="String.ModelStartTimeout">本机模型启动超时。请检查内存、显卡驱动或改用较小模型。</x:String>
+  <x:String x:Key="String.VisionConfiguration">请在自定义接口中配置支持图片的模型，或在完全版中安装并应用本机多模态模型。</x:String>
+  <x:String x:Key="String.VisionHttps">远程图片分析服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。</x:String>
+  <x:String x:Key="String.VisionLocal">图片发送到本机回环视觉服务 · 屏译不保存分析历史</x:String>
+  <x:String x:Key="String.VisionRemote">完整所选截图将发送到 {0} · 发送前需确认</x:String>
+  <x:String x:Key="String.AnalysisPreparing">正在准备图片分析…</x:String>
+  <x:String x:Key="String.VisionNotSent">已取消：没有发送截图。</x:String>
+  <x:String x:Key="String.VisionConfigurationChanged">分析接口或模型已改变。请重新执行并确认新的接收服务。</x:String>
+  <x:String x:Key="String.AnalysisDescribing">正在描述画面内容…</x:String>
+  <x:String x:Key="String.AnalysisPrompting">正在根据画面组织提示词…</x:String>
+  <x:String x:Key="String.AnalysisComplete">图片分析完成 · 请核对不确定的细节</x:String>
+  <x:String x:Key="String.CopyAnalysis">复制图片分析内容</x:String>
+  <x:String x:Key="String.AnalysisCopied">图片分析内容已复制</x:String>
+  <x:String x:Key="String.ProcessingCancelled">已取消当前处理；后台共享模型如仍在加载可供下次复用。</x:String>
+  <x:String x:Key="String.CancelProcessing">取消等待</x:String>
+  <x:String x:Key="String.AnalysisCaution">基于可见画面生成，可能有误；反推不等于恢复原始提示词或生成参数。</x:String>
+  <x:String x:Key="String.VisionConsentTitle">确认发送截图进行图片分析</x:String>
+  <x:String x:Key="String.VisionConsentBody">这次任务需要发送完整的所选截图，而不只是识别出的文字。接收服务可能按其政策留存数据或产生费用。</x:String>
+  <x:String x:Key="String.VisionDestination">接收服务与模型</x:String>
+  <x:String x:Key="String.VisionConsentHint">请确认截图不含不希望上传的内容。仅授权本次请求；重试需要再次确认。</x:String>
+  <x:String x:Key="String.VisionDoNotSend">不发送</x:String>
+  <x:String x:Key="String.VisionSendOnce">发送本次截图</x:String>
+  <x:String x:Key="String.VisionHelpTitle">图片描述与提示词反推</x:String>
+  <x:String x:Key="String.VisionHelp">主页可直接框选无文字的图片进行“描述图片”或“反推提示词”；结果窗口可对同一张截图切换任务或重试。输出语言跟随界面语言。需要兼容 image_url 的视觉模型；PaddleOCR 和 Argos 不能分析图片语义。默认使用已配置的兼容模型，完全版可按需启动已应用的本机多模态模型。远程 HTTPS 接口每次发送前询问；不会因文字翻译授权就自动上传图片。不增加持久历史，模型可能看错，不声称恢复原始提示词。</x:String>
+</ResourceDictionary>

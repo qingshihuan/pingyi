@@ -29,6 +29,12 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 
 If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
 
+## Image description and prompt reconstruction
+
+Use **Describe image** or **Reconstruct prompt** on Home to analyze screenshots even without text. Switch tasks or retry the same image in the result window. These tasks require an `image_url`-capable vision model using the configured compatible endpoint; Complete edition can start an applied local multimodal model on demand. Output follows the interface language. Each remote HTTPS image upload requires separate confirmation; text-translation permission does not authorize image uploads. No persistent history is added. Reconstructed prompts are visual references, not recovery of the original prompt or generation settings.
+
+Managed-model readiness now distinguishes per-probe timeouts from the overall loading deadline, with bounded CPU/GPU startup, Auto fallback and cancellable waiting. See [implementation and verification boundaries](docs/IMAGE_ANALYSIS.md).
+
 ## PingYi in 24 seconds
 
 <p align="center">
