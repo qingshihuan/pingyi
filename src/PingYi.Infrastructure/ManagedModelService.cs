@@ -13,7 +13,8 @@ public sealed record ManagedModelProgress(
     string Message,
     long BytesCompleted,
     long TotalBytes,
-    bool IsIndeterminate = false)
+    bool IsIndeterminate = false,
+    double? ElapsedSeconds = null)
 {
     public double Percentage => TotalBytes <= 0
         ? 0
@@ -180,11 +181,20 @@ public sealed class ManagedModelService : IAsyncDisposable
             if (_ownedProcess is { HasExited: false } &&
                 string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&
                 (normalizedBackend == ManagedRuntimeBackends.Auto.Id ||
-                 string.Equals(_runningBackendId, normalizedBackend, StringComparison.OrdinalIgnoreCase)) &&
-                await EndpointServesModelAsync(model.ModelAlias, cancellationToken))
+                 string.Equals(_runningBackendId, normalizedBackend, StringComparison.OrdinalIgnoreCase)))
             {
-                progress?.Report(new ManagedModelProgress("ready", "本机模型服务已经运行", model.TotalSize, model.TotalSize));
-                return $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
+                try
+                {
+                    // Do not kill a healthy loaded model because one status request was slow.
+                    await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(12), cancellationToken);
+                    progress?.Report(new ManagedModelProgress("ready", "本机模型服务已经运行", model.TotalSize, model.TotalSize));
+                    return $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch (Exception exception) when (exception is TimeoutException or InvalidOperationException)
+                {
+                    await StopOwnedProcessCoreAsync();
+                }
             }
 
             var status = await GetStatusAsync(model, cancellationToken);
@@ -242,7 +252,11 @@ public sealed class ManagedModelService : IAsyncDisposable
                 try
                 {
                     StartProcess(runtime, model);
-                    await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(75), cancellationToken);
+                    await WaitUntilReadyAsync(model,
+                        runtime.IsGpu ? ManagedRuntimeReadiness.VulkanTimeout : ManagedRuntimeReadiness.CpuTimeout,
+                        cancellationToken, elapsed => progress?.Report(new ManagedModelProgress(
+                            "starting", $"正在使用 {backendName} 后端加载模型（{elapsed.TotalSeconds:0} 秒）…可取消，冷启动可能较慢。",
+                            0, 0, true, elapsed.TotalSeconds)));
                     _runningModelId = model.Id;
                     _runningBackendId = runtime.IsGpu
                         ? ManagedRuntimeBackends.Vulkan.Id
@@ -252,6 +266,11 @@ public sealed class ManagedModelService : IAsyncDisposable
                         : normalizedBackend == ManagedRuntimeBackends.Cpu.Id
                             ? "模型已通过 CPU 后端启动"
                             : "显卡后端不可用，已自动回退 CPU 并启动";
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    await StopOwnedProcessCoreAsync();
+                    throw; // Explicit cancellation must never start the CPU fallback.
                 }
                 catch (Exception exception)
                 {
@@ -508,9 +527,10 @@ public sealed class ManagedModelService : IAsyncDisposable
             throw new InvalidOperationException("llama.cpp 进程未能启动。");
         }
 
+        // Own the process before starting readers, so a reader setup failure is cleaned up.
+        _ownedProcess = process;
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        _ownedProcess = process;
     }
 
     private static void AddArgument(ProcessStartInfo startInfo, string name, string value)
@@ -533,48 +553,12 @@ public sealed class ManagedModelService : IAsyncDisposable
         }
     }
 
-    private async Task WaitUntilReadyAsync(
-        ManagedMultimodalModel model,
-        TimeSpan timeout,
-        CancellationToken cancellationToken)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(timeout);
-        while (!deadline.IsCancellationRequested)
-        {
-            if (_ownedProcess is { HasExited: true })
-            {
-                throw new InvalidOperationException(
-                    $"llama.cpp 提前退出（代码 {_ownedProcess.ExitCode}）。{BuildServerErrorMessage(null)}");
-            }
-
-            try
-            {
-                using var response = await _probeClient.GetAsync(ManagedHealthEndpoint, deadline.Token);
-                if (response.IsSuccessStatusCode && await EndpointServesModelAsync(model.ModelAlias, deadline.Token))
-                {
-                    return;
-                }
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (HttpRequestException)
-            {
-                // Loading is still in progress.
-            }
-
-            await Task.Delay(500, deadline.Token).ContinueWith(
-                _ => { },
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        throw new TimeoutException("llama.cpp 在 75 秒内未完成模型加载。");
-    }
+    private Task WaitUntilReadyAsync(
+        ManagedMultimodalModel model, TimeSpan timeout, CancellationToken cancellationToken,
+        Action<TimeSpan>? progress = null) =>
+        ManagedRuntimeReadiness.WaitAsync(_probeClient, ManagedHealthEndpoint, ManagedModelsEndpoint,
+            model.ModelAlias, () => _ownedProcess is { HasExited: true } process ? process.ExitCode : null,
+            timeout, cancellationToken, progress);
 
     private async Task<bool> EndpointServesModelAsync(string expectedAlias, CancellationToken cancellationToken)
     {
@@ -588,12 +572,15 @@ public sealed class ManagedModelService : IAsyncDisposable
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            return document.RootElement.TryGetProperty("data", out var data) &&
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                   document.RootElement.TryGetProperty("data", out var data) &&
                    data.ValueKind == JsonValueKind.Array &&
                    data.EnumerateArray().Any(item =>
-                       item.TryGetProperty("id", out var id) &&
+                       item.ValueKind == JsonValueKind.Object &&
+                       item.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String &&
                        string.Equals(id.GetString(), expectedAlias, StringComparison.OrdinalIgnoreCase));
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException)
         {
             return false;
@@ -607,6 +594,7 @@ public sealed class ManagedModelService : IAsyncDisposable
             using var response = await _probeClient.GetAsync(ManagedModelsEndpoint, cancellationToken);
             return true;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
             return false;
@@ -616,29 +604,38 @@ public sealed class ManagedModelService : IAsyncDisposable
     private async Task StopOwnedProcessCoreAsync()
     {
         var process = _ownedProcess;
-        _ownedProcess = null;
-        _runningModelId = null;
-        _runningBackendId = null;
-        if (process is null)
-        {
-            return;
-        }
-
+        if (process is null) return;
+        var stopped = false;
         try
         {
             if (!process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync();
+                using var stopDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+                try { await process.WaitForExitAsync(stopDeadline.Token); }
+                catch (OperationCanceledException) when (process.HasExited) { }
+                catch (OperationCanceledException)
+                {
+                    // Keep ownership and abort fallback rather than starting a second server.
+                    throw new TimeoutException("旧模型进程未能及时退出，请退出屏译后重试。");
+                }
             }
+            stopped = true;
         }
         catch (InvalidOperationException)
         {
             // The process already ended between checks.
+            stopped = true;
         }
         finally
         {
-            process.Dispose();
+            if (stopped)
+            {
+                _ownedProcess = null;
+                _runningModelId = null;
+                _runningBackendId = null;
+                process.Dispose();
+            }
         }
     }
 

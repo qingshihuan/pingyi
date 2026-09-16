@@ -3,11 +3,14 @@ namespace PingYi.Core;
 /// <summary>Pure runtime policy: configuration is not a request to preload a model.</summary>
 public static class RuntimePolicy
 {
-    public static bool UsesManagedRuntime(AppSettings settings) =>
+    public static bool HasConfiguredManagedRuntime(AppSettings settings) =>
         settings.ManagedRuntimeEnabled &&
         ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out _) &&
         string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
-            AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) &&
+            AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase);
+
+    public static bool UsesManagedRuntime(AppSettings settings) =>
+        HasConfiguredManagedRuntime(settings) &&
         (settings.OcrProviderId is "local-vlm-ocr" or "local-vlm-corrected" ||
          settings.TranslationProviderId == "custom-chat");
 
