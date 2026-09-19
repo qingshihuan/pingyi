@@ -1,49 +1,51 @@
 #!/usr/bin/env bash
-# A real Avalonia/X11 smoke test on an isolated Xvfb desktop. No private desktop data or model downloads.
+# Runs the real Avalonia application against the isolated Xvfb display; no OCR models/network.
 set -euo pipefail
 app="$PWD/src/PingYi.App/bin/Release/net10.0/PingYi.App.dll"
 root="$(mktemp -d)"
-export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data"
-export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/bundled"
-mkdir -p "$XDG_CONFIG_HOME/pingyi"
-printf '%s\n' '{"schemaVersion":9,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+Shift+D","checkForUpdates":false}' > "$XDG_CONFIG_HOME/pingyi/settings.json"
-openbox > "$root/window-manager.log" 2>&1 &
+export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data" XDG_SESSION_TYPE=x11
+export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/no-bundled-models"
+mkdir -p "$XDG_CONFIG_HOME/pingyi" "$PWD/artifacts/ui"
+cat > "$XDG_CONFIG_HOME/pingyi/settings.json" <<'JSON'
+{"schemaVersion":9,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+Shift+D","checkForUpdates":false}
+JSON
+openbox > "$root/wm.log" 2>&1 &
 wm=$!
-app_pid=''
-cleanup() {
-  test -z "$app_pid" || kill "$app_pid" 2>/dev/null || true
-  kill "$wm" 2>/dev/null || true
-  rm -rf "$root"
-}
-trap cleanup EXIT
+trap 'kill ${app_pid:-0} "$wm" 2>/dev/null || true; rm -rf "$root"' EXIT
 sleep 0.5
 dotnet "$app" --capture > "$root/app.log" 2>&1 &
 app_pid=$!
+diagnose() {
+  echo "Synthetic desktop failure diagnostics ($1)" >&2
+  cat "$root/app.log" "$root/wm.log" >&2 || true
+  xwininfo -root -tree >&2 || true
+  scrot "$PWD/artifacts/ui/native-linux-failure.png" || true
+}
 wait_window() {
   local name="$1"
   for i in $(seq 1 200); do
-    kill -0 "$app_pid" 2>/dev/null || { cat "$root/app.log"; return 1; }
-    if window=$(xdotool search --onlyvisible --name "^$name$" 2>/dev/null | head -1) && test -n "$window"; then
-      printf '%s' "$window"
-      return 0
+    if id=$(xdotool search --onlyvisible --name "^$name$" 2>/dev/null | head -n 1); then
+      if [ -n "$id" ]; then echo "$id"; return 0; fi
     fi
+    kill -0 "$app_pid" 2>/dev/null || { diagnose "app exited"; return 1; }
     sleep 0.1
   done
-  cat "$root/app.log" >&2
   echo "Expected a visible window: $name" >&2
+  diagnose "$name"
   return 1
 }
+echo 'Testing cold-start --capture'
 overlay=$(wait_window 'PingYi Capture')
 xdotool windowactivate --sync "$overlay" key Escape
 main=$(wait_window 'PingYi')
-# Secondary --capture must trigger the existing app too, including when not focused.
+echo 'Testing second-process --capture'
 dotnet "$app" --capture
 overlay=$(wait_window 'PingYi Capture')
 xdotool windowactivate --sync "$overlay" key Escape
 main=$(wait_window 'PingYi')
-# The registered shortcut enters the very same real selection UI.
+echo 'Testing registered X11 shortcut'
 xdotool key --clearmodifiers ctrl+alt+shift+d
 overlay=$(wait_window 'PingYi Capture')
 xdotool windowactivate --sync "$overlay" key Escape
-wait_window 'PingYi' > /dev/null
-printf '%s\n' 'Native desktop: cold --capture, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
+wait_window 'PingYi' >/dev/null
+echo 'Native desktop: cold --capture, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
