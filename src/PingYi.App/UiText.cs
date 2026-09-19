@@ -109,6 +109,7 @@ public static partial class UiText
 
         if (exception is ProviderException providerException)
         {
+            if (HotkeyFeedback.ErrorKey(providerException.Code) is { } desktopKey) return Get(desktopKey);
             if (providerException.Code.EndsWith("_timeout", StringComparison.OrdinalIgnoreCase))
             {
                 return "The operation timed out. Try a smaller capture area, then retry.";

@@ -1,0 +1,28 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PingYi.App.Localization.LinuxChineseStrings">
+  <x:String x:Key="Linux.CaptureFailed">无法开始截图</x:String>
+  <x:String x:Key="Linux.HotkeyWaiting">正在注册快捷键；也可直接点击截图。</x:String>
+  <x:String x:Key="Linux.HotkeyOff">快捷键未启用；截图按钮仍可使用。</x:String>
+  <x:String x:Key="Linux.HotkeyOn">快捷键已注册：</x:String>
+  <x:String x:Key="Linux.HotkeySystem">系统管理的快捷键</x:String>
+  <x:String x:Key="Linux.ClickCapture">点击截图</x:String>
+  <x:String x:Key="Linux.HotkeyConflict">快捷键已被系统或其他程序占用。请在设置 → 外观与启动中更换组合；截图按钮仍可使用。</x:String>
+  <x:String x:Key="Linux.HotkeyWayland">系统未授权全局快捷键，或当前桌面不支持快捷键门户。截图按钮仍可使用；可在系统键盘设置中为下方命令绑定自定义快捷键。</x:String>
+  <x:String x:Key="Linux.HotkeyFailed">快捷键注册失败；请更换组合或检查桌面会话，截图按钮仍可使用。</x:String>
+  <x:String x:Key="Linux.HotkeyEdit">快捷键设置</x:String>
+  <x:String x:Key="Linux.HotkeyHint">保存后尝试注册；冲突时保留原设置。Wayland 的最终组合由系统授权和管理。</x:String>
+  <x:String x:Key="Linux.LinuxHelp">Linux 截图与快捷键</x:String>
+  <x:String x:Key="Linux.WaylandCapture">Wayland：截图由系统选择界面完成；请在系统提示中选择区域并确认。</x:String>
+  <x:String x:Key="Linux.X11Capture">X11：使用屏译框选界面。Linux 默认 Ctrl+Alt+Shift+D，可在设置中更改。</x:String>
+  <x:String x:Key="Linux.LinuxShortcutHelp">如果桌面不提供快捷键门户，可在系统“键盘 → 自定义快捷键”中添加下方命令。建议 Ctrl+Alt+Shift+D；请勿覆盖系统已有组合。此命令在屏译未启动时也能直接开始截图。</x:String>
+  <x:String x:Key="Linux.CopyCommand">复制截图命令</x:String>
+  <x:String x:Key="Linux.CopiedCommand">截图命令已复制。</x:String>
+  <x:String x:Key="Linux.SystemKeyboard">系统键盘设置</x:String>
+  <x:String x:Key="Linux.RegisterAgain">重试注册</x:String>
+  <x:String x:Key="Linux.KeyboardMissing">未找到 GNOME 键盘设置程序。请手动打开桌面的键盘设置，并添加已提供的截图命令。</x:String>
+  <x:String x:Key="Linux.PortalUnavailable">无法调用系统截图门户。Ubuntu 请检查 xdg-desktop-portal 与 xdg-desktop-portal-gnome 是否安装并运行；修复后重新登录。也可使用 Ubuntu on Xorg 会话。</x:String>
+  <x:String x:Key="Linux.PortalTimeout">等待系统截图选择已超时。请重新点击截图，在系统选择界面完成选择并确认。</x:String>
+  <x:String x:Key="Linux.PortalDenied">系统未允许截图或截图被拒绝。请检查系统权限后重试；取消不会上传或分析图片。</x:String>
+  <x:String x:Key="Linux.PortalImage">系统截图门户返回的图片无效、无法读取或超过大小上限。请重新截图。</x:String>
+  <x:String x:Key="Linux.PortalPrivacy">Wayland 使用系统截图门户，可能由桌面生成临时截图文件。屏译只读取图片到内存、不创建历史，也不删除门户或用户的文件；这些文件的保存和清理由桌面控制。</x:String>
+  <x:String x:Key="Linux.CaptureBackend">截图方式</x:String>
+</ResourceDictionary>

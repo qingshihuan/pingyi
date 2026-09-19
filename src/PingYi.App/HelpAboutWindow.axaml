@@ -15,7 +15,7 @@
             <StackPanel Grid.Column="1" Spacing="5">
               <TextBlock x:Name="ProductText" Classes="workspace-section"/>
               <TextBlock x:Name="VersionText" Classes="workspace-help"/>
-              <TextBlock Text="MIT · Windows / Ubuntu X11" Classes="workspace-help"/>
+              <TextBlock Text="MIT · Windows / Ubuntu X11 / Wayland" Classes="workspace-help"/>
             </StackPanel>
           </Grid>
         </Border>
@@ -38,6 +38,7 @@
             <TextBlock x:Name="PrivacySummaryText" Classes="workspace-help"/>
             <Border Height="1" Background="{DynamicResource DividerBrush}"/>
             <TextBlock Text="{DynamicResource String.PrivacyBody}" Classes="workspace-help"/>
+            <TextBlock Text="{DynamicResource Linux.PortalPrivacy}" Classes="workspace-help"/>
           </StackPanel>
         </Border>
       </StackPanel>

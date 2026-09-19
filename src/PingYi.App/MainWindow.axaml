@@ -41,7 +41,7 @@
                   <Path Classes="symbol" Stroke="White" Data="M3 8V3H8 M16 3H21V8 M21 16V21H16 M8 21H3V16"/>
                   <TextBlock Grid.Column="1" Text="{DynamicResource String.StartCapture}" VerticalAlignment="Center"/>
                   <Border Grid.Column="2" Background="#24FFFFFF" CornerRadius="5" Padding="7,4">
-                    <TextBlock x:Name="CaptureHotkeyText" Text="Ctrl  Alt  D" FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CaptureHotkeyText" Text="" FontSize="11" VerticalAlignment="Center"/>
                   </Border>
                 </Grid>
               </Button>
@@ -82,6 +82,15 @@
                 </Border>
               </Grid>
             </Viewbox>
+          </Grid>
+        </Border>
+        <Border Classes="workspace-inset" Padding="14,10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock x:Name="HotkeyRegistrationText" Classes="workspace-help" FontSize="12" LineHeight="18" AutomationProperties.LiveSetting="Polite"/>
+              <TextBlock x:Name="DesktopCaptureHintText" Classes="workspace-help" FontSize="12" LineHeight="18" IsVisible="False"/>
+            </StackPanel>
+            <Button Grid.Column="1" Classes="toolbar-action" Content="{DynamicResource Linux.HotkeyEdit}" Click="OpenSettingsButton_OnClick" VerticalAlignment="Center"/>
           </Grid>
         </Border>
         <Border Classes="workspace-card" Padding="22,16" CornerRadius="16">

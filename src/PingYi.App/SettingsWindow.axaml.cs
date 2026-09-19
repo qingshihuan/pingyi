@@ -27,6 +27,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         UiText.Attach(this);
+        InitializeDesktopShortcuts();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
@@ -38,6 +39,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppServices services) : this()
     {
         _services = services;
+        AttachHotkeyFeedback();
         _persistLanguage = services.SaveUiLanguageAsync;
         LoadSettings();
         Opened += async (_, _) =>
@@ -189,8 +191,13 @@ public partial class SettingsWindow : Window
         }
         catch
         {
-            await _services.HotkeyService.StopAsync();
-            await _services.HotkeyService.StartAsync(previousHotkey);
+            // Restoring an already unavailable old key must not hide the new conflict.
+            try
+            {
+                await _services.HotkeyService.StopAsync();
+                await _services.HotkeyService.StartAsync(previousHotkey);
+            }
+            catch { /* Registration state remains visibly failed. */ }
             throw;
         }
     }

@@ -22,6 +22,7 @@ public partial class MainWindow : Window, IMainWindowShell
     {
         InitializeComponent();
         UiText.Attach(this);
+        RefreshDesktopFeedback();
         UiText.LanguageChanged += OnLanguageChanged;
         Closed += (_, _) => UiText.LanguageChanged -= OnLanguageChanged;
     }
@@ -36,6 +37,7 @@ public partial class MainWindow : Window, IMainWindowShell
         _openSettings = openSettings;
         Title = UiText.IsEnglish ? "PingYi" : AppEdition.ProductName;
         LoadSettings();
+        AttachHotkeyFeedback();
         Opened += async (_, _) => await RefreshDashboardAsync();
         Activated += async (_, _) => await RefreshSettingsFromStoreAsync();
     }
@@ -72,7 +74,7 @@ public partial class MainWindow : Window, IMainWindowShell
         OcrSummaryText.Text = UiText.ProviderName(ocr.Id, ocr.DisplayName);
         var targetLanguage = UiText.LanguageName(settings.TargetLanguage);
         TranslationSummaryText.Text = $"{UiText.ProviderName(translation.Id, translation.DisplayName)} · → {targetLanguage}";
-        CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
+        RefreshDesktopFeedback();
     }
 
     private async Task RefreshSettingsFromStoreAsync()
@@ -151,8 +153,8 @@ public partial class MainWindow : Window, IMainWindowShell
             {
                 SetGlobalStatus(
                     UiText.IsEnglish
-                        ? $"{UiText.ProviderName(selectedOcr.Metadata.Id, selectedOcr.Metadata.DisplayName)} · {UiText.ProviderName(selectedTranslation.Metadata.Id, selectedTranslation.Metadata.DisplayName)} is ready. Press {settings.Hotkey} to capture."
-                        : $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，按 {settings.Hotkey} 开始截图。",
+                        ? $"{UiText.ProviderName(selectedOcr.Metadata.Id, selectedOcr.Metadata.DisplayName)} · {UiText.ProviderName(selectedTranslation.Metadata.Id, selectedTranslation.Metadata.DisplayName)} is ready. Select Start capture."
+                        : $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，点击开始截图。",
                     isError: false);
             }
             else
@@ -195,6 +197,7 @@ public partial class MainWindow : Window, IMainWindowShell
     {
         Title = UiText.IsEnglish ? AppEdition.IsComplete ? "PingYi Complete" : "PingYi" : AppEdition.ProductName;
         LoadSettings();
+        RefreshDesktopFeedback();
     }
 
     private async void ChooseMode_OnClick(object? sender, RoutedEventArgs e)
@@ -224,7 +227,7 @@ public partial class MainWindow : Window, IMainWindowShell
     private void OpenHelp_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_helpWindow is not null) { _helpWindow.Show(); _helpWindow.Activate(); return; }
-        _helpWindow = new HelpAboutWindow(() => _services?.Settings ?? new AppSettings());
+        _helpWindow = new HelpAboutWindow(() => _services?.Settings ?? new AppSettings(), _services?.HotkeyService);
         _helpWindow.Closed += (_, _) => _helpWindow = null;
         _helpWindow.Show(this);
     }

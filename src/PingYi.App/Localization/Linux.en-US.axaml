@@ -1,0 +1,28 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PingYi.App.Localization.LinuxEnglishStrings">
+  <x:String x:Key="Linux.CaptureFailed">Could not start capture</x:String>
+  <x:String x:Key="Linux.HotkeyWaiting">Registering the shortcut. You can also click Start capture.</x:String>
+  <x:String x:Key="Linux.HotkeyOff">Shortcut not enabled. The capture button is still available.</x:String>
+  <x:String x:Key="Linux.HotkeyOn">Registered shortcut: </x:String>
+  <x:String x:Key="Linux.HotkeySystem">System-managed shortcut</x:String>
+  <x:String x:Key="Linux.ClickCapture">Click to capture</x:String>
+  <x:String x:Key="Linux.HotkeyConflict">This shortcut is already used by the system or another app. Change it in Settings → Appearance &amp; startup. The capture button still works.</x:String>
+  <x:String x:Key="Linux.HotkeyWayland">The desktop did not grant a global shortcut, or does not support the shortcut portal. Capture buttons still work. You can bind the command below in system keyboard settings.</x:String>
+  <x:String x:Key="Linux.HotkeyFailed">Shortcut registration failed. Choose another combination or check the desktop session. Capture buttons still work.</x:String>
+  <x:String x:Key="Linux.HotkeyEdit">Shortcut settings</x:String>
+  <x:String x:Key="Linux.HotkeyHint">Saving attempts registration; conflicts keep the previous setting. On Wayland the desktop approves and manages the final shortcut.</x:String>
+  <x:String x:Key="Linux.LinuxHelp">Linux capture &amp; shortcuts</x:String>
+  <x:String x:Key="Linux.WaylandCapture">Wayland: use the system capture UI to select a region and confirm.</x:String>
+  <x:String x:Key="Linux.X11Capture">X11: use PingYi’s selection overlay. The Linux default is Ctrl+Alt+Shift+D; you can change it in Settings.</x:String>
+  <x:String x:Key="Linux.LinuxShortcutHelp">Without a shortcut portal, add the command below in system Keyboard → Custom Shortcuts. Suggested: Ctrl+Alt+Shift+D. Do not overwrite existing system bindings. This command also starts capture when PingYi is not running.</x:String>
+  <x:String x:Key="Linux.CopyCommand">Copy capture command</x:String>
+  <x:String x:Key="Linux.CopiedCommand">Capture command copied.</x:String>
+  <x:String x:Key="Linux.SystemKeyboard">System keyboard settings</x:String>
+  <x:String x:Key="Linux.RegisterAgain">Retry registration</x:String>
+  <x:String x:Key="Linux.KeyboardMissing">GNOME keyboard settings are not installed. Open your desktop’s keyboard settings and add the provided capture command.</x:String>
+  <x:String x:Key="Linux.PortalUnavailable">The system screenshot portal is unavailable. On Ubuntu, check that xdg-desktop-portal and xdg-desktop-portal-gnome are installed and running, then log in again. Ubuntu on Xorg is another option.</x:String>
+  <x:String x:Key="Linux.PortalTimeout">The system screenshot selection timed out. Click capture again, complete the selection in the system UI and confirm.</x:String>
+  <x:String x:Key="Linux.PortalDenied">The desktop did not allow the screenshot. Check system permissions and retry. Cancellation does not upload or analyze an image.</x:String>
+  <x:String x:Key="Linux.PortalImage">The image returned by the desktop portal is invalid, unreadable, or too large. Try another capture.</x:String>
+  <x:String x:Key="Linux.PortalPrivacy">On Wayland the desktop portal may create a temporary screenshot file. PingYi reads it into memory, creates no history, and does not delete desktop- or user-owned files. File retention and cleanup are controlled by the desktop.</x:String>
+  <x:String x:Key="Linux.CaptureBackend">Capture backend</x:String>
+</ResourceDictionary>

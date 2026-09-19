@@ -12,7 +12,7 @@ class UsabilityStructureTests(unittest.TestCase):
     def test_locale_keys_match_and_every_dynamic_ui_text_exists(self):
         dictionaries = []
         for locale in ('zh-CN', 'en-US'):
-            nodes = [node for name in ('Strings', 'Vision')
+            nodes = [node for name in ('Strings', 'Vision', 'Linux')
                      for node in ET.parse(APP / 'Localization' / f'{name}.{locale}.axaml').getroot()]
             values = {n.get(X + 'Key'): n.text for n in nodes}
             self.assertEqual(len(nodes), len(values))
@@ -21,7 +21,7 @@ class UsabilityStructureTests(unittest.TestCase):
         self.assertEqual(dictionaries[0].keys(), dictionaries[1].keys())
         for file in APP.glob('*.axaml'):
             text = file.read_text(encoding='utf8')
-            for key in re.findall(r'\{DynamicResource ((?:String|Text|Workspace|Polish)\.[^}]+)\}', text):
+            for key in re.findall(r'\{DynamicResource ((?:String|Text|Workspace|Polish|Linux)\.[^}]+)\}', text):
                 self.assertIn(key, dictionaries[0], (file.name, key))
             self.assertNotRegex(text, r'x:Static local:(?:WorkspaceText|PolishText)\.')
 

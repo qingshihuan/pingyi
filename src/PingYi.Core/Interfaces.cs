@@ -24,6 +24,21 @@ public interface IScreenCaptureService
     Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default);
 }
 
+// The compositor owns selection/permissions on Wayland. Its returned image is
+// already selected; it must never be treated as a root-window desktop bitmap.
+public interface IInteractiveScreenCaptureService : IScreenCaptureService
+{
+    Task<ImageFrame?> CaptureSelectionAsync(CancellationToken cancellationToken = default);
+}
+
+public interface IGlobalHotkeyStatus
+{
+    bool IsRegistered { get; }
+    string? RegisteredShortcut { get; }
+    Exception? RegistrationError { get; }
+    event EventHandler? RegistrationChanged;
+}
+
 public interface IImageCropper
 {
     ImageFrame Crop(ImageFrame source, PixelRect cropBounds);

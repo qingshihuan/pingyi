@@ -63,7 +63,7 @@ public sealed class AppSettingsTests
                 """);
             var store = new JsonSettingsStore(file);
             var settings = await store.LoadAsync();
-            Assert.Equal(8, settings.SchemaVersion);
+            Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
             Assert.Equal("en-US", settings.UiLanguage);
             Assert.Equal("Ctrl+Alt+G", settings.Hotkey);
             Assert.Equal("kept-model", settings.CustomTranslationModel);
@@ -108,7 +108,7 @@ public sealed class AppSettingsTests
 
         var normalized = settings.Normalize();
 
-        Assert.Equal("Ctrl+Alt+D", normalized.Hotkey);
+        Assert.Equal(AppSettings.DefaultHotkey, normalized.Hotkey);
         Assert.Equal("http://127.0.0.1:8080/v1/chat/completions", normalized.CustomTranslationEndpoint);
         Assert.Equal("gemma-4-e4b-it", normalized.CustomTranslationModel);
     }

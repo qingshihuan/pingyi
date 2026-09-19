@@ -296,9 +296,19 @@
                 <TextBlock Text="{DynamicResource Text.914b460edf64}" Classes="workspace-help"/>
                 <StackPanel Spacing="6">
                   <TextBlock Text="{DynamicResource Text.0299dc01919c}" Classes="workspace-label"/>
-                  <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
+                  <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
                 </StackPanel>
-                <TextBlock Text="{DynamicResource Text.ef1361324428}" Classes="workspace-help"/>
+                <TextBlock Text="{DynamicResource Linux.HotkeyHint}" Classes="workspace-help"/>
+                <TextBlock x:Name="HotkeyRegistrationText" Classes="workspace-help" AutomationProperties.LiveSetting="Polite"/>
+                <Button Classes="secondary" Content="{DynamicResource Linux.RegisterAgain}" Click="RetryHotkey_OnClick" HorizontalAlignment="Left"/>
+                <StackPanel x:Name="LinuxShortcutHelpPanel" Spacing="10" IsVisible="False">
+                  <TextBlock Text="{DynamicResource Linux.LinuxShortcutHelp}" Classes="workspace-help"/>
+                  <TextBox x:Name="CaptureCommandBox" Classes="workspace-field" IsReadOnly="True" TextWrapping="Wrap"/>
+                  <WrapPanel>
+                    <Button Content="{DynamicResource Linux.CopyCommand}" Classes="secondary" Click="CopyCaptureCommand_OnClick" Margin="0,0,8,6"/>
+                    <Button Content="{DynamicResource Linux.SystemKeyboard}" Classes="secondary" Click="SystemKeyboard_OnClick" Margin="0,0,0,6"/>
+                  </WrapPanel>
+                </StackPanel>
                 <CheckBox x:Name="StartMinimizedCheckBox" AutomationProperties.Name="{DynamicResource Text.98267fd4ed54}"><TextBlock Text="{DynamicResource Text.98267fd4ed54}" TextWrapping="Wrap"/></CheckBox>
                 <CheckBox x:Name="CheckForUpdatesCheckBox" AutomationProperties.Name="{DynamicResource Text.d95bc1d6f25a}"><TextBlock Text="{DynamicResource Text.b68a94c0e3fb}" TextWrapping="Wrap"/></CheckBox>
                 <WrapPanel>

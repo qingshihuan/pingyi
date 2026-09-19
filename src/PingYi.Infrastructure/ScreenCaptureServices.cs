@@ -10,7 +10,9 @@ public static class ScreenCaptureServiceFactory
     public static IScreenCaptureService Create() =>
         OperatingSystem.IsWindows()
             ? new WindowsScreenCaptureService()
-            : new X11ScreenCaptureService();
+            : LinuxDesktop.Session == LinuxDesktopSession.Wayland
+                ? new PortalScreenCaptureService()
+                : new X11ScreenCaptureService();
 }
 
 internal sealed class WindowsScreenCaptureService : IScreenCaptureService
@@ -168,6 +170,9 @@ internal sealed class X11ScreenCaptureService : IScreenCaptureService
     private const int ZPixmap = 2;
 
     public Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default)
+        => Task.Run(() => Capture(cancellationToken), cancellationToken);
+
+    private static ImageFrame Capture(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         EnsureX11();
@@ -183,6 +188,9 @@ internal sealed class X11ScreenCaptureService : IScreenCaptureService
             var root = XRootWindow(display, screen);
             var width = XDisplayWidth(display, screen);
             var height = XDisplayHeight(display, screen);
+            if (width <= 0 || height <= 0 || (long)width * height > 100_000_000)
+                throw new ProviderException("capture_dimensions", "屏幕尺寸无效或超过捕获上限。");
+            cancellationToken.ThrowIfCancellationRequested();
             var imagePointer = XGetImage(display, root, 0, 0, (uint)width, (uint)height, ulong.MaxValue, ZPixmap);
             if (imagePointer == IntPtr.Zero)
             {
@@ -195,11 +203,11 @@ internal sealed class X11ScreenCaptureService : IScreenCaptureService
                 var raw = new byte[checked(image.BytesPerLine * image.Height)];
                 Marshal.Copy(image.Data, raw, 0, raw.Length);
                 var bgra = ConvertXImageToBgra(raw, image);
-                return Task.FromResult(new ImageFrame(
+                return new ImageFrame(
                     WindowsScreenCaptureService.EncodeBgraToPng(bgra, width, height),
                     width,
                     height,
-                    new PixelRect(0, 0, width, height)));
+                    new PixelRect(0, 0, width, height));
             }
             finally
             {
@@ -274,10 +282,9 @@ internal sealed class X11ScreenCaptureService : IScreenCaptureService
 
     private static void EnsureX11()
     {
-        var session = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
-        if (string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase))
+        if (LinuxDesktop.Session == LinuxDesktopSession.Wayland)
         {
-            throw new PlatformNotSupportedException("首版仅支持 Ubuntu X11；当前会话为 Wayland。");
+            throw new ProviderException("capture_wayland_portal_required", "Wayland 截图必须使用系统截图门户。");
         }
     }
 

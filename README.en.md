@@ -29,6 +29,14 @@ The standard package bundles local OCR and basic Chinese-English translation mod
 
 If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
 
+## Linux capture and shortcuts
+
+The Linux default is now `Ctrl+Alt+Shift+D`; Windows keeps `Ctrl+Alt+D`. Only the old Linux default is migrated. Custom combinations are preserved and conflicts are reported independently of model readiness. The capture button works independently of shortcut registration.
+
+On X11, PingYi uses its native region overlay. On Wayland, capture uses the interactive desktop Screenshot portal. Global shortcuts require compositor authorization; where the GlobalShortcuts portal is unavailable, copy the capture command from Appearance & startup into system Custom Shortcuts. `--capture` also works on first launch. Missing capture services and permission failures produce a visible recovery window.
+
+Wayland requires `xdg-desktop-portal` and a matching backend (normally `xdg-desktop-portal-gnome` on GNOME). The desktop portal may create a temporary image; PingYi adds no screenshot history. See [Linux capture details](docs/LINUX_CAPTURE.md) for dependencies and validation limits.
+
 ## Image description and prompt reconstruction
 
 Use **Describe image** or **Reconstruct prompt** on Home to analyze screenshots even without text. Switch tasks or retry the same image in the result window. These tasks require an `image_url`-capable vision model using the configured compatible endpoint; Complete edition can start an applied local multimodal model on demand. Output follows the interface language. Each remote HTTPS image upload requires separate confirmation; text-translation permission does not authorize image uploads. No persistent history is added. Reconstructed prompts are visual references, not recovery of the original prompt or generation settings.
@@ -53,7 +61,7 @@ The demo covers region capture, OCR results, translation, and local privacy stat
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
 - **Optional cloud providers:** configure Google Cloud Vision OCR, Google Cloud Translation, Baidu services, or a custom Chat Completions endpoint when desired.
 - **English and Chinese UI:** follow the system language or explicitly choose English or Simplified Chinese in Settings.
-- **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu X11 x64.
+- **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu x64 (X11 / Wayland portal).
 - **Self-contained releases:** Windows installer/portable ZIP and Ubuntu `.deb`/`.tar.gz`, with no separate runtime installation.
 
 ## Download and use

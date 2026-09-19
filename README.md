@@ -29,6 +29,14 @@
 
 如果屏译解决了你的截图取词或翻译需求，欢迎点一个 [Star](https://github.com/qingshihuan/pingyi)；它能帮助更多需要离线 OCR 与隐私截图翻译的人找到这个项目。
 
+## Linux 截图与快捷键
+
+Linux 默认改为 `Ctrl+Alt+Shift+D`，Windows 保持 `Ctrl+Alt+D`；升级只迁移 Linux 的旧默认值，不重置自定义快捷键。冲突会显示为“未注册”，不影响截图按钮。
+
+Ubuntu X11 使用屏译框选层；Wayland 使用系统截图门户的交互界面。Wayland 快捷键由桌面授权，若当前桌面没有 GlobalShortcuts 门户，可在“设置 → 外观与启动”复制截图命令，添加到 Ubuntu 系统自定义快捷键；`--capture` 支持首次启动。系统门户缺失或拒绝权限时会打开明确的错误窗口。
+
+Wayland 需要 `xdg-desktop-portal` 与桌面匹配的实现（GNOME 使用 `xdg-desktop-portal-gnome`）。系统截图门户可能创建临时文件；屏译不会增加自己的截图历史。详细行为、依赖和验证范围见 [Linux 使用说明](docs/LINUX_CAPTURE.md)。
+
 ## 图片描述与提示词反推
 
 主页新增“描述图片”和“反推提示词”，可直接分析没有文字的截图；结果窗口可切换任务或重新分析同一张图。需要兼容 `image_url` 的视觉模型，沿用自定义接口配置，完全版可按需启动已应用的本机多模态模型。输出跟随界面语言；远程 HTTPS 服务每次发送完整截图前单独确认，不沿用文字翻译的上传授权。不会新增持久历史，反推不等于恢复原始提示词。
@@ -53,7 +61,7 @@
 - **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
 - **云端服务可选**：可自行配置 Google Cloud Vision OCR、Google Cloud Translation、百度服务或自定义 Chat Completions 接口。
 - **中英文界面**：可跟随系统，也可在设置中固定为简体中文或 English。
-- **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu X11 x64。
+- **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu x64（X11 / Wayland 门户）。
 - **开箱运行**：Windows 自包含安装包/便携 ZIP，Ubuntu 提供 `.deb`/`.tar.gz`，无需另装运行时。
 
 ## 下载与使用
@@ -166,7 +174,7 @@ Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；�
 ## 当前兼容范围
 
 - Windows 10/11 x64。
-- Ubuntu 22.04+ X11 x64；v1 暂不支持 Wayland 截图门户。
+- Ubuntu 22.04+ X11 x64；Wayland 通过系统截图门户交互选择，功能由桌面后端决定。
 - PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。自动检测到非中英文时不会错误回退到中英 Argos 模型。
 - v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
 
