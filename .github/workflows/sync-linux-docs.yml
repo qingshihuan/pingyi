@@ -1,0 +1,47 @@
+name: Synchronize Linux documentation
+on:
+  push:
+    branches: [fix/linux-capture-shortcuts]
+    paths: [.github/workflows/sync-linux-docs.yml]
+permissions:
+  contents: read
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Update the previously X11-only instructions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          changes = {
+            'README.md': {
+              '屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。': '屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu 的桌面截图翻译器。点击“开始截图”，或使用已注册的快捷键，即可选择图片并完成 OCR 文字提取和翻译。Windows 默认键为 `Ctrl+Alt+D`，Linux 默认键为 `Ctrl+Alt+Shift+D`；Wayland 由系统截图界面提供选择。',
+              'Ubuntu X11 可安装 `.deb` 或解压 `.tar.gz`。': 'Ubuntu 可安装 `.deb` 或解压 `.tar.gz`；Wayland 还需桌面截图门户及匹配的后端。',
+              '安装后启动屏译，按 `Ctrl+Alt+D`，拖动鼠标框选屏幕区域。多显示器会按各自 DPI 建立协同截图层，支持负坐标和跨屏框选。': '安装后启动屏译，点击“开始截图”或按界面显示的已注册快捷键。Windows / X11 会按各显示器 DPI 建立协同截图层，支持负坐标和跨屏框选；Wayland 使用系统提供的截图选择器。',
+              '默认全局截图键仍为 `Ctrl+Alt+D`，没有重置现有用户配置。': 'Windows 默认全局截图键为 `Ctrl+Alt+D`，Linux 为 `Ctrl+Alt+Shift+D`；仅迁移 Linux 的旧默认值，其他自定义组合保留。',
+              '- Ubuntu X11 的 Xlib 截图与全局快捷键实现。': '- Ubuntu X11 的原生截图与冲突可检测的快捷键；Wayland 的系统截图门户和可选授权快捷键门户。'
+            },
+            'README.en.md': {
+              'PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get OCR text extraction and translation in one compact result card.': 'PingYi is a desktop screen translator for Windows 10/11 and Ubuntu. Click Start Capture or use the registered shortcut to select an image and receive OCR text and translation. The Windows default is `Ctrl+Alt+D`; Linux uses `Ctrl+Alt+Shift+D`. Wayland selection is provided by the desktop screenshot portal.',
+              'On Ubuntu X11, install the `.deb` or extract the `.tar.gz`.': 'On Ubuntu, install the `.deb` or extract the `.tar.gz`; Wayland also requires the desktop screenshot portal and a matching backend.',
+              'Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. Each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections.': 'Start PingYi and click Start Capture or use the registered shortcut shown in the interface. On Windows / X11, each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. Wayland uses the system screenshot selector.',
+              '- Ubuntu X11 screenshot and global-hotkey implementation through Xlib.': '- Ubuntu X11 capture and conflict-aware global shortcuts through Xlib; interactive Wayland capture and optional approved shortcuts through desktop portals.',
+              '- Ubuntu 22.04+ X11 x64; Wayland screenshot portals are outside the v1 scope.': '- Ubuntu 22.04+ x64 with X11, or Wayland interactive screenshot portals. Available selection and global-shortcut features depend on the desktop backend.'
+            }
+          }
+          for name, replacements in changes.items():
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              for old, new in replacements.items():
+                  assert old in text
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md README.en.md
+          git commit -m 'Align Linux documentation with system screenshot selection and platform defaults'
+          git push origin HEAD:fix/linux-capture-shortcuts

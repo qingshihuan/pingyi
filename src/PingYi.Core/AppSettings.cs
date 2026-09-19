@@ -2,8 +2,10 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 8;
-    public const string DefaultHotkey = "Ctrl+Alt+D";
+    public const int CurrentSchemaVersion = 9;
+    public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
+    public const string LinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
+    public static string DefaultHotkey => OperatingSystem.IsLinux() ? LinuxDefaultHotkey : WindowsDefaultHotkey;
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
     public const string ManagedModelEndpoint = "http://127.0.0.1:18080/v1/chat/completions";
@@ -23,13 +25,22 @@ public sealed record AppSettings
     public bool CheckForUpdates { get; init; }
     public string UiLanguage { get; init; } = "auto";
 
-    public AppSettings Normalize()
+    public AppSettings Normalize() => Normalize(OperatingSystem.IsLinux());
+
+    public AppSettings Normalize(bool isLinux)
     {
-        var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? DefaultHotkey : Hotkey.Trim();
+        var platformDefault = isLinux ? LinuxDefaultHotkey : WindowsDefaultHotkey;
+        var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? platformDefault : Hotkey.Trim();
         if (SchemaVersion < 2 && string.Equals(hotkey, "Ctrl+Shift+X", StringComparison.OrdinalIgnoreCase))
         {
-            hotkey = DefaultHotkey;
+            hotkey = platformDefault;
         }
+
+        // Migrate only the old shipped Linux default once. Custom shortcuts and
+        // explicit choices made in schema 9+ are preserved, including Ctrl+Alt+D.
+        if (isLinux && SchemaVersion < 9 &&
+            string.Equals(hotkey.Replace(" ", string.Empty), WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase))
+            hotkey = LinuxDefaultHotkey;
 
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
         var model = CustomTranslationModel.Trim();

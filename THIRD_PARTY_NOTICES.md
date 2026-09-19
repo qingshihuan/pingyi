@@ -127,3 +127,21 @@ model diagnostics retain only authored categories; image-analysis output remains
 in memory and is not added to logs or persistent history. Model licenses and
 third-party service terms remain applicable; no original-prompt recovery or
 model-accuracy guarantee is implied.
+
+## Linux desktop portal integration
+
+PingYi calls system-installed GLib/GIO/GObject (LGPL-2.1-or-later) through their
+public C ABI for the freedesktop Screenshot and GlobalShortcuts portals. These
+libraries, xdg-desktop-portal and desktop-specific backends are not bundled by
+this change. The Debian package declares the system library dependency and
+recommends the appropriate portal services. Existing Xlib integration remains;
+no new production NuGet package, model or embedded helper is added.
+
+Native desktop tests additionally use system Xvfb/XTest and Python GObject
+Introspection on an isolated test bus. Test-only dependencies and the synthetic
+portal are not included in application packages. The portal can create its own
+temporary image; PingYi does not persist another screenshot or delete files
+owned by the desktop or user.
+
+Upstream: https://gitlab.gnome.org/GNOME/glib and
+https://flatpak.github.io/xdg-desktop-portal/docs/

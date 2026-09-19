@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PingYi.App.CaptureErrorWindow" Classes="workspace"
+        Title="{DynamicResource Linux.CaptureFailed}" Width="560" Height="330" MinWidth="400" MinHeight="280"
+        WindowStartupLocation="CenterOwner" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png">
+  <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <TextBlock Text="{DynamicResource Linux.CaptureFailed}" Classes="workspace-title"/>
+    <ScrollViewer Grid.Row="1" Classes="workspace-page">
+      <TextBlock x:Name="CaptureErrorText" Classes="workspace-help" AutomationProperties.LiveSetting="Assertive"/>
+    </ScrollViewer>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Right">
+      <Button Content="{DynamicResource Workspace.Settings}" Classes="secondary" Click="Settings_OnClick" Margin="0,0,8,4"/>
+      <Button Content="{DynamicResource String.Close}" Classes="primary" Click="Close_OnClick" Margin="0,0,0,4"/>
+    </WrapPanel>
+  </Grid>
+</Window>

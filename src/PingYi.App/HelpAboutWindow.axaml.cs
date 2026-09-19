@@ -10,10 +10,12 @@ namespace PingYi.App;
 public partial class HelpAboutWindow : Window
 {
     private readonly Func<AppSettings> _settings;
+    private readonly IGlobalHotkeyService? _hotkey;
     public HelpAboutWindow() : this(() => new AppSettings()) { }
-    public HelpAboutWindow(Func<AppSettings> settings)
+    public HelpAboutWindow(Func<AppSettings> settings, IGlobalHotkeyService? hotkey = null)
     {
         _settings = settings;
+        _hotkey = hotkey;
         InitializeComponent();
         UiText.Attach(this);
         RefreshDetails();
@@ -29,7 +31,9 @@ public partial class HelpAboutWindow : Window
         var version = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
             ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"{UiText.Get("String.Version")}: {version}";
-        CaptureShortcutText.Text = $"{UiText.Get("String.StartCapture")}: {settings.Hotkey}";
+        CaptureShortcutText.Text = _hotkey is null
+            ? $"{UiText.Get("String.StartCapture")}: {settings.Hotkey}"
+            : HotkeyFeedback.Message(_hotkey);
         PrivacySummaryText.Text = DataUseDescription.For(settings);
     }
     private void Close_OnClick(object? sender, RoutedEventArgs e) => Close();

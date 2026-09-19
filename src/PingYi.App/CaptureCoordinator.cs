@@ -10,7 +10,6 @@ namespace PingYi.App;
 public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDisposable
 {
     private const int MaximumPinnedWindows = 5;
-    private static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan AvailabilityTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan ManagedRuntimeTimeout = ManagedRuntimeReadiness.OperationTimeout;
     private static readonly TimeSpan OcrTimeout = TimeSpan.FromMinutes(2);
@@ -24,6 +23,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     private readonly List<ResultWindow> _pinnedWindows = [];
     private readonly Dictionary<ResultWindow, ImageFrame> _windowImages = [];
     private ResultWindow? _resultWindow;
+    private CaptureErrorWindow? _captureErrorWindow;
     private IMainWindowShell? _mainWindow;
     private OperationContext? _currentOperation;
     private long _nextOperationId;
@@ -46,6 +46,8 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
             await _operationGate.WaitAsync(operation.Token);
             enteredGate = true;
             EnsureCurrent(operation);
+            _captureErrorWindow?.Close();
+            _captureErrorWindow = null;
 
             if (_resultWindow?.IsPinned == true)
             {
@@ -65,19 +67,12 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
             {
                 selectedImage = await CaptureWindowScope.RunAsync(windows,
                     DesktopCaptureBarrier.WaitAsync,
-                    async token =>
-                    {
-                        var desktop = await WithTimeoutAsync(
-                            captureToken => services.ScreenCaptureService.CaptureDesktopAsync(captureToken),
-                            CaptureTimeout, token, "capture_timeout", "屏幕捕获超时，请重试。");
-                        EnsureCurrent(operation);
-                        var captureDisplays = displays is { Count: > 0 }
-                            ? displays : new[] { new CaptureDisplay(desktop.DesktopBounds, 1) };
-                        var overlay = new CaptureOverlaySession(desktop, captureDisplays, services.ImageCropper);
-                        var selection = await overlay.ShowAndSelectAsync(token);
-                        EnsureCurrent(operation);
-                        return selection is null ? null : services.ImageCropper.Crop(desktop, selection.Value);
-                    }, operation.Token, () => Volatile.Read(ref _disposeState) == 0);
+                    token => CaptureSelectionWorkflow.SelectAsync(services.ScreenCaptureService, services.ImageCropper,
+                        displays, (desktop, monitors, selectionToken) =>
+                        {
+                            EnsureCurrent(operation);
+                            return new CaptureOverlaySession(desktop, monitors, services.ImageCropper).ShowAndSelectAsync(selectionToken);
+                        }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0);
             }
             finally { IsCapturingScreen = false; }
             EnsureCurrent(operation);
@@ -98,7 +93,17 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         {
             if (IsCurrent(operation))
             {
-                mainWindow?.SetGlobalStatus(UiText.Error(exception), isError: true);
+                var message = UiText.Error(exception);
+                mainWindow?.Show();
+                if (mainWindow is Window shell) shell.WindowState = WindowState.Normal;
+                mainWindow?.Activate();
+                mainWindow?.SetGlobalStatus(message, isError: true);
+                // A tray/CLI invocation may have no visible main window. Keep this
+                // failure visible even if a concurrent model check updates its status.
+                _captureErrorWindow?.Close();
+                _captureErrorWindow = new CaptureErrorWindow(message, mainWindow is null ? null : mainWindow.OpenSettings);
+                if (mainWindow is Window owner && owner.IsVisible) _captureErrorWindow.Show(owner);
+                else _captureErrorWindow.Show();
             }
         }
         finally
@@ -153,6 +158,8 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                 _windowImages.Clear();
             }
 
+            _captureErrorWindow?.Close();
+            _captureErrorWindow = null;
             foreach (var window in windows)
             {
                 window.ClosePermanently();

@@ -23,11 +23,19 @@
   <img src="docs/social-preview.png" width="920" alt="PingYi: an offline-first screenshot OCR and translation desktop app">
 </p>
 
-PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get OCR text extraction and translation in one compact result card. The interface is available in English and Simplified Chinese and can follow the operating-system language automatically.
+PingYi is a desktop screen translator for Windows 10/11 and Ubuntu. Click Start Capture or use the registered shortcut to select an image and receive OCR text and translation. The Windows default is `Ctrl+Alt+D`; Linux uses `Ctrl+Alt+Shift+D`. Wayland selection is provided by the desktop screenshot portal. The interface is available in English and Simplified Chinese and can follow the operating-system language automatically.
 
 The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. The Complete edition additionally bundles the Vulkan and CPU llama.cpp runtimes and can download and configure newer lightweight multimodal models from ModelScope in one click. Existing Ollama, LM Studio, vLLM, llama.cpp, and generic Chat Completions services remain supported. For broader cloud language coverage, you can supply your own Google Cloud or Baidu credentials.
 
 If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
+
+## Linux capture and shortcuts
+
+The Linux default is now `Ctrl+Alt+Shift+D`; Windows keeps `Ctrl+Alt+D`. Only the old Linux default is migrated. Custom combinations are preserved and conflicts are reported independently of model readiness. The capture button works independently of shortcut registration.
+
+On X11, PingYi uses its native region overlay. On Wayland, capture uses the interactive desktop Screenshot portal. Global shortcuts require compositor authorization; where the GlobalShortcuts portal is unavailable, copy the capture command from Appearance & startup into system Custom Shortcuts. `--capture` also works on first launch. Missing capture services and permission failures produce a visible recovery window.
+
+Wayland requires `xdg-desktop-portal` and a matching backend (normally `xdg-desktop-portal-gnome` on GNOME). The desktop portal may create a temporary image; PingYi adds no screenshot history. See [Linux capture details](docs/LINUX_CAPTURE.md) for dependencies and validation limits.
 
 ## Image description and prompt reconstruction
 
@@ -53,7 +61,7 @@ The demo covers region capture, OCR results, translation, and local privacy stat
 - **Privacy first:** local mode uploads nothing and stores no screenshots, recognized text, translations, or history by default.
 - **Optional cloud providers:** configure Google Cloud Vision OCR, Google Cloud Translation, Baidu services, or a custom Chat Completions endpoint when desired.
 - **English and Chinese UI:** follow the system language or explicitly choose English or Simplified Chinese in Settings.
-- **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu X11 x64.
+- **Cross-platform desktop app:** built with Avalonia and C# for Windows x64 and Ubuntu x64 (X11 / Wayland portal).
 - **Self-contained releases:** Windows installer/portable ZIP and Ubuntu `.deb`/`.tar.gz`, with no separate runtime installation.
 
 ## Download and use
@@ -65,9 +73,9 @@ Download the edition for your system from [GitHub Releases](https://github.com/q
 | Standard | `PingYi-` | Smallest package, offline zh-en fallback, or an existing Ollama/llama.cpp service | Offline OCR and basic zh-en translation work immediately |
 | Complete | `PingYi-Complete-` | PingYi-managed multimodal models and llama.cpp | Core features work immediately; the enhancement model is downloaded once from ModelScope |
 
-On Windows, prefer `*-win-x64-setup.exe` or use the portable ZIP. On Ubuntu X11, install the `.deb` or extract the `.tar.gz`. The two editions use separate installation and data directories, so they can coexist without overwriting the previous release.
+On Windows, prefer `*-win-x64-setup.exe` or use the portable ZIP. On Ubuntu, install the `.deb` or extract the `.tar.gz`; Wayland also requires the desktop screenshot portal and a matching backend. The two editions use separate installation and data directories, so they can coexist without overwriting the previous release.
 
-On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP remains portable. Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. Each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. The result card lets you copy the source text, translation, or both; retry processing; or pin the card, and later captures reuse the same result window instead of stacking new windows. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings. Credential fields expose only a show/hide control; once shown, standard copy and paste commands work inside the text box.
+On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP remains portable. Start PingYi and click Start Capture or use the registered shortcut shown in the interface. On Windows / X11, each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. Wayland uses the system screenshot selector. The result card lets you copy the source text, translation, or both; retry processing; or pin the card, and later captures reuse the same result window instead of stacking new windows. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings. Credential fields expose only a show/hide control; once shown, standard copy and paste commands work inside the text box.
 
 > Windows SmartScreen may show an unknown-publisher warning because the current open-source release does not yet use a paid commercial code-signing certificate. Download only from this repository's Releases page and verify the files with the supplied SHA-256 checksums.
 
@@ -116,7 +124,7 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 ## Implemented features
 
 - Windows virtual-desktop capture, global hotkey, multi-monitor selection, and mixed-DPI handling.
-- Ubuntu X11 screenshot and global-hotkey implementation through Xlib.
+- Ubuntu X11 capture and conflict-aware global shortcuts through Xlib; interactive Wayland capture and optional approved shortcuts through desktop portals.
 - PP-OCRv5 mobile Chinese/English models, ONNX Runtime CPU inference, and SHA-256 model integrity verification.
 - Bundled Argos Chinese-English fallback with automatic recovery when a local LLM is unavailable.
 - Google Cloud Vision OCR, Google Cloud Translation Basic v2, Baidu position-aware OCR, Baidu general translation, and custom Chat Completions translation.
@@ -134,7 +142,7 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 ## Current compatibility
 
 - Windows 10/11 x64.
-- Ubuntu 22.04+ X11 x64; Wayland screenshot portals are outside the v1 scope.
+- Ubuntu 22.04+ x64 with X11, or Wayland interactive screenshot portals. Available selection and global-shortcut features depend on the desktop backend.
 - PaddleOCR and bundled Argos translation support Simplified Chinese and English; local/custom LLM translation offers 34 common target languages in Settings. Text automatically detected as another language is never sent to the Chinese-English Argos fallback.
 - v1 does not include live overlay translation, PDF/image batch processing, specialized table/formula OCR, or history.
 

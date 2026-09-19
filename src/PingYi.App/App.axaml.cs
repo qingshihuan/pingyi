@@ -48,7 +48,8 @@ public partial class App : Application
             _services = await AppServices.CreateAsync();
             UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
-            var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
+            var launchCommand = SingleInstanceCoordinator.CommandFromArguments(desktop.Args ?? []);
+            var openSettings = launchCommand == "settings";
             _mainWindow = new MainWindow(_services, _captureCoordinator, OpenSettingsWindowAsync);
             _mainShell = (IMainWindowShell)_mainWindow;
             _mainWindow.Closing += (_, eventArgs) =>
@@ -63,6 +64,7 @@ public partial class App : Application
             };
             desktop.MainWindow = _mainWindow;
             _trayIcon = CreateTrayIcon();
+            if (_services.HotkeyService is IGlobalHotkeyStatus status) status.RegistrationChanged += OnHotkeyRegistrationChanged;
             SingleInstance?.SetHandler(async command =>
                 await Dispatcher.UIThread.InvokeAsync(() => HandleExternalCommandAsync(command)));
 
@@ -82,6 +84,8 @@ public partial class App : Application
 
             UiText.LanguageChanged += RefreshTrayLanguage;
             if (openSettings) await OpenSettingsWindowAsync();
+            else if (launchCommand == "capture")
+                await _captureCoordinator.StartCaptureAsync(_mainShell);
 
             if (_services.Settings.CheckForUpdates)
             {
@@ -108,10 +112,11 @@ public partial class App : Application
         try
         {
             await _services!.HotkeyService.StartAsync(_services.Settings.Hotkey);
-            _mainShell?.SetGlobalStatus("快捷键已启用", isError: false);
+            // Registration has its own persistent UI row, independent of model readiness.
         }
         catch (Exception exception)
         {
+            // Do not fail application initialization or disable capture on conflict.
             _mainShell?.SetGlobalStatus(UiText.Error(exception), isError: true);
         }
     }
@@ -136,7 +141,7 @@ public partial class App : Application
         var tray = new TrayIcon
         {
             Icon = CreateWindowIcon(),
-            ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
+            ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {HotkeyFeedback.Badge(_services?.HotkeyService)}",
             Menu = menu,
             IsVisible = true
         };
@@ -231,6 +236,12 @@ public partial class App : Application
         return Task.CompletedTask;
     }
 
+    private void OnHotkeyRegistrationChanged(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!_isExiting && _trayIcon is not null)
+            _trayIcon.ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {HotkeyFeedback.Badge(_services?.HotkeyService)}";
+    });
+
     private void RefreshTrayLanguage(object? sender, EventArgs e)
     {
         if (_isExiting) return;
@@ -288,6 +299,7 @@ public partial class App : Application
     {
         _isExiting = true;
         UiText.LanguageChanged -= RefreshTrayLanguage;
+        if (_services?.HotkeyService is IGlobalHotkeyStatus status) status.RegistrationChanged -= OnHotkeyRegistrationChanged;
         _trayIcon?.Dispose();
         if (_captureCoordinator is not null)
         {

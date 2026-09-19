@@ -23,11 +23,19 @@
   <img src="docs/social-preview.png" width="920" alt="屏译：离线优先的截图 OCR 与翻译桌面工具">
 </p>
 
-屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
+屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu 的桌面截图翻译器。点击“开始截图”，或使用已注册的快捷键，即可选择图片并完成 OCR 文字提取和翻译。Windows 默认键为 `Ctrl+Alt+D`，Linux 默认键为 `Ctrl+Alt+Shift+D`；Wayland 由系统截图界面提供选择。界面支持简体中文与 English，可跟随系统自动切换。
 
 标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。需要更广语言覆盖时，可使用自己的 Google Cloud 或百度凭据。
 
 如果屏译解决了你的截图取词或翻译需求，欢迎点一个 [Star](https://github.com/qingshihuan/pingyi)；它能帮助更多需要离线 OCR 与隐私截图翻译的人找到这个项目。
+
+## Linux 截图与快捷键
+
+Linux 默认改为 `Ctrl+Alt+Shift+D`，Windows 保持 `Ctrl+Alt+D`；升级只迁移 Linux 的旧默认值，不重置自定义快捷键。冲突会显示为“未注册”，不影响截图按钮。
+
+Ubuntu X11 使用屏译框选层；Wayland 使用系统截图门户的交互界面。Wayland 快捷键由桌面授权，若当前桌面没有 GlobalShortcuts 门户，可在“设置 → 外观与启动”复制截图命令，添加到 Ubuntu 系统自定义快捷键；`--capture` 支持首次启动。系统门户缺失或拒绝权限时会打开明确的错误窗口。
+
+Wayland 需要 `xdg-desktop-portal` 与桌面匹配的实现（GNOME 使用 `xdg-desktop-portal-gnome`）。系统截图门户可能创建临时文件；屏译不会增加自己的截图历史。详细行为、依赖和验证范围见 [Linux 使用说明](docs/LINUX_CAPTURE.md)。
 
 ## 图片描述与提示词反推
 
@@ -53,7 +61,7 @@
 - **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
 - **云端服务可选**：可自行配置 Google Cloud Vision OCR、Google Cloud Translation、百度服务或自定义 Chat Completions 接口。
 - **中英文界面**：可跟随系统，也可在设置中固定为简体中文或 English。
-- **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu X11 x64。
+- **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu x64（X11 / Wayland 门户）。
 - **开箱运行**：Windows 自包含安装包/便携 ZIP，Ubuntu 提供 `.deb`/`.tar.gz`，无需另装运行时。
 
 ## 下载与使用
@@ -65,9 +73,9 @@
 | 标准版 | `PingYi-` | 需要最小体积和中英离线保底；已有 Ollama/llama.cpp 等服务 | 安装后即可离线 OCR 与中英基础翻译 |
 | 完全版 | `PingYi-Complete-` | 希望由屏译管理多模态模型和 llama.cpp | 基础功能立即可用；增强模型需联网从魔搭下载一次 |
 
-Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单和桌面快捷方式；免安装可使用 ZIP。Ubuntu X11 可安装 `.deb` 或解压 `.tar.gz`。标准版与完全版使用不同安装目录和数据目录，可以同时安装，不会覆盖原版本。
+Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单和桌面快捷方式；免安装可使用 ZIP。Ubuntu 可安装 `.deb` 或解压 `.tar.gz`；Wayland 还需桌面截图门户及匹配的后端。标准版与完全版使用不同安装目录和数据目录，可以同时安装，不会覆盖原版本。
 
-安装后启动屏译，按 `Ctrl+Alt+D`，拖动鼠标框选屏幕区域。多显示器会按各自 DPI 建立协同截图层，支持负坐标和跨屏框选。识别完成后可以复制原文、复制译文、复制全部、重试或固定结果卡；后续截图复用同一结果窗口，不会持续堆叠窗口。快捷键、OCR/翻译提供商、本地模型和凭据均在“设置”中管理；密钥只提供显示/隐藏控制，显示后可在输入框内使用标准复制和粘贴快捷键。
+安装后启动屏译，点击“开始截图”或按界面显示的已注册快捷键。Windows / X11 会按各显示器 DPI 建立协同截图层，支持负坐标和跨屏框选；Wayland 使用系统提供的截图选择器。识别完成后可以复制原文、复制译文、复制全部、重试或固定结果卡；后续截图复用同一结果窗口，不会持续堆叠窗口。快捷键、OCR/翻译提供商、本地模型和凭据均在“设置”中管理；密钥只提供显示/隐藏控制，显示后可在输入框内使用标准复制和粘贴快捷键。
 
 > Windows SmartScreen 可能会提示未识别的发布者，因为当前开源版本尚未购买商业代码签名证书。请只从本仓库 Releases 下载，并使用随 Release 提供的 SHA-256 校验文件核对成品。
 
@@ -77,7 +85,7 @@ Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单�
 
 设置使用左侧五类导航：**识别与翻译、本地模型、云端服务、自定义接口、外观与启动**。各页独立滚动，底部状态与“保存并应用”固定显示，切换分类保留未保存输入。识别引擎、翻译引擎及目标语言沿用立即生效；其他设置仍按保存、应用预设或验证按钮生效。
 
-工作台支持 `Ctrl+,` 打开设置、`F5` 刷新状态；设置窗口支持 `Ctrl+S` 保存。默认全局截图键仍为 `Ctrl+Alt+D`，没有重置现有用户配置。当前源码统一为单一主界面，设置单独打开，不再提供重复的“经典界面”切换。
+工作台支持 `Ctrl+,` 打开设置、`F5` 刷新状态；设置窗口支持 `Ctrl+S` 保存。Windows 默认全局截图键为 `Ctrl+Alt+D`，Linux 为 `Ctrl+Alt+Shift+D`；仅迁移 Linux 的旧默认值，其他自定义组合保留。当前源码统一为单一主界面，设置单独打开，不再提供重复的“经典界面”切换。
 
 实现、测试与平台验收边界见 [UI 改造说明](docs/UI_WORKSPACE.md)。顶部演示素材尚未更新为此次布局；真实 XAML 测试截图由 CI 的 `ui-snapshots-*` 工件提供。此次源码改造没有自动发布安装包，发布状态以 Releases 为准。
 
@@ -148,7 +156,7 @@ Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；�
 ## 已实现功能
 
 - Windows 虚拟桌面捕获、全局快捷键、多显示器和不同 DPI 框选。
-- Ubuntu X11 的 Xlib 截图与全局快捷键实现。
+- Ubuntu X11 的原生截图与冲突可检测的快捷键；Wayland 的系统截图门户和可选授权快捷键门户。
 - PaddleOCR PP-OCRv5 中英移动模型、ONNX Runtime CPU 推理和 SHA-256 完整性校验。
 - Argos 中英双向基础翻译，以及本机大模型不可用时的自动离线回退。
 - Google Cloud Vision OCR、Google Cloud Translation Basic v2、百度含位置 OCR、百度通用翻译和自定义 Chat Completions 翻译接口。
@@ -166,7 +174,7 @@ Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；�
 ## 当前兼容范围
 
 - Windows 10/11 x64。
-- Ubuntu 22.04+ X11 x64；v1 暂不支持 Wayland 截图门户。
+- Ubuntu 22.04+ X11 x64；Wayland 通过系统截图门户交互选择，功能由桌面后端决定。
 - PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。自动检测到非中英文时不会错误回退到中英 Argos 模型。
 - v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
 
