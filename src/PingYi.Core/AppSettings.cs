@@ -42,7 +42,9 @@ public sealed record AppSettings
             hotkey = LinuxDefaultHotkey;
 
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
-        var model = CustomTranslationModel.Trim();
+        // Older or partially written JSON may omit this field or explicitly set it to null.
+        // Preserve an intentionally empty model name for servers that select their own model.
+        var model = CustomTranslationModel?.Trim() ?? DefaultCustomTranslationModel;
         if (SchemaVersion < 2 &&
             string.Equals(model, "gemma4", StringComparison.OrdinalIgnoreCase) &&
             Uri.TryCreate(endpoint, UriKind.Absolute, out var migratedEndpoint) &&
