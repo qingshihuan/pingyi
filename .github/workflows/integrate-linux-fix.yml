@@ -1,0 +1,39 @@
+name: Integrate Linux capture fix
+on:
+  push:
+    branches: [fix/linux-capture-shortcuts]
+    paths: [.github/linux-transfer/**]
+permissions:
+  contents: read
+jobs:
+  integrate:
+    if: github.ref == 'refs/heads/fix/linux-capture-shortcuts'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Apply exact verified patch on isolated branch
+        env:
+          TARGET_BRANCH: fix/linux-capture-shortcuts
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, lzma, os, shutil, subprocess
+          from pathlib import Path
+          folder = Path('.github/linux-transfer')
+          encoded = (folder / '0.b64').read_text() + (folder / '1.b64').read_text() + (folder / '2.b64').read_text()[:13420] + (folder / 'tail.b64').read_text()
+          patch = lzma.decompress(base64.b64decode(encoded, validate=True), memlimit=134217728)
+          assert hashlib.sha256(patch).hexdigest() == '167e8f34dea2aa9d66d3ee363bf3b8ccfd4c0303e02bb8a93ea8d3cbfdaea675'
+          path = Path(os.environ['RUNNER_TEMP']) / 'linux-fix.patch'
+          path.write_bytes(patch)
+          subprocess.run(['git', 'apply', '--check', str(path)], check=True)
+          subprocess.run(['git', 'apply', str(path)], check=True)
+          shutil.rmtree(folder)
+          Path('.github/workflows/integrate-linux-fix.yml').unlink()
+          path.unlink()
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Fix Ubuntu capture and global shortcuts with native portal and X11 regression coverage'
+          git push origin "HEAD:$TARGET_BRANCH"
