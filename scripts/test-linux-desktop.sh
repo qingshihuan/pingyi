@@ -6,12 +6,22 @@ root="$(mktemp -d)"
 export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data" XDG_SESSION_TYPE=x11
 export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/no-bundled-models"
 mkdir -p "$XDG_CONFIG_HOME/pingyi" "$PWD/artifacts/ui"
+# Intentionally omit optional fields: this also covers real-process configuration migration.
 cat > "$XDG_CONFIG_HOME/pingyi/settings.json" <<'JSON'
 {"schemaVersion":9,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+Shift+D","checkForUpdates":false}
 JSON
 openbox > "$root/wm.log" 2>&1 &
 wm=$!
-trap 'kill ${app_pid:-0} "$wm" 2>/dev/null || true; rm -rf "$root"' EXIT
+cleanup() {
+  if [ -n "${app_pid:-}" ]; then
+    kill "$app_pid" 2>/dev/null || true
+    wait "$app_pid" 2>/dev/null || true
+  fi
+  kill "$wm" 2>/dev/null || true
+  wait "$wm" 2>/dev/null || true
+  rm -rf "$root"
+}
+trap cleanup EXIT
 sleep 0.5
 dotnet "$app" --capture > "$root/app.log" 2>&1 &
 app_pid=$!
@@ -34,18 +44,40 @@ wait_window() {
   diagnose "$name"
   return 1
 }
-echo 'Testing cold-start --capture'
+wait_no_overlay() {
+  for i in $(seq 1 100); do
+    if ! xdotool search --onlyvisible --name '^PingYi Capture$' >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.05
+  done
+  diagnose 'overlay remained visible after Escape'
+  return 1
+}
+cancel_and_restore() {
+  xdotool windowactivate --sync "$overlay" key Escape
+  main=$(wait_window 'PingYi')
+  wait_no_overlay
+}
+echo 'Testing cold-start --capture with partial settings'
 overlay=$(wait_window 'PingYi Capture')
-xdotool windowactivate --sync "$overlay" key Escape
-main=$(wait_window 'PingYi')
+cancel_and_restore
+echo 'Testing the real Start capture button'
+xdotool windowactivate --sync "$main"
+# Fixed English 1040x720 test window: a point inside the primary capture button.
+# This is an actual pointer click, not a direct invocation of the coordinator.
+scrot "$PWD/artifacts/ui/native-linux-main.png"
+xdotool mousemove --window "$main" 200 238 click 1
+overlay=$(wait_window 'PingYi Capture')
+sleep 0.2
+scrot "$PWD/artifacts/ui/native-linux-button-capture.png"
+cancel_and_restore
 echo 'Testing second-process --capture'
-dotnet "$app" --capture
+timeout 15s dotnet "$app" --capture
 overlay=$(wait_window 'PingYi Capture')
-xdotool windowactivate --sync "$overlay" key Escape
-main=$(wait_window 'PingYi')
+cancel_and_restore
 echo 'Testing registered X11 shortcut'
 xdotool key --clearmodifiers ctrl+alt+shift+d
 overlay=$(wait_window 'PingYi Capture')
-xdotool windowactivate --sync "$overlay" key Escape
-wait_window 'PingYi' >/dev/null
-echo 'Native desktop: cold --capture, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
+cancel_and_restore
+echo 'Native desktop: partial settings, cold --capture, real button click, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
