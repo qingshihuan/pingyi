@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using PingYi.Core;
