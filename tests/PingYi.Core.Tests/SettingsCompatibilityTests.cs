@@ -16,7 +16,8 @@ public sealed class SettingsCompatibilityTests
         Directory.CreateDirectory(directory);
         try
         {
-            var cancellationToken = TestContext.Current.CancellationToken;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var cancellationToken = timeout.Token;
             var file = Path.Combine(directory, "settings.json");
             await File.WriteAllTextAsync(file, json, cancellationToken);
             var store = new JsonSettingsStore(file);
@@ -62,7 +63,8 @@ public sealed class SettingsCompatibilityTests
         Directory.CreateDirectory(directory);
         try
         {
-            var cancellationToken = TestContext.Current.CancellationToken;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var cancellationToken = timeout.Token;
             var file = Path.Combine(directory, "settings.json");
             var json = "{\"schemaVersion\":8,\"hotkey\":\"Ctrl+Alt+G\",\"uiLanguage\":\"en-US\","
                 + "\"customTranslationEndpoint\":\"https://example.com/v1/chat/completions\","
