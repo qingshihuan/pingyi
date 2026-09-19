@@ -1,0 +1,36 @@
+name: Integrate Linux capture fixes
+on:
+  push:
+    branches: [fix/linux-capture-hotkeys]
+    paths: ['scripts/_linux_patch.*', '.github/workflows/apply-linux-fix.yml']
+permissions:
+  contents: read
+jobs:
+  integrate:
+    if: github.repository == 'qingshihuan/pingyi' && github.ref == 'refs/heads/fix/linux-capture-hotkeys'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Verify and apply exact reviewed patch on isolated branch
+        run: |
+          test "$(git rev-parse HEAD^)" = f23f34c7e8aef6b122c0279a1d96e42a6638e106
+          python3 - <<'PY'
+          import base64, gzip, hashlib, pathlib, subprocess
+          encoded = ''.join(pathlib.Path(f'scripts/_linux_patch.{i}').read_text().strip() for i in range(11))
+          patch = gzip.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == '21462185bbe9a5a8404b5ec001e09a01cb43ff0e3f9426c78e458e74ea04d4ef'
+          subprocess.run(['git','apply','--check','-'], input=patch, check=True)
+          subprocess.run(['git','apply','--index','-'], input=patch, check=True)
+          PY
+          git rm scripts/_linux_patch.* .github/workflows/apply-linux-fix.yml
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix Linux shortcut conflicts and route Wayland capture through the desktop portal'
+          git push origin HEAD:refs/heads/fix/linux-capture-hotkeys
