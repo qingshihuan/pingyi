@@ -82,6 +82,9 @@ public partial class App : Application
 
             UiText.LanguageChanged += RefreshTrayLanguage;
             if (openSettings) await OpenSettingsWindowAsync();
+            // A desktop custom shortcut must also work when this is the first process.
+            if (SingleInstanceCoordinator.CommandFromArguments(desktop.Args ?? []) == "capture")
+                await _captureCoordinator.StartCaptureAsync(_mainShell);
 
             if (_services.Settings.CheckForUpdates)
             {
@@ -108,11 +111,14 @@ public partial class App : Application
         try
         {
             await _services!.HotkeyService.StartAsync(_services.Settings.Hotkey);
-            _mainShell?.SetGlobalStatus("快捷键已启用", isError: false);
+            _services.HotkeyRegistrationError = null;
+            _mainShell?.SetGlobalStatus(_services.HotkeyService is DesktopManagedHotkeyService
+                ? LinuxDesktopUi.ExternalShortcutHelp : "快捷键已启用", isError: false);
         }
         catch (Exception exception)
         {
-            _mainShell?.SetGlobalStatus(UiText.Error(exception), isError: true);
+            _services!.HotkeyRegistrationError = exception;
+            _mainShell?.SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
     }
 
@@ -208,7 +214,7 @@ public partial class App : Application
         catch (Exception exception)
         {
             ShowMainWindow();
-            _mainShell?.SetGlobalStatus(UiText.Error(exception), isError: true);
+            _mainShell?.SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
     }
 
@@ -280,7 +286,7 @@ public partial class App : Application
         catch (Exception exception)
         {
             ShowMainWindow();
-            _mainShell?.SetGlobalStatus(UiText.Error(exception), isError: true);
+            _mainShell?.SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
     }
 

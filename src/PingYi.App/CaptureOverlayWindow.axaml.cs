@@ -33,6 +33,7 @@ public partial class CaptureOverlayWindow : Window
         _session = session;
         InitializeComponent();
         UiText.Attach(this);
+        Title = UiText.IsEnglish ? "PingYi Capture" : "屏译框选";
         _bitmap = new Bitmap(new MemoryStream(capture.PngBytes));
         ScreenshotImage.Source = _bitmap;
         Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);

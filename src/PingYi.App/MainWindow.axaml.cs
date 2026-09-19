@@ -42,6 +42,11 @@ public partial class MainWindow : Window, IMainWindowShell
 
     public void SetGlobalStatus(string message, bool isError)
     {
+        if (!isError && _services?.HotkeyRegistrationError is { } hotkeyError)
+        {
+            message = LinuxDesktopUi.DescribeError(hotkeyError);
+            isError = true;
+        }
         TopStatusText.Text = isError ? "需要处理" : "运行正常";
         TopStatusDot.Background = FindBrush(isError ? "DangerBrushV2" : "TealBrush");
         LiveStatusTitleText.Text = isError ? "操作未完成" : "运行正常";
@@ -72,7 +77,7 @@ public partial class MainWindow : Window, IMainWindowShell
         OcrSummaryText.Text = UiText.ProviderName(ocr.Id, ocr.DisplayName);
         var targetLanguage = UiText.LanguageName(settings.TargetLanguage);
         TranslationSummaryText.Text = $"{UiText.ProviderName(translation.Id, translation.DisplayName)} · → {targetLanguage}";
-        CaptureHotkeyText.Text = settings.Hotkey.Replace("+", "  ", StringComparison.Ordinal);
+        CaptureHotkeyText.Text = LinuxDesktopUi.ShortcutLabel(settings.Hotkey);
     }
 
     private async Task RefreshSettingsFromStoreAsync()
@@ -151,8 +156,8 @@ public partial class MainWindow : Window, IMainWindowShell
             {
                 SetGlobalStatus(
                     UiText.IsEnglish
-                        ? $"{UiText.ProviderName(selectedOcr.Metadata.Id, selectedOcr.Metadata.DisplayName)} · {UiText.ProviderName(selectedTranslation.Metadata.Id, selectedTranslation.Metadata.DisplayName)} is ready. Press {settings.Hotkey} to capture."
-                        : $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，按 {settings.Hotkey} 开始截图。",
+                        ? $"{UiText.ProviderName(selectedOcr.Metadata.Id, selectedOcr.Metadata.DisplayName)} · {UiText.ProviderName(selectedTranslation.Metadata.Id, selectedTranslation.Metadata.DisplayName)} is ready. Select Start capture."
+                        : $"{selectedOcr.Metadata.DisplayName} · {selectedTranslation.Metadata.DisplayName} 已就绪，点击“开始截图”进行框选。",
                     isError: false);
             }
             else

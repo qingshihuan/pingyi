@@ -26,6 +26,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        InitializeLinuxHelp();
         UiText.Attach(this);
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
@@ -170,7 +171,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
+            SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
             FinishButtonOperation(button, "保存失败", success: false);
         }
     }
@@ -186,11 +187,17 @@ public partial class SettingsWindow : Window
         try
         {
             await _services.HotkeyService.StartAsync(nextHotkey);
+            _services.HotkeyRegistrationError = null;
         }
         catch
         {
             await _services.HotkeyService.StopAsync();
-            await _services.HotkeyService.StartAsync(previousHotkey);
+            try
+            {
+                await _services.HotkeyService.StartAsync(previousHotkey);
+                _services.HotkeyRegistrationError = null;
+            }
+            catch (Exception rollbackError) { _services.HotkeyRegistrationError = rollbackError; }
             throw;
         }
     }
@@ -220,7 +227,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
+            SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
     }
 
@@ -243,7 +250,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
+            SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
     }
 
@@ -281,7 +288,7 @@ public partial class SettingsWindow : Window
         }
         catch (Exception exception)
         {
-            SetGlobalStatus(UiText.Error(exception), isError: true);
+            SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
             FinishButtonOperation(button, "检查失败", success: false);
         }
     }

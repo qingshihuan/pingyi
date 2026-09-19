@@ -10,7 +10,6 @@ namespace PingYi.App;
 public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDisposable
 {
     private const int MaximumPinnedWindows = 5;
-    private static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan AvailabilityTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan ManagedRuntimeTimeout = ManagedRuntimeReadiness.OperationTimeout;
     private static readonly TimeSpan OcrTimeout = TimeSpan.FromMinutes(2);
@@ -67,16 +66,17 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                     DesktopCaptureBarrier.WaitAsync,
                     async token =>
                     {
-                        var desktop = await WithTimeoutAsync(
-                            captureToken => services.ScreenCaptureService.CaptureDesktopAsync(captureToken),
-                            CaptureTimeout, token, "capture_timeout", "屏幕捕获超时，请重试。");
-                        EnsureCurrent(operation);
-                        var captureDisplays = displays is { Count: > 0 }
-                            ? displays : new[] { new CaptureDisplay(desktop.DesktopBounds, 1) };
-                        var overlay = new CaptureOverlaySession(desktop, captureDisplays, services.ImageCropper);
-                        var selection = await overlay.ShowAndSelectAsync(token);
-                        EnsureCurrent(operation);
-                        return selection is null ? null : services.ImageCropper.Crop(desktop, selection.Value);
+                        return await CaptureSelectionRouter.SelectAsync(services.ScreenCaptureService,
+                            async (desktop, selectionToken) =>
+                            {
+                                EnsureCurrent(operation);
+                                var captureDisplays = displays is { Count: > 0 }
+                                    ? displays : new[] { new CaptureDisplay(desktop.DesktopBounds, 1) };
+                                var overlay = new CaptureOverlaySession(desktop, captureDisplays, services.ImageCropper);
+                                var selection = await overlay.ShowAndSelectAsync(selectionToken);
+                                EnsureCurrent(operation);
+                                return selection is null ? null : services.ImageCropper.Crop(desktop, selection.Value);
+                            }, token);
                     }, operation.Token, () => Volatile.Read(ref _disposeState) == 0);
             }
             finally { IsCapturingScreen = false; }
@@ -98,7 +98,10 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         {
             if (IsCurrent(operation))
             {
-                mainWindow?.SetGlobalStatus(UiText.Error(exception), isError: true);
+                // Hotkey/tray failures must be visible even when the main window was hidden.
+                mainWindow?.Show();
+                mainWindow?.Activate();
+                mainWindow?.SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
             }
         }
         finally
