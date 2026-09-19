@@ -1,3 +1,4 @@
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using PingYi.Core;
 using PingYi.Infrastructure;
