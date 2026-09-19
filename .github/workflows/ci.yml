@@ -23,7 +23,7 @@ jobs:
           python-version: "3.13"
       - name: Install Chinese fonts for UI snapshots
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk xvfb xauth libxtst6 python3-gi
       - run: dotnet restore PingYi.slnx
       - run: dotnet build PingYi.slnx -c Release --no-restore
       - run: dotnet test PingYi.slnx -c Release --no-build
@@ -32,6 +32,9 @@ jobs:
       - run: python -m py_compile engine_host/main.py
       - run: python -m unittest discover -s engine_host -p "test_*.py"
       - run: python -m unittest discover -s scripts -p "test_*.py"
+      - name: Test native Linux capture, hotkey conflicts and portal protocol
+        if: runner.os == 'Linux'
+        run: bash scripts/test-linux-desktop.sh
       - name: Upload rendered UI snapshots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
