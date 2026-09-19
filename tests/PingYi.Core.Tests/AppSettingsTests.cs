@@ -63,7 +63,7 @@ public sealed class AppSettingsTests
                 """);
             var store = new JsonSettingsStore(file);
             var settings = await store.LoadAsync();
-            Assert.Equal(8, settings.SchemaVersion);
+            Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
             Assert.Equal("en-US", settings.UiLanguage);
             Assert.Equal("Ctrl+Alt+G", settings.Hotkey);
             Assert.Equal("kept-model", settings.CustomTranslationModel);
@@ -71,6 +71,30 @@ public sealed class AppSettingsTests
             Assert.True(settings.CheckForUpdates);
             await store.SaveAsync(settings);
             Assert.DoesNotContain("interfaceStyle", await File.ReadAllTextAsync(file));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public async Task FormerDefaultHotkey_PersistsThePlatformMigrationAndOtherPreferences()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "pingyi-hotkey-migration-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var file = Path.Combine(directory, "settings.json");
+            await File.WriteAllTextAsync(file, """
+                {"schemaVersion":8,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+D",
+                 "customTranslationModel":"kept-model","startMinimized":true}
+                """);
+            var store = new JsonSettingsStore(file);
+            var migrated = await store.LoadAsync();
+            Assert.Equal(AppSettings.DefaultHotkey, migrated.Hotkey);
+            Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.SchemaVersion);
+            Assert.True(migrated.StartMinimized);
+            Assert.Equal("kept-model", migrated.CustomTranslationModel);
+            await store.SaveAsync(migrated);
+            Assert.Equal(migrated, await store.LoadAsync());
         }
         finally { Directory.Delete(directory, true); }
     }
@@ -108,7 +132,7 @@ public sealed class AppSettingsTests
 
         var normalized = settings.Normalize();
 
-        Assert.Equal("Ctrl+Alt+D", normalized.Hotkey);
+        Assert.Equal(AppSettings.DefaultHotkey, normalized.Hotkey);
         Assert.Equal("http://127.0.0.1:8080/v1/chat/completions", normalized.CustomTranslationEndpoint);
         Assert.Equal("gemma-4-e4b-it", normalized.CustomTranslationModel);
     }

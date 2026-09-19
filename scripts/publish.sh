@@ -71,7 +71,7 @@ mkdir -p "$deb_root/DEBIAN" "$deb_root/opt/$install_name" \
 cp -a "$publish_dir/." "$deb_root/opt/$install_name/"
 if [[ "$edition" == "complete" ]]; then
   sed -e 's/^Name=屏译$/Name=屏译 完全版/' \
-      -e 's/^Exec=pingyi$/Exec=pingyi-complete/' \
+      -e 's/^Exec=pingyi/Exec=pingyi-complete/' \
       -e 's/^Icon=pingyi$/Icon=pingyi-complete/' \
       "$project_root/packaging/linux/pingyi.desktop" > "$deb_root/usr/share/applications/$desktop_name"
 else

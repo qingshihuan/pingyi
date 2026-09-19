@@ -23,7 +23,7 @@
   <img src="docs/social-preview.png" width="920" alt="屏译：离线优先的截图 OCR 与翻译桌面工具">
 </p>
 
-屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下 `Ctrl+Alt+D`，框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
+屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下截图快捷键（Windows：`Ctrl+Alt+D`；Linux X11：`Ctrl+Alt+Shift+D`），框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
 
 标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。需要更广语言覆盖时，可使用自己的 Google Cloud 或百度凭据。
 
@@ -166,7 +166,7 @@ Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；�
 ## 当前兼容范围
 
 - Windows 10/11 x64。
-- Ubuntu 22.04+ X11 x64；v1 暂不支持 Wayland 截图门户。
+- Ubuntu 22.04+ X11 x64；Wayland 通过系统截图门户，系统快捷键需自行绑定。
 - PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。自动检测到非中英文时不会错误回退到中英 Argos 模型。
 - v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
 
@@ -241,3 +241,13 @@ GitHub Release 可配置仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64`（PFX �
 截图期间会统一隐藏屏译的主界面、设置、结果及其他辅助窗口，等待桌面呈现后再取底图；完成、取消或失败后恢复原来可见的窗口。Windows 上临时抑制自身窗口的过渡动画，在受支持版本上临时排除自身窗口捕获，操作结束恢复原设置。
 
 这部分不覆盖已经发布的 v0.4.0 安装包；具体发布状态以 Releases 为准。验收范围和多显示器实机清单见 [五项易用性修复](docs/USABILITY_FIXES.md)。
+
+## Ubuntu / Linux 截图与快捷键
+
+Linux X11 默认改用 `Ctrl+Alt+Shift+D`，旧配置中的默认 `Ctrl+Alt+D` 会迁移，自定义组合保留。注册冲突会明确提示，不再导致 Xlib 终止程序；截图按钮不依赖全局快捷键。
+
+Wayland 会话使用系统的 XDG Screenshot 门户显示交互式截图/授权界面，不再读取 XWayland 根窗口，也不会把门户截图按 X11 屏幕坐标重复裁剪。需要 `xdg-desktop-portal` 和桌面对应后端（Ubuntu GNOME：`xdg-desktop-portal-gnome`）；缺失时会显示修复指引，不会伪装为就绪。
+
+Wayland 全局绑定由系统管理：在“设置 → 外观与启动”复制截图命令，到 Ubuntu“设置 → 键盘 → 自定义快捷键”中绑定，例如 `Ctrl+Alt+Shift+D`。这不会自动改动或覆盖 Ubuntu 快捷键；首次启动和已运行时的 `--capture` 都进入截图流程。桌面启动器也提供“截图翻译”和“设置”操作。
+
+系统门户可能创建临时图片。屏译本地读取后清理临时目录副本；门户保存到 Pictures 等其他目录的文件由桌面管理，不能承诺这些文件被屏译清除。详细验证与限制见 `docs/LINUX_CAPTURE.md`。

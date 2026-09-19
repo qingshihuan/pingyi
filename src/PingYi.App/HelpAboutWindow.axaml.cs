@@ -29,8 +29,8 @@ public partial class HelpAboutWindow : Window
         var version = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
             ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"{UiText.Get("String.Version")}: {version}";
-        CaptureShortcutText.Text = $"{UiText.Get("String.StartCapture")}: {settings.Hotkey}";
-        PrivacySummaryText.Text = DataUseDescription.For(settings);
+        CaptureShortcutText.Text = $"{UiText.Get("String.StartCapture")}: {LinuxDesktopUi.ShortcutLabel(settings.Hotkey)}";
+        PrivacySummaryText.Text = DataUseDescription.For(settings) + LinuxDesktopUi.PortalPrivacyNote;
     }
     private void Close_OnClick(object? sender, RoutedEventArgs e) => Close();
     private void Repository_OnClick(object? sender, RoutedEventArgs e)

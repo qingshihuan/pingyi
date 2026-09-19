@@ -127,3 +127,18 @@ model diagnostics retain only authored categories; image-analysis output remains
 in memory and is not added to logs or persistent history. Model licenses and
 third-party service terms remain applicable; no original-prompt recovery or
 model-accuracy guarantee is implied.
+
+## Linux screenshot portal integration
+
+The Wayland capture adapter calls the public XDG Screenshot D-Bus interface via
+the system-installed GLib / GIO / GObject libraries (LGPL-2.1-or-later). These
+libraries and the desktop portal/backends are not bundled or copied into PingYi;
+Debian packages declare system dependencies and recommend a matching backend.
+No NuGet, Python, model, or third-party source is bundled by this adapter.
+X11 continues to use the system libX11 (MIT / X11).
+
+Sources: https://docs.gtk.org/gio/ and
+https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Screenshot.html
+
+Development-only native tests use Xvfb, xdotool, dbus-run-session and the system
+PyGObject bindings on a private test session bus. They are not release assets.

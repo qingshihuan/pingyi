@@ -299,6 +299,13 @@
                   <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
                 </StackPanel>
                 <TextBlock Text="{DynamicResource Text.ef1361324428}" Classes="workspace-help"/>
+                <Border x:Name="LinuxShortcutHelp" Classes="workspace-inset" IsVisible="False">
+                  <StackPanel Spacing="10">
+                    <TextBlock x:Name="LinuxShortcutHintText" Classes="workspace-help"/>
+                    <TextBox x:Name="LinuxCaptureCommandBox" Classes="workspace-field" IsReadOnly="True" TextWrapping="Wrap"/>
+                    <Button x:Name="CopyLinuxCaptureCommandButton" Classes="secondary" HorizontalAlignment="Left" Click="CopyLinuxCaptureCommand_OnClick"/>
+                  </StackPanel>
+                </Border>
                 <CheckBox x:Name="StartMinimizedCheckBox" AutomationProperties.Name="{DynamicResource Text.98267fd4ed54}"><TextBlock Text="{DynamicResource Text.98267fd4ed54}" TextWrapping="Wrap"/></CheckBox>
                 <CheckBox x:Name="CheckForUpdatesCheckBox" AutomationProperties.Name="{DynamicResource Text.d95bc1d6f25a}"><TextBlock Text="{DynamicResource Text.b68a94c0e3fb}" TextWrapping="Wrap"/></CheckBox>
                 <WrapPanel>

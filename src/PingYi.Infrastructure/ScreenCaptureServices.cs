@@ -10,7 +10,9 @@ public static class ScreenCaptureServiceFactory
     public static IScreenCaptureService Create() =>
         OperatingSystem.IsWindows()
             ? new WindowsScreenCaptureService()
-            : new X11ScreenCaptureService();
+            : LinuxDesktopSession.IsWayland
+                ? new PortalScreenCaptureService()
+                : new X11ScreenCaptureService();
 }
 
 internal sealed class WindowsScreenCaptureService : IScreenCaptureService
@@ -165,6 +167,7 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
 
 internal sealed class X11ScreenCaptureService : IScreenCaptureService
 {
+    public X11ScreenCaptureService() => X11Threading.EnsureInitialized();
     private const int ZPixmap = 2;
 
     public Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default)

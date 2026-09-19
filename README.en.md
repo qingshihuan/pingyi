@@ -209,3 +209,13 @@ The mode selector is a scrollable comparison window with a name, processing meth
 Capture hides all visible PingYi windows, waits for presentation, then captures the desktop before creating per-monitor selection overlays. Original window visibility is restored on completion, cancellation, or failure. Windows transition suppression and supported capture exclusion are temporary and scoped to PingYi's own windows.
 
 These source changes do not replace the existing v0.4.0 binaries. See [the regression and manual validation checklist](docs/USABILITY_FIXES.md) and Releases for distribution status.
+
+## Ubuntu / Linux capture and shortcuts
+
+The Linux X11 default is now `Ctrl+Alt+Shift+D`; older default `Ctrl+Alt+D` settings migrate without changing custom bindings. X11 grab conflicts are reported instead of terminating the application. Button capture remains independent of hotkey registration.
+
+Wayland uses the public XDG Screenshot portal with an interactive system dialog, not XWayland root capture. Install `xdg-desktop-portal` and a matching backend (Ubuntu GNOME: `xdg-desktop-portal-gnome`). Missing services produce an actionable error. System permission/selection takes place before OCR or image analysis.
+
+For a Wayland shortcut, copy the capture command from Appearance & startup into Ubuntu Keyboard → Custom Shortcuts and choose a free combination. PingYi does not overwrite desktop bindings. `--capture` works on both first launch and the running instance; desktop launcher Capture and Settings actions are included.
+
+The portal may create a screenshot file. PingYi reads it locally and removes temporary-directory copies. Files saved elsewhere by the desktop remain under desktop control. See `docs/LINUX_CAPTURE.md` for test coverage and limits.

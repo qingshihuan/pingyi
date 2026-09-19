@@ -8,3 +8,14 @@ Terminal=false
 Type=Application
 Categories=Utility;Office;
 Keywords=OCR;Translate;Screenshot;
+Actions=Capture;Settings;
+
+[Desktop Action Capture]
+Name=截图翻译
+Name[en]=Capture and translate
+Exec=pingyi --capture
+
+[Desktop Action Settings]
+Name=设置
+Name[en]=Settings
+Exec=pingyi --settings
