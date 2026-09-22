@@ -8,8 +8,8 @@ namespace PingYi.App;
 internal static class LinuxDesktopUi
 {
     public static string ExternalShortcutHelp => UiText.IsEnglish
-        ? "Wayland: bind the capture command in Ubuntu Settings → Keyboard → Custom Shortcuts. The capture button works independently."
-        : "Wayland：请在 Ubuntu 设置 → 键盘 → 自定义快捷键中绑定截图命令；也可直接点击截图按钮。";
+        ? "Wayland: bind the capture command in Ubuntu Settings → Keyboard → Custom Shortcuts. Saving a shortcut in PingYi only stores your preference; the capture button works independently."
+        : "Wayland：请在 Ubuntu 设置 → 键盘 → 自定义快捷键中绑定截图命令。屏译内保存的快捷键仅是偏好，不会自动修改系统绑定；也可直接点击截图按钮。";
     public static string ShortcutLabel(string gesture) => LinuxDesktopSession.IsWayland
         ? (UiText.IsEnglish ? "System shortcut" : "系统快捷键")
         : gesture.Replace("+", "  ", StringComparison.Ordinal);
@@ -57,6 +57,7 @@ public partial class SettingsWindow
 {
     private void InitializeLinuxHelp()
     {
+        InitializeHotkeyEditor();
         RefreshLinuxHelp();
         UiText.LanguageChanged += LinuxHelpLanguageChanged;
         Closed += (_, _) => UiText.LanguageChanged -= LinuxHelpLanguageChanged;
@@ -66,12 +67,14 @@ public partial class SettingsWindow
     {
         LinuxShortcutHelp.IsVisible = OperatingSystem.IsLinux();
         HotkeyBox.PlaceholderText = AppSettings.DefaultHotkey;
-        HotkeyBox.IsReadOnly = LinuxDesktopSession.IsWayland; // The compositor owns bindings on Wayland.
+        // On Wayland this is an editable preference, not a claim of compositor registration.
+        HotkeyBox.IsReadOnly = false;
         LinuxShortcutHintText.Text = LinuxDesktopSession.IsWayland ? LinuxDesktopUi.ExternalShortcutHelp : UiText.IsEnglish
-            ? "Linux default: Ctrl+Alt+Shift+D. Conflicts do not disable the capture button. You may also bind this command in the desktop keyboard settings."
-            : "Linux 默认使用 Ctrl+Alt+Shift+D；快捷键冲突不影响按钮截图。也可在系统键盘设置中绑定以下命令。";
+            ? $"Linux default: {AppSettings.LinuxDefaultHotkey}. Desktop custom bindings can conflict; Chrome and Konsole also use this combination inside their windows. Conflicts do not disable the capture button. You may bind this command in desktop settings instead."
+            : $"Linux 默认使用 {AppSettings.LinuxDefaultHotkey}。系统自定义绑定可能冲突；Chrome、Konsole 也有同名应用内快捷键。冲突不影响按钮截图，也可在系统键盘设置中绑定以下命令。";
         LinuxCaptureCommandBox.Text = LinuxDesktopUi.CaptureCommand;
         CopyLinuxCaptureCommandButton.Content = UiText.IsEnglish ? "Copy capture command" : "复制截图命令";
+        RefreshHotkeyEditor();
     }
     private async void CopyLinuxCaptureCommand_OnClick(object? sender, RoutedEventArgs e)
     {

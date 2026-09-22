@@ -142,3 +142,11 @@ https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Scr
 
 Development-only native tests use Xvfb, xdotool, dbus-run-session and the system
 PyGObject bindings on a private test session bus. They are not release assets.
+
+## Shortcut customization (0.5.2)
+
+The shortcut recorder and reset controls reuse the existing Avalonia controls,
+headless test packages, Windows User32 and system X11 integrations. They add no
+keyboard hook package, production dependency, font, model, telemetry or retained
+key-event history. Wayland bindings remain explicitly managed by the desktop;
+no private compositor API or automatic system-configuration edit is introduced.
