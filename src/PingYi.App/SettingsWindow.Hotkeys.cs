@@ -37,7 +37,6 @@ public partial class SettingsWindow
         panel.Children.Add(buttons);
         panel.Children.Add(_shortcutEditorHint);
         RefreshHotkeyEditor();
-        // The tray must not keep displaying a previous shortcut after leaving Settings.
         Deactivated += (_, _) => (Application.Current as App)?.RefreshHotkeyTooltip();
         Closed += (_, _) => (Application.Current as App)?.RefreshHotkeyTooltip();
     }
@@ -47,7 +46,7 @@ public partial class SettingsWindow
             ? "Save this preference, then bind the same shortcut to the capture command in desktop Settings. PingYi cannot register it directly on Wayland."
             : "请保存此偏好，再到系统设置中将相同快捷键绑定到截图命令；Wayland 下屏译不能直接注册全局快捷键。"
         : UiText.IsEnglish
-            ? "Click Save to apply the shortcut. If registration fails, the previous binding is restored."
+            ? "Click Save to apply the shortcut. If registration fails, PingYi tries to restore the previous binding."
             : "点击保存后应用快捷键；注册失败时会尝试恢复原快捷键。";
 
     private void RefreshHotkeyEditor()
@@ -63,6 +62,12 @@ public partial class SettingsWindow
     {
         if (_recordingShortcut || !SaveSettingsButton.IsEnabled) return;
         _recordingShortcut = true;
+        // Include the asynchronous stop/restore intervals, not just the modal dialog.
+        // Cancel old feedback timers so they cannot re-enable Save during restoration.
+        CancelButtonFeedbackReset(SaveSettingsButton);
+        SaveSettingsButton.IsEnabled = false;
+        RecordShortcutButton.IsEnabled = false;
+        ResetShortcutButton.IsEnabled = false;
         var suspended = false;
         try
         {
@@ -86,8 +91,8 @@ public partial class SettingsWindow
         }
         finally
         {
-            // Recording, cancellation, owner closure and exceptions all restore the SAVED
-            // binding, not the unsaved value currently displayed in the text field.
+            // Restore the SAVED binding after confirmation, cancellation or exceptions,
+            // never the unsaved value currently displayed in the text field.
             if (suspended && _services is not null)
             {
                 try
@@ -102,6 +107,9 @@ public partial class SettingsWindow
                 }
             }
             _recordingShortcut = false;
+            SaveSettingsButton.IsEnabled = true;
+            RecordShortcutButton.IsEnabled = true;
+            ResetShortcutButton.IsEnabled = true;
         }
     }
 }

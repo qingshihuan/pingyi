@@ -42,7 +42,7 @@ internal sealed class HotkeyRecordingWindow : Window
     {
         Title = UiText.IsEnglish ? "Record screenshot shortcut" : "录入截屏快捷键";
         Width = 520;
-        Height = 290;
+        Height = 330;
         CanResize = false;
         ShowInTaskbar = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -57,7 +57,7 @@ internal sealed class HotkeyRecordingWindow : Window
             ? "Enter accepts; Esc cancels. The shortcut is applied only after saving Settings."
             : "Enter 确认，Esc 取消。返回设置后点击保存才会应用。";
         AutomationProperties.SetName(_preview, Title);
-        AutomationProperties.SetLiveSetting(_hint, Avalonia.Automation.Peers.AutomationLiveSetting.Polite);
+        AutomationProperties.SetLiveSetting(_hint, AutomationLiveSetting.Polite);
         _accept.Content = UiText.IsEnglish ? "Use shortcut" : "使用此快捷键";
         _accept.Click += (_, _) => Close(Candidate);
         var cancel = new Button { Content = UiText.IsEnglish ? "Cancel" : "取消" };
@@ -70,7 +70,7 @@ internal sealed class HotkeyRecordingWindow : Window
         content.Children.Add(_preview);
         content.Children.Add(_hint);
         content.Children.Add(buttons);
-        Content = content;
+        Content = new ScrollViewer { Content = content };
         AddHandler(KeyDownEvent, OnRecorderKeyDown, RoutingStrategies.Tunnel);
         Opened += (_, _) => _preview.Focus();
     }
@@ -78,6 +78,9 @@ internal sealed class HotkeyRecordingWindow : Window
     private void OnRecorderKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Tab) return; // Keep keyboard access to both buttons.
+        // Do not turn keyboard activation of Cancel into an accidental confirmation.
+        if (e.KeyModifiers == KeyModifiers.None && e.Key is Key.Enter or Key.Space &&
+            FocusManager?.GetFocusedElement() is Button) return;
         e.Handled = true;
         if (e.Key == Key.Escape) { Close((string?)null); return; }
         if (e.Key == Key.Enter)
