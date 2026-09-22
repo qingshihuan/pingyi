@@ -8,8 +8,8 @@ namespace PingYi.App;
 internal static class LinuxDesktopUi
 {
     public static string ExternalShortcutHelp => UiText.IsEnglish
-        ? "Wayland: bind the capture command in Ubuntu Settings → Keyboard → Custom Shortcuts. The capture button works independently."
-        : "Wayland：请在 Ubuntu 设置 → 键盘 → 自定义快捷键中绑定截图命令；也可直接点击截图按钮。";
+        ? "Wayland: bind the capture command in desktop Settings → Keyboard → Custom Shortcuts. The capture button works independently."
+        : "Wayland：请在桌面设置 → 键盘 → 自定义快捷键中绑定截图命令；也可直接点击截图按钮。";
     public static string ShortcutLabel(string gesture) => LinuxDesktopSession.IsWayland
         ? (UiText.IsEnglish ? "System shortcut" : "系统快捷键")
         : gesture.Replace("+", "  ", StringComparison.Ordinal);
@@ -29,6 +29,9 @@ internal static class LinuxDesktopUi
     private static string Quote(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$").Replace("`", "\\`") + "\"";
     public static string DescribeError(Exception exception)
     {
+        if (exception is NotSupportedException &&
+            (exception.Message.StartsWith("快捷键", StringComparison.Ordinal) || exception.Message.StartsWith("不支持的快捷键", StringComparison.Ordinal)))
+            return UiText.IsEnglish ? "Invalid shortcut. Use Ctrl/Alt/Shift with one A–Z or 0–9 key; duplicate modifiers and empty parts are not allowed." : exception.Message;
         if (exception is ProviderException error)
             return error.Code switch
             {
@@ -57,19 +60,25 @@ public partial class SettingsWindow
 {
     private void InitializeLinuxHelp()
     {
+        InitializeHotkeyEditor();
         RefreshLinuxHelp();
         UiText.LanguageChanged += LinuxHelpLanguageChanged;
         Closed += (_, _) => UiText.LanguageChanged -= LinuxHelpLanguageChanged;
     }
-    private void LinuxHelpLanguageChanged(object? sender, EventArgs e) => RefreshLinuxHelp();
+    private void LinuxHelpLanguageChanged(object? sender, EventArgs e)
+    {
+        RefreshLinuxHelp();
+        RefreshHotkeyEditor();
+    }
     private void RefreshLinuxHelp()
     {
         LinuxShortcutHelp.IsVisible = OperatingSystem.IsLinux();
         HotkeyBox.PlaceholderText = AppSettings.DefaultHotkey;
-        HotkeyBox.IsReadOnly = LinuxDesktopSession.IsWayland; // The compositor owns bindings on Wayland.
+        // Wayland stores a preference, not a claim that the compositor registered it.
+        HotkeyBox.IsReadOnly = false;
         LinuxShortcutHintText.Text = LinuxDesktopSession.IsWayland ? LinuxDesktopUi.ExternalShortcutHelp : UiText.IsEnglish
-            ? "Linux default: Ctrl+Alt+Shift+D. Conflicts do not disable the capture button. You may also bind this command in the desktop keyboard settings."
-            : "Linux 默认使用 Ctrl+Alt+Shift+D；快捷键冲突不影响按钮截图。也可在系统键盘设置中绑定以下命令。";
+            ? $"Linux default: {AppSettings.LinuxDefaultHotkey}. Conflicts do not disable the capture button. You may also bind this command in the desktop keyboard settings."
+            : $"Linux 默认使用 {AppSettings.LinuxDefaultHotkey}；快捷键冲突不影响按钮截图。也可在系统键盘设置中绑定以下命令。";
         LinuxCaptureCommandBox.Text = LinuxDesktopUi.CaptureCommand;
         CopyLinuxCaptureCommandButton.Content = UiText.IsEnglish ? "Copy capture command" : "复制截图命令";
     }

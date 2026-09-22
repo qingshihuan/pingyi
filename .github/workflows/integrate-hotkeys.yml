@@ -1,0 +1,27 @@
+name: Integrate hotkey changes
+on:
+  push:
+    branches: [feat/custom-capture-hotkey-v0.5.2]
+    paths: [scripts/integrate-hotkeys.py]
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/custom-capture-hotkey-v0.5.2
+          fetch-depth: 0
+      - name: Integrate reviewed edits and remove this one-use workflow
+        run: |
+          python3 scripts/integrate-hotkeys.py
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          bash -n scripts/test-linux-desktop.sh
+          bash -n scripts/test-linux-hotkey-editor.sh
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src tests scripts README.md README.en.md THIRD_PARTY_NOTICES.md docs .github
+          git commit -m 'feat: integrate shortcut recording, safe apply, native regression and v0.5.2 documentation'
+          git push origin HEAD:feat/custom-capture-hotkey-v0.5.2

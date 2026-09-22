@@ -9,46 +9,34 @@ public readonly record struct GlobalHotkeyGesture(bool Control, bool Alt, bool S
     public static GlobalHotkeyGesture Parse(string shortcut)
     {
         if (string.IsNullOrWhiteSpace(shortcut))
-        {
             throw new NotSupportedException("快捷键不能为空。");
-        }
 
         var control = false;
         var alt = false;
         var shift = false;
         char? key = null;
-        foreach (var token in shortcut.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var token in shortcut.Split('+', StringSplitOptions.TrimEntries))
         {
-            if (token.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("Control", StringComparison.OrdinalIgnoreCase))
-            {
+            if ((token.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
+                 token.Equals("Control", StringComparison.OrdinalIgnoreCase)) && !control)
                 control = true;
-            }
-            else if (token.Equals("Alt", StringComparison.OrdinalIgnoreCase))
-            {
+            else if (token.Equals("Alt", StringComparison.OrdinalIgnoreCase) && !alt)
                 alt = true;
-            }
-            else if (token.Equals("Shift", StringComparison.OrdinalIgnoreCase))
-            {
+            else if (token.Equals("Shift", StringComparison.OrdinalIgnoreCase) && !shift)
                 shift = true;
-            }
             else if (token.Length == 1 && char.IsAsciiLetterOrDigit(token[0]) && key is null)
-            {
                 key = char.ToUpperInvariant(token[0]);
-            }
             else
-            {
                 throw new NotSupportedException($"不支持的快捷键：{shortcut}。");
-            }
         }
 
         if (key is null || (!control && !alt && !shift))
-        {
             throw new NotSupportedException("快捷键必须包含 Ctrl、Alt 或 Shift，以及一个字母或数字。");
-        }
-
         return new GlobalHotkeyGesture(control, alt, shift, key.Value);
     }
+
+    public override string ToString() =>
+        (Control ? "Ctrl+" : "") + (Alt ? "Alt+" : "") + (Shift ? "Shift+" : "") + char.ToUpperInvariant(Key);
 }
 
 public static class GlobalHotkeyServiceFactory
@@ -79,10 +67,7 @@ internal sealed class WindowsGlobalHotkeyService : IGlobalHotkeyService
     public async Task StartAsync(string shortcut, CancellationToken cancellationToken = default)
     {
         if (_thread is not null)
-        {
             return;
-        }
-
         var gesture = GlobalHotkeyGesture.Parse(shortcut);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _thread = new Thread(() => MessageLoop(gesture, shortcut, started))
@@ -91,10 +76,7 @@ internal sealed class WindowsGlobalHotkeyService : IGlobalHotkeyService
             Name = "PingYi.GlobalHotkey"
         };
         _thread.Start();
-        try
-        {
-            await started.Task.WaitAsync(cancellationToken);
-        }
+        try { await started.Task.WaitAsync(cancellationToken); }
         catch
         {
             _thread = null;
@@ -106,10 +88,7 @@ internal sealed class WindowsGlobalHotkeyService : IGlobalHotkeyService
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
         if (_thread is null)
-        {
             return Task.CompletedTask;
-        }
-
         PostThreadMessage(_threadId, WmQuit, UIntPtr.Zero, IntPtr.Zero);
         _thread.Join(TimeSpan.FromSeconds(2));
         _thread = null;
@@ -129,22 +108,14 @@ internal sealed class WindowsGlobalHotkeyService : IGlobalHotkeyService
             started.SetException(new Win32Exception(Marshal.GetLastWin32Error(), $"快捷键 {shortcut} 已被其他程序占用。"));
             return;
         }
-
         started.SetResult();
         try
         {
             while (GetMessage(out var message, IntPtr.Zero, 0, 0) > 0)
-            {
                 if (message.MessageId == WmHotkey && message.WParam.ToInt32() == HotkeyId)
-                {
                     Pressed?.Invoke(this, EventArgs.Empty);
-                }
-            }
         }
-        finally
-        {
-            UnregisterHotKey(IntPtr.Zero, HotkeyId);
-        }
+        finally { UnregisterHotKey(IntPtr.Zero, HotkeyId); }
     }
 
     public async ValueTask DisposeAsync() => await StopAsync();
@@ -165,18 +136,14 @@ internal sealed class WindowsGlobalHotkeyService : IGlobalHotkeyService
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool RegisterHotKey(IntPtr window, int id, uint modifiers, uint key);
-
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool UnregisterHotKey(IntPtr window, int id);
-
     [DllImport("user32.dll")]
     private static extern int GetMessage(out Message message, IntPtr window, uint minimum, uint maximum);
-
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PostThreadMessage(uint threadId, uint message, UIntPtr wParam, IntPtr lParam);
-
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();
 }

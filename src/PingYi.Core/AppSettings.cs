@@ -2,9 +2,10 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
-    public const string LinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
+    public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
+    public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public static string DefaultHotkey => OperatingSystem.IsLinux() ? LinuxDefaultHotkey : WindowsDefaultHotkey;
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -12,6 +13,7 @@ public sealed record AppSettings
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string Hotkey { get; init; } = DefaultHotkey;
+    public bool HotkeyIsCustomized { get; init; }
     public string OcrProviderId { get; init; } = "local-paddle";
     public string TranslationProviderId { get; init; } = "local-argos";
     public string SourceLanguage { get; init; } = "auto";
@@ -31,19 +33,19 @@ public sealed record AppSettings
     {
         var defaultHotkey = linux ? LinuxDefaultHotkey : WindowsDefaultHotkey;
         var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? defaultHotkey : Hotkey.Trim();
-        if (SchemaVersion < 2 && string.Equals(hotkey, "Ctrl+Shift+X", StringComparison.OrdinalIgnoreCase))
-        {
+        var customized = !string.IsNullOrWhiteSpace(Hotkey) && HotkeyIsCustomized;
+        if (!customized && SchemaVersion < 2 && SameShortcut(hotkey, "Ctrl+Shift+X"))
             hotkey = defaultHotkey;
-        }
 
-        // Only migrate the former default on Linux, not a user's custom shortcut.
-        if (linux && SchemaVersion < 9 &&
-            string.Equals(hotkey.Replace(" ", ""), WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase))
+        // Old schemas have no customization marker. Migrate only their known Linux defaults;
+        // all other user combinations, and explicitly customized values, remain untouched.
+        if (linux && !customized &&
+            ((SchemaVersion < 9 && SameShortcut(hotkey, WindowsDefaultHotkey)) ||
+             (SchemaVersion < 10 && SameShortcut(hotkey, PreviousLinuxDefaultHotkey))))
             hotkey = LinuxDefaultHotkey;
 
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
-        // Older or partially written JSON may omit this field or explicitly set it to null.
-        // Preserve an intentionally empty model name for servers that select their own model.
+        // Preserve intentionally empty model names for servers that choose their own model.
         var model = CustomTranslationModel?.Trim() ?? DefaultCustomTranslationModel;
         if (SchemaVersion < 2 &&
             string.Equals(model, "gemma4", StringComparison.OrdinalIgnoreCase) &&
@@ -57,6 +59,7 @@ public sealed record AppSettings
         {
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
+            HotkeyIsCustomized = customized || !SameShortcut(hotkey, defaultHotkey),
             OcrProviderId = string.IsNullOrWhiteSpace(OcrProviderId) ? "local-paddle" : OcrProviderId,
             TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId) ? "local-argos" : TranslationProviderId,
             SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
@@ -75,13 +78,18 @@ public sealed record AppSettings
         };
     }
 
+    private static bool SameShortcut(string left, string right)
+    {
+        static string[] Tokens(string value) => value.Split('+', StringSplitOptions.TrimEntries)
+            .Select(token => token.Equals("Control", StringComparison.OrdinalIgnoreCase) ? "CTRL" : token.ToUpperInvariant())
+            .OrderBy(token => token, StringComparer.Ordinal).ToArray();
+        return Tokens(left).SequenceEqual(Tokens(right));
+    }
+
     public static string NormalizeChatCompletionsEndpoint(string? value)
     {
         if (!TryParseChatCompletionsEndpoint(value, out var endpoint))
-        {
             return DefaultCustomTranslationEndpoint;
-        }
-
         return endpoint.AbsoluteUri.TrimEnd('/');
     }
 
@@ -90,26 +98,12 @@ public sealed record AppSettings
         endpoint = null!;
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var parsedEndpoint) ||
             parsedEndpoint.Scheme is not ("http" or "https"))
-        {
             return false;
-        }
 
         var path = parsedEndpoint.AbsolutePath.TrimEnd('/');
-        if (string.IsNullOrEmpty(path))
-        {
+        if (string.IsNullOrEmpty(path) || string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
             path = "/v1/chat/completions";
-        }
-        else if (string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
-        {
-            path = "/v1/chat/completions";
-        }
-
-        var builder = new UriBuilder(parsedEndpoint)
-        {
-            Path = path,
-            Query = string.Empty,
-            Fragment = string.Empty
-        };
+        var builder = new UriBuilder(parsedEndpoint) { Path = path, Query = string.Empty, Fragment = string.Empty };
         endpoint = builder.Uri;
         return true;
     }
