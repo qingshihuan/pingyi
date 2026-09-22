@@ -24,20 +24,20 @@ public partial class SettingsWindow
 
     private void InitializeHotkeyEditor()
     {
-        // Extend the existing field in-place: keep its name, bindings and the full-settings save path.
+        // XAML's name scope is already complete. Dynamic controls use their logical tree
+        // names and automation IDs, not late registrations that would break window startup.
         var parent = (StackPanel)HotkeyBox.Parent!;
         var actions = new WrapPanel();
         foreach (var button in new[] { _recordHotkeyButton, _resetHotkeyButton, _applyHotkeyButton })
         {
             button.Classes.Add("secondary");
             button.Margin = new Thickness(0, 4, 8, 4);
+            AutomationProperties.SetAutomationId(button, button.Name);
             actions.Children.Add(button);
-            NameScope.GetNameScope(this)?.Register(button.Name!, button);
         }
         _hotkeyFeedbackText.Classes.Add("workspace-help");
         _hotkeyFeedbackText.FontSize = 12;
         AutomationProperties.SetLiveSetting(_hotkeyFeedbackText, AutomationLiveSetting.Polite);
-        NameScope.GetNameScope(this)?.Register(_hotkeyFeedbackText.Name!, _hotkeyFeedbackText);
         parent.Children.Add(actions);
         parent.Children.Add(_hotkeyFeedbackText);
         HotkeyBox.Text = AppSettings.DefaultHotkey;
@@ -54,8 +54,11 @@ public partial class SettingsWindow
             RefreshHotkeyEditor();
         };
         _applyHotkeyButton.Click += async (_, _) => await ApplyHotkeyAsync();
-        HotkeyBox.TextChanged += (_, _) =>
+        // PropertyChanged is synchronous: reject invalid input before a subsequent Ctrl+S,
+        // and distinguish programmatic draft updates from actual typing.
+        HotkeyBox.PropertyChanged += (_, e) =>
         {
+            if (e.Property != TextBox.TextProperty) return;
             if (!_settingHotkeyDraft)
             {
                 _hotkeyResetRequested = false;
@@ -141,7 +144,7 @@ public partial class SettingsWindow
                             ? (UiText.IsEnglish ? $"Preferred: {gesture}. Set the actual binding in the desktop keyboard settings below."
                                 : $"偏好组合：{gesture}。实际绑定请在下方说明的系统键盘设置中完成。")
                             : (UiText.IsEnglish ? $"Saved: {current}. Apply to register and save {gesture}; failure restores the previous shortcut."
-                                : $"已保存：{current}。点击应用注册并保存 {gesture}；失败将恢复旧快捷键。") ;
+                                : $"已保存：{current}。点击应用注册并保存 {gesture}；失败将恢复旧快捷键。");
             ThemeResources.Use(_hotkeyFeedbackText, TextBlock.ForegroundProperty,
                 !valid || _hotkeyEditorError is not null ? "DangerTextBrush" : "SecondaryTextBrush");
         }
@@ -231,7 +234,7 @@ public partial class SettingsWindow
     {
         if (!_hotkeyRecordingRequested) return;
         e.Handled = true;
-        // Do not restore the grab on key-down: a held/repeating key could immediately take a screenshot.
+        // Restore after key-up, not key-down, to avoid an immediate repeat screenshot.
         if (_pendingHotkeyKey == e.Key) await FinishHotkeyRecordingAsync(true);
     }
 

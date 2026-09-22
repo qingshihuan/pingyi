@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using PingYi.Core;
 using Xunit;
 
@@ -9,6 +10,9 @@ namespace PingYi.App.Tests;
 
 public sealed class HotkeyEditorTests
 {
+    private static Button EditorButton(SettingsWindow window, string name) =>
+        window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name);
+
     [AvaloniaFact]
     public void Editor_has_accessible_controls_localizes_and_validates_input()
     {
@@ -16,21 +20,20 @@ public sealed class HotkeyEditorTests
         try
         {
             window.Show();
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 4;
             UiText.Configure("en-US");
-            Assert.Equal("Record shortcut", window.FindControl<Button>("RecordHotkeyButton")!.Content);
-            Assert.Equal("Restore default", window.FindControl<Button>("ResetHotkeyButton")!.Content);
+            Assert.Equal("Record shortcut", EditorButton(window, "RecordHotkeyButton").Content);
+            Assert.Equal("Restore default", EditorButton(window, "ResetHotkeyButton").Content);
             var field = window.FindControl<TextBox>("HotkeyBox")!;
             field.Text = "Ctrl++D";
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            Assert.False(window.FindControl<Button>("ApplyHotkeyButton")!.IsEnabled);
+            Assert.False(EditorButton(window, "ApplyHotkeyButton").IsEnabled);
             Assert.False(window.FindControl<Button>("SaveSettingsButton")!.IsEnabled);
             field.Text = "Ctrl+Shift+G";
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            Assert.True(window.FindControl<Button>("ApplyHotkeyButton")!.IsEnabled);
-            window.FindControl<Button>("ResetHotkeyButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.True(EditorButton(window, "ApplyHotkeyButton").IsEnabled);
+            EditorButton(window, "ResetHotkeyButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.Equal(AppSettings.DefaultHotkey, field.Text);
             UiText.Configure("zh-CN");
-            Assert.Equal("录制快捷键", window.FindControl<Button>("RecordHotkeyButton")!.Content);
+            Assert.Equal("录制快捷键", EditorButton(window, "RecordHotkeyButton").Content);
         }
         finally { window.Close(); }
     }
@@ -42,6 +45,7 @@ public sealed class HotkeyEditorTests
         try
         {
             window.Show();
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 4;
             var field = window.FindControl<TextBox>("HotkeyBox")!;
             field.Text = "Ctrl+Alt+G";
             await window.BeginHotkeyRecordingAsync();
