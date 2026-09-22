@@ -36,8 +36,11 @@ public partial class SettingsWindow
             _useDefaultHotkey = true;
             RefreshHotkeyEditor();
         };
-        HotkeyBox.TextChanged += (_, _) =>
+        // TextChanged is deferred by Avalonia. Observe the value synchronously so a queued
+        // event cannot undo Restore default's intent or leave validation one edit behind.
+        HotkeyBox.PropertyChanged += (_, change) =>
         {
+            if (change.Property != TextBox.TextProperty) return;
             if (!_isLoadingSettings) _useDefaultHotkey = false;
             RefreshHotkeyEditor();
         };
@@ -58,8 +61,8 @@ public partial class SettingsWindow
             if (!string.IsNullOrWhiteSpace(HotkeyBox.Text) &&
                 GlobalHotkeyGesture.Parse(HotkeyBox.Text).ToString() == "Ctrl+Shift+D")
                 text += UiText.IsEnglish
-                    ? " This overrides Chrome's bookmark-all-tabs shortcut while globally registered."
-                    : " 全局注册后会覆盖 Chrome 的“收藏所有标签页”快捷键。";
+                    ? " This can override Chrome's bookmark-all-tabs shortcut while globally registered."
+                    : " 全局注册后可能覆盖 Chrome 的“收藏所有标签页”快捷键。";
         }
         catch (NotSupportedException)
         {
@@ -76,7 +79,7 @@ public partial class SettingsWindow
 
     private async void RecordHotkey_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_hotkeyEditorBusy) return;
+        if (_hotkeyEditorBusy || _isSavingSettings) return;
         _hotkeyEditorBusy = true;
         var saveEnabled = SaveSettingsButton.IsEnabled;
         RecordHotkeyButton.IsEnabled = ResetHotkeyButton.IsEnabled = SaveSettingsButton.IsEnabled = false;
