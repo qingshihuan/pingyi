@@ -15,10 +15,15 @@ public class LinuxDesktopTests
         Assert.Equal(expected, LinuxDesktopSession.IsWaylandSession(type, display));
 
     [Theory]
-    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Alt+Shift+D")]
+    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Shift+D")]
     [InlineData(false, 8, "Ctrl+Alt+D", "Ctrl+Alt+D")]
     [InlineData(true, 8, "Ctrl+Alt+G", "Ctrl+Alt+G")]
     [InlineData(true, 9, "Ctrl+Alt+D", "Ctrl+Alt+D")]
+    [InlineData(true, 9, "Ctrl+Alt+Shift+D", "Ctrl+Shift+D")]
+    [InlineData(true, 9, " ctrl + alt + shift + d ", "Ctrl+Shift+D")]
+    [InlineData(false, 9, "Ctrl+Alt+Shift+D", "Ctrl+Alt+Shift+D")]
+    [InlineData(true, 10, "Ctrl+Alt+Shift+D", "Ctrl+Alt+Shift+D")]
+    [InlineData(true, 9, "Ctrl+Shift+G", "Ctrl+Shift+G")]
     public void Old_default_is_migrated_only_on_Linux(bool linux, int schema, string before, string after)
     {
         var settings = new AppSettings { SchemaVersion = schema, Hotkey = before, UiLanguage = "en-US", CustomTranslationModel = "keep-model" };
@@ -26,6 +31,8 @@ public class LinuxDesktopTests
         Assert.Equal(after, normalized.Hotkey);
         Assert.Equal("keep-model", normalized.CustomTranslationModel);
         Assert.Equal("en-US", normalized.UiLanguage);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, normalized.SchemaVersion);
+        Assert.Equal(normalized, normalized.NormalizeForPlatform(linux));
     }
 
     [Fact]
@@ -53,7 +60,7 @@ public class LinuxDesktopTests
         await second.StartAsync(AppSettings.LinuxDefaultHotkey);
         using var xdotool = Process.Start(new ProcessStartInfo("xdotool")
         {
-            ArgumentList = { "key", "--clearmodifiers", "ctrl+alt+shift+d" }, UseShellExecute = false
+            ArgumentList = { "key", "--clearmodifiers", "ctrl+shift+d" }, UseShellExecute = false
         })!;
         await xdotool.WaitForExitAsync();
         await pressed.Task.WaitAsync(TimeSpan.FromSeconds(5));

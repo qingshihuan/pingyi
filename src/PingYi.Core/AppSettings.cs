@@ -2,9 +2,10 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
-    public const string LinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
+    public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
+    public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
     public static string DefaultHotkey => OperatingSystem.IsLinux() ? LinuxDefaultHotkey : WindowsDefaultHotkey;
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -36,9 +37,13 @@ public sealed record AppSettings
             hotkey = defaultHotkey;
         }
 
-        // Only migrate the former default on Linux, not a user's custom shortcut.
-        if (linux && SchemaVersion < 9 &&
-            string.Equals(hotkey.Replace(" ", ""), WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase))
+        // Migrate only known historical Linux defaults. Other custom bindings and
+        // all Windows bindings survive upgrades; schema 10 can also opt back in.
+        var compactHotkey = hotkey.Replace(" ", "", StringComparison.Ordinal);
+        if (linux && ((SchemaVersion < 9 &&
+                string.Equals(compactHotkey, WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase)) ||
+            (SchemaVersion < 10 &&
+                string.Equals(compactHotkey, PreviousLinuxDefaultHotkey, StringComparison.OrdinalIgnoreCase))))
             hotkey = LinuxDefaultHotkey;
 
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
