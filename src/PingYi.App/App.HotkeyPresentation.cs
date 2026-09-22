@@ -1,5 +1,5 @@
 using Avalonia.Threading;
-using PingYi.Infrastructure;
+using PingYi.Core;
 
 namespace PingYi.App;
 
@@ -9,7 +9,12 @@ public partial class App
     {
         if (_isExiting) return;
         if (_mainWindow is MainWindow window) window.RefreshHotkeyPresentation();
-        RefreshTrayLanguage(sender, e);
+        // The menu is unchanged. Keep its native tray instance and D-Bus watcher alive;
+        // disposing it to refresh a tooltip can raise an asynchronous cancellation error
+        // when no StatusNotifier host is present on the Linux desktop.
+        if (_trayIcon is { } tray)
+            tray.ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · "
+                + LinuxDesktopUi.ShortcutLabel(_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey);
     });
 }
 
