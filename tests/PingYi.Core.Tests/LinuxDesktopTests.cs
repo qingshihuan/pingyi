@@ -15,7 +15,7 @@ public class LinuxDesktopTests
         Assert.Equal(expected, LinuxDesktopSession.IsWaylandSession(type, display));
 
     [Theory]
-    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Alt+Shift+D")]
+    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Shift+D")]
     [InlineData(false, 8, "Ctrl+Alt+D", "Ctrl+Alt+D")]
     [InlineData(true, 8, "Ctrl+Alt+G", "Ctrl+Alt+G")]
     [InlineData(true, 9, "Ctrl+Alt+D", "Ctrl+Alt+D")]
@@ -40,10 +40,9 @@ public class LinuxDesktopTests
         await using var first = new X11GlobalHotkeyService();
         await using var second = new X11GlobalHotkeyService();
         await first.StartAsync(AppSettings.LinuxDefaultHotkey);
-        await first.StartAsync(AppSettings.LinuxDefaultHotkey); // idempotent, no orphan thread
+        await first.StartAsync(AppSettings.LinuxDefaultHotkey);
         var error = await Assert.ThrowsAsync<ProviderException>(() => second.StartAsync(AppSettings.LinuxDefaultHotkey));
         Assert.Equal("hotkey_conflict", error.Code);
-        // The old implementation can exit on BadAccess before reaching this assertion.
         var frame = await new X11ScreenCaptureService().CaptureDesktopAsync();
         Assert.True(frame.Width > 0 && frame.Height > 0);
         Assert.Equal(new byte[] { 137, 80, 78, 71 }, frame.PngBytes[..4]);
@@ -53,7 +52,7 @@ public class LinuxDesktopTests
         await second.StartAsync(AppSettings.LinuxDefaultHotkey);
         using var xdotool = Process.Start(new ProcessStartInfo("xdotool")
         {
-            ArgumentList = { "key", "--clearmodifiers", "ctrl+alt+shift+d" }, UseShellExecute = false
+            ArgumentList = { "key", "--clearmodifiers", "ctrl+shift+d" }, UseShellExecute = false
         })!;
         await xdotool.WaitForExitAsync();
         await pressed.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -62,21 +61,43 @@ public class LinuxDesktopTests
     }
 
     [Fact]
+    public async Task X11_rejected_rebind_restores_a_real_working_previous_grab()
+    {
+        if (Environment.GetEnvironmentVariable("PINGYI_LINUX_NATIVE_TESTS") != "1") return;
+        await using var app = new X11GlobalHotkeyService();
+        await using var occupied = new X11GlobalHotkeyService();
+        await app.StartAsync("Ctrl+Shift+G");
+        await occupied.StartAsync("Ctrl+Shift+H");
+        var pressed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.Pressed += (_, _) => pressed.TrySetResult();
+        bool saved = false;
+        await Assert.ThrowsAsync<ProviderException>(() => HotkeyRebinding.ApplyAsync(app,
+            "Ctrl+Shift+G", "Ctrl+Shift+H", () => { saved = true; return Task.CompletedTask; }, _ => { }));
+        Assert.False(saved);
+        using var trigger = Process.Start(new ProcessStartInfo("xdotool")
+        {
+            ArgumentList = { "key", "--clearmodifiers", "ctrl+shift+g" }, UseShellExecute = false
+        })!;
+        await trigger.WaitForExitAsync();
+        await pressed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
     public async Task Native_portal_uses_one_connection_catches_early_response_cancellation_and_close()
     {
         if (Environment.GetEnvironmentVariable("PINGYI_LINUX_NATIVE_TESTS") != "1") return;
         var portal = new PortalScreenCaptureService();
-        var image = await portal.CaptureSelectionAsync(); // Fixture emits response BEFORE method returns.
+        var image = await portal.CaptureSelectionAsync();
         Assert.NotNull(image);
         Assert.Equal(2, image.Width);
         Assert.Equal(2, image.Height);
-        Assert.Null(await portal.CaptureSelectionAsync()); // User clicks Cancel.
+        Assert.Null(await portal.CaptureSelectionAsync());
         var error = await Assert.ThrowsAsync<ProviderException>(() => portal.CaptureSelectionAsync());
         Assert.Equal("linux_portal_failed", error.Code);
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => portal.CaptureSelectionAsync(cancel.Token));
         var marker = Environment.GetEnvironmentVariable("PINGYI_PORTAL_CLOSED")!;
         Assert.True(File.Exists(marker), "Cancel must send Request.Close to the same live connection.");
-        Assert.NotNull(await portal.CaptureSelectionAsync()); // Recovery after cancellation.
+        Assert.NotNull(await portal.CaptureSelectionAsync());
     }
 }

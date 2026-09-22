@@ -2,9 +2,10 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
-    public const string LinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
+    public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
+    public const string FormerLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
     public static string DefaultHotkey => OperatingSystem.IsLinux() ? LinuxDefaultHotkey : WindowsDefaultHotkey;
     public const string DefaultCustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions";
     public const string DefaultCustomTranslationModel = "gemma-4-e4b-it";
@@ -12,6 +13,7 @@ public sealed record AppSettings
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string Hotkey { get; init; } = DefaultHotkey;
+    public bool HotkeyIsCustomized { get; init; }
     public string OcrProviderId { get; init; } = "local-paddle";
     public string TranslationProviderId { get; init; } = "local-argos";
     public string SourceLanguage { get; init; } = "auto";
@@ -31,32 +33,32 @@ public sealed record AppSettings
     {
         var defaultHotkey = linux ? LinuxDefaultHotkey : WindowsDefaultHotkey;
         var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? defaultHotkey : Hotkey.Trim();
-        if (SchemaVersion < 2 && string.Equals(hotkey, "Ctrl+Shift+X", StringComparison.OrdinalIgnoreCase))
+        if (HotkeyDefinition.TryParse(hotkey, out var gesture)) hotkey = gesture.ToString();
+        if (!HotkeyIsCustomized)
         {
-            hotkey = defaultHotkey;
+            if (SchemaVersion < 2 && string.Equals(hotkey, "Ctrl+Shift+X", StringComparison.OrdinalIgnoreCase))
+                hotkey = defaultHotkey;
+            // Schema 9 already let Linux users deliberately choose Ctrl+Alt+D.
+            // Do not reinterpret that as a default again in schema 10.
+            if (linux && ((SchemaVersion < 9 && hotkey == WindowsDefaultHotkey) ||
+                          (SchemaVersion < 10 && hotkey == FormerLinuxDefaultHotkey)))
+                hotkey = LinuxDefaultHotkey;
         }
 
-        // Only migrate the former default on Linux, not a user's custom shortcut.
-        if (linux && SchemaVersion < 9 &&
-            string.Equals(hotkey.Replace(" ", ""), WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase))
-            hotkey = LinuxDefaultHotkey;
-
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
-        // Older or partially written JSON may omit this field or explicitly set it to null.
-        // Preserve an intentionally empty model name for servers that select their own model.
+        // Missing/null fields recover; an intentional empty server-selected model is preserved.
         var model = CustomTranslationModel?.Trim() ?? DefaultCustomTranslationModel;
         if (SchemaVersion < 2 &&
             string.Equals(model, "gemma4", StringComparison.OrdinalIgnoreCase) &&
             Uri.TryCreate(endpoint, UriKind.Absolute, out var migratedEndpoint) &&
             migratedEndpoint.IsLoopback && migratedEndpoint.Port == 8080)
-        {
             model = DefaultCustomTranslationModel;
-        }
 
         return this with
         {
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
+            HotkeyIsCustomized = HotkeyIsCustomized || hotkey != defaultHotkey,
             OcrProviderId = string.IsNullOrWhiteSpace(OcrProviderId) ? "local-paddle" : OcrProviderId,
             TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId) ? "local-argos" : TranslationProviderId,
             SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
@@ -64,8 +66,7 @@ public sealed record AppSettings
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = model,
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
-                ? ManagedModelPackageId.Trim()
-                : string.Empty,
+                ? ManagedModelPackageId.Trim() : string.Empty,
             ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
                                     ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
@@ -78,10 +79,7 @@ public sealed record AppSettings
     public static string NormalizeChatCompletionsEndpoint(string? value)
     {
         if (!TryParseChatCompletionsEndpoint(value, out var endpoint))
-        {
             return DefaultCustomTranslationEndpoint;
-        }
-
         return endpoint.AbsoluteUri.TrimEnd('/');
     }
 
@@ -89,28 +87,11 @@ public sealed record AppSettings
     {
         endpoint = null!;
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var parsedEndpoint) ||
-            parsedEndpoint.Scheme is not ("http" or "https"))
-        {
-            return false;
-        }
-
+            parsedEndpoint.Scheme is not ("http" or "https")) return false;
         var path = parsedEndpoint.AbsolutePath.TrimEnd('/');
-        if (string.IsNullOrEmpty(path))
-        {
+        if (string.IsNullOrEmpty(path) || string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
             path = "/v1/chat/completions";
-        }
-        else if (string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
-        {
-            path = "/v1/chat/completions";
-        }
-
-        var builder = new UriBuilder(parsedEndpoint)
-        {
-            Path = path,
-            Query = string.Empty,
-            Fragment = string.Empty
-        };
-        endpoint = builder.Uri;
+        endpoint = new UriBuilder(parsedEndpoint) { Path = path, Query = string.Empty, Fragment = string.Empty }.Uri;
         return true;
     }
 
