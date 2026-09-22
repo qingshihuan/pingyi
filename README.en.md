@@ -23,11 +23,17 @@
   <img src="docs/social-preview.png" width="920" alt="PingYi: an offline-first screenshot OCR and translation desktop app">
 </p>
 
-PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press `Ctrl+Alt+D`, select any screen region, and get OCR text extraction and translation in one compact result card. The interface is available in English and Simplified Chinese and can follow the operating-system language automatically.
+PingYi is a desktop screen translator for Windows 10/11 and Ubuntu X11. Press the capture shortcut (Windows: `Ctrl+Alt+D`; Linux X11: `Ctrl+Shift+D`), select any screen region, and get OCR text extraction and translation in one compact result card. The interface is available in English and Simplified Chinese and can follow the operating-system language automatically.
 
 The standard package bundles local OCR and basic Chinese-English translation models. It works on a new computer without internet access, a discrete GPU, Python, or a preinstalled .NET runtime. The Complete edition additionally bundles the Vulkan and CPU llama.cpp runtimes and can download and configure newer lightweight multimodal models from ModelScope in one click. Existing Ollama, LM Studio, vLLM, llama.cpp, and generic Chat Completions services remain supported. For broader cloud language coverage, you can supply your own Google Cloud or Baidu credentials.
 
 If PingYi helps your screenshot-OCR or translation workflow, please [star the repository](https://github.com/qingshihuan/pingyi). It makes this privacy-first alternative easier for other users to discover.
+
+## Custom capture shortcuts (v0.5.2)
+
+Open **Settings → Appearance & startup → Global shortcut**. Type a combination or choose **Record shortcut**, press and release it, then select **Apply shortcut** to register and save it immediately. **Restore default** edits the draft; Apply commits it. Supported combinations use Ctrl/Alt/Shift plus one A–Z or 0–9 key. Esc, Tab, loss of focus or closing cancels recording. Registration or persistence failure restores the previous binding; rollback failures are reported. Button capture stays independent.
+
+Linux defaults to `Ctrl+Shift+D`. Ubuntu/GNOME's common desktop default list does not assign it, but custom system bindings and application-local commands may overlap: Firefox uses it to bookmark all tabs. There is no universal conflict-free guarantee. On Wayland, the app saves a preferred key only; bind the copied capture command in desktop keyboard settings. See [usage, sources, migration and validation limits](docs/HOTKEYS.md).
 
 ## Image description and prompt reconstruction
 
@@ -67,7 +73,7 @@ Download the edition for your system from [GitHub Releases](https://github.com/q
 
 On Windows, prefer `*-win-x64-setup.exe` or use the portable ZIP. On Ubuntu X11, install the `.deb` or extract the `.tar.gz`. The two editions use separate installation and data directories, so they can coexist without overwriting the previous release.
 
-On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP remains portable. Start PingYi, press `Ctrl+Alt+D`, and drag to select a screen region. Each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. The result card lets you copy the source text, translation, or both; retry processing; or pin the card, and later captures reuse the same result window instead of stacking new windows. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings. Credential fields expose only a show/hide control; once shown, standard copy and paste commands work inside the text box.
+On Windows, the installer creates both Start Menu and desktop shortcuts; the ZIP remains portable. Start PingYi, press the default shortcut (Windows: `Ctrl+Alt+D`; Linux X11: `Ctrl+Shift+D`) or your saved custom combination, and drag to select a screen region. Each monitor receives a coordinated overlay at its own DPI, including negative-coordinate and cross-screen selections. The result card lets you copy the source text, translation, or both; retry processing; or pin the card, and later captures reuse the same result window instead of stacking new windows. Manage the hotkey, OCR/translation providers, local models, and credentials in Settings. Credential fields expose only a show/hide control; once shown, standard copy and paste commands work inside the text box.
 
 > Windows SmartScreen may show an unknown-publisher warning because the current open-source release does not yet use a paid commercial code-signing certificate. Download only from this repository's Releases page and verify the files with the supplied SHA-256 checksums.
 
@@ -134,7 +140,7 @@ The managed service listens only on local address `127.0.0.1:18080`; local mode 
 ## Current compatibility
 
 - Windows 10/11 x64.
-- Ubuntu 22.04+ X11 x64; Wayland screenshot portals are outside the v1 scope.
+- Ubuntu 22.04+ X11 x64; Wayland uses the system screenshot portal and requires desktop-managed shortcut binding.
 - PaddleOCR and bundled Argos translation support Simplified Chinese and English; local/custom LLM translation offers 34 common target languages in Settings. Text automatically detected as another language is never sent to the Chinese-English Argos fallback.
 - v1 does not include live overlay translation, PDF/image batch processing, specialized table/formula OCR, or history.
 
@@ -153,7 +159,7 @@ Local OCR does not need Python during development. To run the standalone Argos t
 .\scripts\setup-engine.ps1
 ```
 
-Append `--settings` to open Settings directly for troubleshooting. Use `--capture` to forward a capture command to an already-running instance.
+Append `--settings` to open Settings directly for troubleshooting. Use `--capture` to capture on first launch or forward a capture command to an already-running instance.
 
 ## Test and release
 
@@ -190,7 +196,7 @@ Windows builds optionally support Authenticode. Import a code-signing certificat
 
 GitHub Release can use repository secrets `PINGYI_SIGNING_CERTIFICATE_BASE64` (a Base64-encoded PFX) and `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Without them, the workflow neither requires nor fabricates a certificate. Build jobs have read-only repository access; only the final publishing job can write a Release.
 
-Pushing a `v*` tag builds the Windows installer/ZIP and Ubuntu `.deb`/`.tar.gz`, generates SHA-256 checksums, and creates a GitHub Release.
+Pushing a `v*` tag, or updating `.github/release-version.txt` on `main`, builds the Windows installer/ZIP and Ubuntu `.deb`/`.tar.gz`, generates SHA-256 checksums, and creates a GitHub Release after all eight package assets pass validation.
 
 ## Contributing
 
@@ -212,10 +218,10 @@ These source changes do not replace the existing v0.4.0 binaries. See [the regre
 
 ## Ubuntu / Linux capture and shortcuts
 
-The Linux X11 default is now `Ctrl+Alt+Shift+D`; older default `Ctrl+Alt+D` settings migrate without changing custom bindings. X11 grab conflicts are reported instead of terminating the application. Button capture remains independent of hotkey registration.
+The Linux X11 default is `Ctrl+Shift+D`. Schema 10 migrates known legacy Linux defaults without changing other custom combinations; a schema-9 `Ctrl+Alt+D` is preserved. Older versions could not distinguish an explicit choice equal to their default; see [migration details](docs/HOTKEYS.md). X11 grab conflicts are reported instead of terminating the application. Button capture remains independent of hotkey registration.
 
 Wayland uses the public XDG Screenshot portal with an interactive system dialog, not XWayland root capture. Install `xdg-desktop-portal` and a matching backend (Ubuntu GNOME: `xdg-desktop-portal-gnome`). Missing services produce an actionable error. System permission/selection takes place before OCR or image analysis.
 
-For a Wayland shortcut, copy the capture command from Appearance & startup into Ubuntu Keyboard → Custom Shortcuts and choose a free combination. PingYi does not overwrite desktop bindings. `--capture` works on both first launch and the running instance; desktop launcher Capture and Settings actions are included.
+For a Wayland shortcut, save a preferred combination and copy the capture command from Appearance & startup into Ubuntu Keyboard → Custom Shortcuts, then bind a free combination. Saving the preference in PingYi does not register or overwrite desktop bindings. `--capture` works on both first launch and the running instance; desktop launcher Capture and Settings actions are included.
 
 The portal may create a screenshot file. PingYi reads it locally and removes temporary-directory copies. Files saved elsewhere by the desktop remain under desktop control. See `docs/LINUX_CAPTURE.md` for test coverage and limits.

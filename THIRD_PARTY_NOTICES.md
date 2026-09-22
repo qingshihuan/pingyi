@@ -142,3 +142,13 @@ https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Scr
 
 Development-only native tests use Xvfb, xdotool, dbus-run-session and the system
 PyGObject bindings on a private test session bus. They are not release assets.
+
+## Configurable capture shortcuts (v0.5.2)
+
+The shortcut recorder and transactional rebinding reuse the existing Avalonia,
+.NET, Windows User32 and Linux Xlib implementations. No keyboard-hook package,
+new native library, model, font, telemetry or runtime dependency is introduced.
+Recording handles input only in the explicitly activated settings editor and
+does not retain keyboard history. Wayland preferences do not alter desktop
+keybindings or add a GlobalShortcuts portal implementation. Native regression
+tests reuse the isolated development-only Xvfb/Openbox environment above.
