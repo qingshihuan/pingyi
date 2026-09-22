@@ -11,6 +11,18 @@ public sealed partial class AppServices
     public bool IsEditingHotkey { get; private set; }
     public event EventHandler? HotkeyChanged;
 
+    public async Task StartConfiguredHotkeyAsync()
+    {
+        await _hotkeyEditGate.WaitAsync();
+        try
+        {
+            await HotkeyService.StartAsync(Settings.Hotkey);
+            HotkeyRegistrationError = null;
+        }
+        catch (Exception error) { HotkeyRegistrationError = error; throw; }
+        finally { _hotkeyEditGate.Release(); }
+    }
+
     public async Task ApplyHotkeySettingsAsync(AppSettings settings)
     {
         await _hotkeyEditGate.WaitAsync();

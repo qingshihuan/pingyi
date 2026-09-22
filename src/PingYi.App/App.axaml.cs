@@ -51,6 +51,7 @@ public partial class App : Application
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
             _mainWindow = new MainWindow(_services, _captureCoordinator, OpenSettingsWindowAsync);
             _mainShell = (IMainWindowShell)_mainWindow;
+            _services.HotkeyChanged += OnHotkeyChanged;
             _mainWindow.Closing += (_, eventArgs) =>
             {
                 if (_isExiting)
@@ -67,7 +68,11 @@ public partial class App : Application
                 await Dispatcher.UIThread.InvokeAsync(() => HandleExternalCommandAsync(command)));
 
             _services.HotkeyService.Pressed += (_, _) =>
-                Dispatcher.UIThread.Post(() => _ = _captureCoordinator.StartCaptureAsync(_mainShell));
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!_services.IsEditingHotkey && !_isExiting)
+                        _ = _captureCoordinator.StartCaptureAsync(_mainShell);
+                });
             _ = StartHotkeyAsync();
 
             if (_services.Settings.StartMinimized && !openSettings)
@@ -110,7 +115,7 @@ public partial class App : Application
     {
         try
         {
-            await _services!.HotkeyService.StartAsync(_services.Settings.Hotkey);
+            await _services!.StartConfiguredHotkeyAsync();
             _services.HotkeyRegistrationError = null;
             _mainShell?.SetGlobalStatus(_services.HotkeyService is DesktopManagedHotkeyService
                 ? LinuxDesktopUi.ExternalShortcutHelp : "快捷键已启用", isError: false);
@@ -200,8 +205,9 @@ public partial class App : Application
         {
             switch (command)
             {
-                case "capture" when _captureCoordinator is not null && _mainShell is not null:
-                    await _captureCoordinator.StartCaptureAsync(_mainShell);
+                case "capture":
+                    if (_captureCoordinator is not null && _mainShell is not null && _services?.IsEditingHotkey != true)
+                        await _captureCoordinator.StartCaptureAsync(_mainShell);
                     break;
                 case "settings":
                     await OpenSettingsWindowAsync();
@@ -301,6 +307,7 @@ public partial class App : Application
         }
         if (_services is not null)
         {
+            _services.HotkeyChanged -= OnHotkeyChanged;
             await _services.DisposeAsync();
         }
 

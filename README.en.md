@@ -212,10 +212,14 @@ These source changes do not replace the existing v0.4.0 binaries. See [the regre
 
 ## Ubuntu / Linux capture and shortcuts
 
-The Linux X11 default is now `Ctrl+Alt+Shift+D`; older default `Ctrl+Alt+D` settings migrate without changing custom bindings. X11 grab conflicts are reported instead of terminating the application. Button capture remains independent of hotkey registration.
+The Linux X11 default is now `Ctrl+Shift+D`; older default `Ctrl+Alt+D` settings migrate without changing custom bindings. X11 grab conflicts are reported instead of terminating the application. Button capture remains independent of hotkey registration.
 
 Wayland uses the public XDG Screenshot portal with an interactive system dialog, not XWayland root capture. Install `xdg-desktop-portal` and a matching backend (Ubuntu GNOME: `xdg-desktop-portal-gnome`). Missing services produce an actionable error. System permission/selection takes place before OCR or image analysis.
 
 For a Wayland shortcut, copy the capture command from Appearance & startup into Ubuntu Keyboard → Custom Shortcuts and choose a free combination. PingYi does not overwrite desktop bindings. `--capture` works on both first launch and the running instance; desktop launcher Capture and Settings actions are included.
 
 The portal may create a screenshot file. PingYi reads it locally and removes temporary-directory copies. Files saved elsewhere by the desktop remain under desktop control. See `docs/LINUX_CAPTURE.md` for test coverage and limits.
+
+## Capture shortcut customization (v0.5.2)
+
+Linux: `Ctrl+Shift+D`; Windows: `Ctrl+Alt+D`. Open **Settings → Appearance & startup** to type/record a combination or restore the default, then select **Save and apply**. Wayland requires a matching desktop custom shortcut; saving a preference is not global registration. [Shortcut guide and conflict notes](docs/HOTKEYS.md).

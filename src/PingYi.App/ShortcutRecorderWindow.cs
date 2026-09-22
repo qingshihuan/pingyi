@@ -14,13 +14,14 @@ public sealed class ShortcutRecorderWindow : Window
     private readonly TextBlock _preview;
     private readonly TextBlock _hint;
     private string? _candidate;
+    private readonly HashSet<Key> _pressed = [];
     private bool _activated;
 
     public ShortcutRecorderWindow()
     {
         Title = UiText.IsEnglish ? "Record capture shortcut" : "录入截图快捷键";
         Width = 480;
-        Height = 270;
+        Height = 320;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Classes.Add("workspace");
@@ -70,6 +71,7 @@ public sealed class ShortcutRecorderWindow : Window
         if (e.KeyModifiers == KeyModifiers.None && e.Key is Key.Tab or Key.Enter or Key.Space)
             return; // Keyboard access to Cancel remains available.
         e.Handled = true;
+        _pressed.Add(e.Key);
         if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift)
             return;
         _candidate = GestureFromKey(e.Key, e.KeyModifiers);
@@ -86,8 +88,9 @@ public sealed class ShortcutRecorderWindow : Window
 
     private void RecordKeyUp(object? sender, KeyEventArgs e)
     {
+        _pressed.Remove(e.Key);
         if (_candidate is null) return;
         e.Handled = true;
-        if (e.KeyModifiers == KeyModifiers.None) Close(_candidate);
+        if (_pressed.Count == 0 && e.KeyModifiers == KeyModifiers.None) Close(_candidate);
     }
 }

@@ -77,7 +77,10 @@ timeout 15s dotnet "$app" --capture
 overlay=$(wait_window 'PingYi Capture')
 cancel_and_restore
 echo 'Testing registered X11 shortcut'
-xdotool key --clearmodifiers ctrl+alt+shift+d
+xdotool key --clearmodifiers ctrl+shift+d
 overlay=$(wait_window 'PingYi Capture')
 cancel_and_restore
 echo 'Native desktop: partial settings, cold --capture, real button click, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
+
+# Inherit the isolated synthetic desktop and exercise settings persistence.
+source scripts/test-linux-hotkey-editor.sh

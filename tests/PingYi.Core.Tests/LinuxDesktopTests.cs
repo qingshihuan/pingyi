@@ -15,7 +15,7 @@ public class LinuxDesktopTests
         Assert.Equal(expected, LinuxDesktopSession.IsWaylandSession(type, display));
 
     [Theory]
-    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Alt+Shift+D")]
+    [InlineData(true, 8, "Ctrl+Alt+D", "Ctrl+Shift+D")]
     [InlineData(false, 8, "Ctrl+Alt+D", "Ctrl+Alt+D")]
     [InlineData(true, 8, "Ctrl+Alt+G", "Ctrl+Alt+G")]
     [InlineData(true, 9, "Ctrl+Alt+D", "Ctrl+Alt+D")]
@@ -53,7 +53,7 @@ public class LinuxDesktopTests
         await second.StartAsync(AppSettings.LinuxDefaultHotkey);
         using var xdotool = Process.Start(new ProcessStartInfo("xdotool")
         {
-            ArgumentList = { "key", "--clearmodifiers", "ctrl+alt+shift+d" }, UseShellExecute = false
+            ArgumentList = { "key", "--clearmodifiers", AppSettings.LinuxDefaultHotkey.ToLowerInvariant() }, UseShellExecute = false
         })!;
         await xdotool.WaitForExitAsync();
         await pressed.Task.WaitAsync(TimeSpan.FromSeconds(5));

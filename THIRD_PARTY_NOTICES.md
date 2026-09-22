@@ -142,3 +142,7 @@ https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Scr
 
 Development-only native tests use Xvfb, xdotool, dbus-run-session and the system
 PyGObject bindings on a private test session bus. They are not release assets.
+
+## Shortcut editor (v0.5.2)
+
+The shortcut recorder uses the existing Avalonia input and control APIs. No additional third-party library or background keyboard-logging component is bundled. Wayland shortcut bindings remain under the desktop settings service; application preferences do not alter system bindings.

@@ -20,6 +20,7 @@ public partial class SettingsWindow : Window
     private DateTimeOffset _deleteConfirmationExpiresAt;
     private object? _deleteModelsDefaultContent;
     private bool _isLoadingSettings;
+    private bool _isSavingSettings;
     private CancellationTokenSource? _managedModelOperation;
     private Uri? _latestReleasePage;
 
@@ -97,6 +98,7 @@ public partial class SettingsWindow : Window
             UiLanguageCombo.SelectedItem = languageChoices
                 .First(choice => choice.Id == settings.UiLanguage);
             HotkeyBox.Text = settings.Hotkey;
+            _useDefaultHotkey = !settings.HotkeyIsCustomized;
             StartMinimizedCheckBox.IsChecked = settings.StartMinimized;
             CheckForUpdatesCheckBox.IsChecked = settings.CheckForUpdates;
             ManagedModelExpander.IsVisible = _services.ManagedModels.IsCompleteEdition;
@@ -125,48 +127,27 @@ public partial class SettingsWindow : Window
 
     private async void SaveButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_services is null)
-        {
-            return;
-        }
-
+        if (_services is null || _hotkeyEditorBusy || _isSavingSettings) return;
+        _isSavingSettings = true;
+        RecordHotkeyButton.IsEnabled = ResetHotkeyButton.IsEnabled = HotkeyBox.IsEnabled = false;
         var button = sender as Button;
         BeginButtonOperation(button, "正在保存…");
         SetGlobalStatus("正在保存设置与安全凭据…", isError: false);
         try
         {
-            var previousSettings = _services.Settings;
             var updatedSettings = BuildSettingsFromForm();
-            _ = GlobalHotkeyGesture.Parse(updatedSettings.Hotkey);
             await SaveAllEnteredSecretsAsync();
-            var hotkeyChanged = !string.Equals(
-                previousSettings.Hotkey,
-                updatedSettings.Hotkey,
-                StringComparison.OrdinalIgnoreCase);
-            if (hotkeyChanged)
-            {
-                await SwitchHotkeyAsync(previousSettings.Hotkey, updatedSettings.Hotkey);
-            }
-
-            try
-            {
-                await _services.SaveSettingsAsync(updatedSettings);
-            }
-            catch
-            {
-                if (hotkeyChanged)
-                {
-                    await SwitchHotkeyAsync(updatedSettings.Hotkey, previousSettings.Hotkey);
-                }
-
-                throw;
-            }
+            await _services.ApplyHotkeySettingsAsync(updatedSettings);
+            HotkeyBox.Text = _services.Settings.Hotkey;
+            _useDefaultHotkey = !_services.Settings.HotkeyIsCustomized;
             ClearSecretInputs();
             await RefreshCredentialStatusAsync();
             var secretStatus = _services.SecretStore is PlatformSecretStore { IsPersistent: false }
                 ? "Linux 密钥服务不可用，凭据仅保存到本次运行结束。"
                 : "敏感凭据已写入系统安全存储。";
-            SetGlobalStatus($"设置已保存。{secretStatus}", isError: false);
+            SetGlobalStatus(LinuxDesktopSession.IsWayland
+                ? (UiText.IsEnglish ? "Preferred shortcut saved. " : "首选快捷键已保存。") + LinuxDesktopUi.ExternalShortcutHelp
+                : $"设置已保存。{secretStatus}", isError: false);
             FinishButtonOperation(button, "已保存并应用", success: true);
         }
         catch (Exception exception)
@@ -174,31 +155,11 @@ public partial class SettingsWindow : Window
             SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
             FinishButtonOperation(button, "保存失败", success: false);
         }
-    }
-
-    private async Task SwitchHotkeyAsync(string previousHotkey, string nextHotkey)
-    {
-        if (_services is null)
+        finally
         {
-            return;
-        }
-
-        await _services.HotkeyService.StopAsync();
-        try
-        {
-            await _services.HotkeyService.StartAsync(nextHotkey);
-            _services.HotkeyRegistrationError = null;
-        }
-        catch
-        {
-            await _services.HotkeyService.StopAsync();
-            try
-            {
-                await _services.HotkeyService.StartAsync(previousHotkey);
-                _services.HotkeyRegistrationError = null;
-            }
-            catch (Exception rollbackError) { _services.HotkeyRegistrationError = rollbackError; }
-            throw;
+            _isSavingSettings = false;
+            RecordHotkeyButton.IsEnabled = ResetHotkeyButton.IsEnabled = HotkeyBox.IsEnabled = true;
+            RefreshHotkeyEditor();
         }
     }
 
@@ -311,7 +272,8 @@ public partial class SettingsWindow : Window
             CustomTranslationModel = modelName,
             ManagedRuntimeEnabled = keepManagedRuntime,
             ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
-            Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
+            Hotkey = GlobalHotkeyGesture.Parse(HotkeyBox.Text ?? string.Empty).ToString(),
+            HotkeyIsCustomized = !_useDefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked == true,
             UiLanguage = _services?.Settings.UiLanguage ?? _selectedLanguage

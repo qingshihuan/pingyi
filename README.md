@@ -23,7 +23,7 @@
   <img src="docs/social-preview.png" width="920" alt="屏译：离线优先的截图 OCR 与翻译桌面工具">
 </p>
 
-屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下截图快捷键（Windows：`Ctrl+Alt+D`；Linux X11：`Ctrl+Alt+Shift+D`），框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
+屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下截图快捷键（Windows：`Ctrl+Alt+D`；Linux X11：`Ctrl+Shift+D`），框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
 
 标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。需要更广语言覆盖时，可使用自己的 Google Cloud 或百度凭据。
 
@@ -244,10 +244,14 @@ GitHub Release 可配置仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64`（PFX �
 
 ## Ubuntu / Linux 截图与快捷键
 
-Linux X11 默认改用 `Ctrl+Alt+Shift+D`，旧配置中的默认 `Ctrl+Alt+D` 会迁移，自定义组合保留。注册冲突会明确提示，不再导致 Xlib 终止程序；截图按钮不依赖全局快捷键。
+Linux X11 默认改用 `Ctrl+Shift+D`，旧配置中的默认 `Ctrl+Alt+D` 会迁移，自定义组合保留。注册冲突会明确提示，不再导致 Xlib 终止程序；截图按钮不依赖全局快捷键。
 
 Wayland 会话使用系统的 XDG Screenshot 门户显示交互式截图/授权界面，不再读取 XWayland 根窗口，也不会把门户截图按 X11 屏幕坐标重复裁剪。需要 `xdg-desktop-portal` 和桌面对应后端（Ubuntu GNOME：`xdg-desktop-portal-gnome`）；缺失时会显示修复指引，不会伪装为就绪。
 
-Wayland 全局绑定由系统管理：在“设置 → 外观与启动”复制截图命令，到 Ubuntu“设置 → 键盘 → 自定义快捷键”中绑定，例如 `Ctrl+Alt+Shift+D`。这不会自动改动或覆盖 Ubuntu 快捷键；首次启动和已运行时的 `--capture` 都进入截图流程。桌面启动器也提供“截图翻译”和“设置”操作。
+Wayland 全局绑定由系统管理：在“设置 → 外观与启动”复制截图命令，到 Ubuntu“设置 → 键盘 → 自定义快捷键”中绑定，例如 `Ctrl+Shift+D`。这不会自动改动或覆盖 Ubuntu 快捷键；首次启动和已运行时的 `--capture` 都进入截图流程。桌面启动器也提供“截图翻译”和“设置”操作。
 
 系统门户可能创建临时图片。屏译本地读取后清理临时目录副本；门户保存到 Pictures 等其他目录的文件由桌面管理，不能承诺这些文件被屏译清除。详细验证与限制见 `docs/LINUX_CAPTURE.md`。
+
+## 自定义截图快捷键（v0.5.2）
+
+Linux 默认 `Ctrl+Shift+D`，Windows 保持 `Ctrl+Alt+D`。在 **设置 → 外观与启动** 中手动输入或点击 **录入快捷键 / 恢复默认**，最后 **保存并应用**。Wayland 还需在桌面系统绑定同一组合；应用保存首选组合不等于系统已注册。Chrome 使用 `Ctrl+Shift+D` 收藏所有标签页，存在应用快捷键覆盖的可能。[完整说明、迁移及冲突处理](docs/HOTKEYS.md)。
