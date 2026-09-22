@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace PingYi.Core.Tests;
 
-public class LinuxDesktopTests
+public partial class LinuxDesktopTests
 {
     [Theory]
     [InlineData("wayland", null, true)]
