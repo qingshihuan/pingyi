@@ -10,8 +10,10 @@ namespace PingYi.App.Tests;
 
 public sealed class HotkeyEditorTests
 {
+    // Tab content can be reached through both its item and content presenter.
+    // Assert one distinct control instance, not one traversal path.
     private static Button EditorButton(SettingsWindow window, string name) =>
-        window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name);
+        window.GetLogicalDescendants().OfType<Button>().Distinct().Single(button => button.Name == name);
 
     [AvaloniaFact]
     public void Editor_has_accessible_controls_localizes_and_validates_input()
