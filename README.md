@@ -1,259 +1,195 @@
 <p align="center">
-  <img src="src/PingYi.App/Assets/pingyi-v2-icon-512.png" width="112" alt="屏译 PingYi 图标">
+  <img src="src/PingYi.App/Assets/pingyi-v2-icon-512.png" width="96" height="96" alt="屏译 PingYi 图标">
 </p>
 
 <h1 align="center">屏译 PingYi</h1>
 
-<p align="center"><strong>开源、隐私优先、开箱可离线使用的截图翻译与 OCR 文字提取工具</strong></p>
+<p align="center"><strong>框选屏幕，提取文字，读懂内容。</strong></p>
+<p align="center">离线优先的截图翻译与图片理解工具 · Windows / Ubuntu · MIT 开源</p>
 
 <p align="center">
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/qingshihuan/pingyi/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag&include_prereleases"></a>
-  <a href="https://github.com/qingshihuan/pingyi/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/qingshihuan/pingyi?style=flat"></a>
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-0f766e"></a>
-  <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Ubuntu X11" src="https://img.shields.io/badge/Ubuntu-X11-e95420">
+  <a href="https://github.com/qingshihuan/pingyi/releases/latest"><img src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag" alt="最新正式版"></a>
+  <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg?branch=main" alt="主线 CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0f766e" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <img src="docs/social-preview.png" width="920" alt="屏译：离线优先的截图 OCR 与翻译桌面工具">
+  <a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>下载正式版</strong></a> ·
+  <a href="#quick-start">快速开始</a> ·
+  <a href="#docs">使用与开发文档</a> ·
+  <a href="https://github.com/qingshihuan/pingyi/issues">反馈问题</a>
 </p>
 
-屏译（PingYi）是一款面向 Windows 10/11 和 Ubuntu X11 的桌面截图翻译器。按下截图快捷键（Windows：`Ctrl+Alt+D`；Linux X11：`Ctrl+Shift+D`），框选任意屏幕区域，即可完成截图、OCR 文字提取和翻译，并复制原文或译文。界面支持简体中文与 English，可跟随系统自动切换。
+屏译是一款桌面截图 OCR 与翻译工具。无需切换到浏览器或手动上传文件，框选屏幕上的文字即可识别、翻译和复制；连接兼容的视觉模型后，还能描述图片、生成相似画面的参考提示词。
 
-标准安装包已包含本地 OCR 与中英基础翻译模型，新电脑在没有网络、没有独立显卡、没有 Python 或 .NET 环境的情况下也能使用。完全版在此基础上内置 llama.cpp 的 Vulkan 与 CPU 运行时，可从魔搭一键下载并配置新版轻量多模态模型；也可继续连接 Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务。需要更广语言覆盖时，可使用自己的 Google Cloud 或百度凭据。
+**中英基础 OCR 与翻译可离线运行，无需独立显卡。**正式安装包包含基础模型及应用运行时，不需要另装 Python 或 .NET。图片理解和大模型增强是可选能力，需要另行配置或下载兼容模型。
 
-如果屏译解决了你的截图取词或翻译需求，欢迎点一个 [Star](https://github.com/qingshihuan/pingyi)；它能帮助更多需要离线 OCR 与隐私截图翻译的人找到这个项目。
+<a id="download"></a>
+## 下载与安装
 
-## 图片描述与提示词反推
+前往 **[GitHub Releases 最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)**，展开 **Assets**，选择系统与版本。普通用户下载下面的安装包，不要把 GitHub 自动生成的 `Source code` 源码压缩包当作安装包。
 
-主页新增“描述图片”和“反推提示词”，可直接分析没有文字的截图；结果窗口可切换任务或重新分析同一张图。需要兼容 `image_url` 的视觉模型，沿用自定义接口配置，完全版可按需启动已应用的本机多模态模型。输出跟随界面语言；远程 HTTPS 服务每次发送完整截图前单独确认，不沿用文字翻译的上传授权。不会新增持久历史，反推不等于恢复原始提示词。
+| 版本 | 包含内容 | 适合的使用方式 |
+| --- | --- | --- |
+| **标准版** · `PingYi-` | 离线 OCR、中英基础翻译；可连接外部模型与云服务 | 先使用离线基础功能，或已有 Ollama、LM Studio 等服务 |
+| **完全版** · `PingYi-Complete-` | 标准版能力，加内置 llama.cpp CPU / Vulkan 运行时与模型下载管理 | 希望在屏译内下载、配置和运行本机多模态模型 |
 
-本机模型启动检查区分单次探测超时和总加载期限，支持有界冷启动等待与自动后端回退，并提供取消等待。详见 [图片分析与就绪检查](docs/IMAGE_ANALYSIS.md)。
+**Windows 10/11 x64：**选择 `*-win-x64-setup.exe` 安装程序，或 `*-win-x64.zip` 便携包。安装程序会创建开始菜单和桌面快捷方式。
 
-## 24 秒了解屏译
+**Ubuntu 22.04+ x64：**选择 `*-linux-x64.deb`，或解压 `*-linux-x64.tar.gz`。Linux 仍需要系统图形库等依赖；DEB 会声明系统依赖，安装缺失依赖时可能需要联网。X11 与 Wayland 的截图方式不同，见下方说明。
+
+完全版**不附带大模型权重**，首次使用增强能力需要下载模型；离线基础功能不受影响。两个版本使用独立的安装与数据目录，可以共存。每次正式发布提供两版共 8 个程序包及 `SHA256SUMS.txt`。
+
+> 请仅从本仓库 Releases 下载，并核对 SHA-256。Windows 的未签名构建可能触发 SmartScreen 提示；校验和用于核对下载文件，不替代代码签名。
+
+<a id="quick-start"></a>
+## 三步开始使用
+
+1. **启动屏译。**首次使用保留本地 OCR 与中英离线翻译方案，无需配置 API Key。
+2. **选择屏幕区域。**点击“开始截图”，或使用下表中的快捷键；Wayland 会显示系统截图／授权界面。
+3. **读取并复制结果。**在结果卡中复制原文、译文或全部内容，也可重试、固定结果卡；按 Esc 可取消框选。
+
+| 桌面环境 | 默认截图入口 |
+| --- | --- |
+| Windows | `Ctrl+Alt+D`，或主界面截图按钮 |
+| Linux X11 | `Ctrl+Shift+D`，或主界面截图按钮 |
+| Linux Wayland | 主界面截图按钮；全局快捷键需在桌面系统中绑定截图命令 |
+
+### 自定义快捷键
+
+打开 **设置 → 外观与启动**，手动输入组合，或点击 **“录入快捷键…”** 后按下组合，使用 **Enter 确认、Esc 取消**。点击 **“保存并应用”** 后生效；**“恢复默认”** 同样需要保存。
+
+支持 `Ctrl`、`Alt`、`Shift` 中至少一个修饰键，加一个 `A–Z` 字母或主键盘 `0–9` 数字；暂不支持 Super、功能键和小键盘键。录入期间暂停屏译自己的原生全局绑定，结束后恢复已保存的组合。新键注册失败时会尝试恢复原绑定，并显示错误；仍可使用截图按钮。
+
+全局快捷键可能与系统、其他应用或个人设置重叠，不能保证任意组合都无冲突。已有自定义组合与旧默认值的升级处理，见 [Linux 截图与快捷键说明](docs/LINUX_CAPTURE.md)。
+
+### Ubuntu Wayland
+
+Wayland 使用 **XDG Screenshot portal**，不读取 XWayland 根窗口。Ubuntu GNOME 需要 `xdg-desktop-portal` 及匹配的桌面后端（通常为 `xdg-desktop-portal-gnome`）。
+
+**软件内保存快捷键只是保存偏好，不代表系统已完成绑定。**请复制设置页提供的截图命令，到系统 **键盘 → 自定义快捷键** 中绑定同一组合。屏译不会自动改写桌面快捷键；系统占用的组合可能无法被录入窗口捕获，此时可手动输入并在系统中调整。详见 [依赖、排障与验证边界](docs/LINUX_CAPTURE.md)。
+
+<a id="features"></a>
+## 能做什么
+
+- **从屏幕提取与翻译文字。**识别图片、视频字幕、软件界面和不可复制网页中的文字；内置 PaddleOCR 与 Argos Translate 提供中英离线基础能力。
+- **按需要增强识别与翻译。**连接 llama.cpp、Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务；选择直接视觉 OCR、PaddleOCR 加视觉纠错或大模型翻译，效果与语言范围取决于模型。
+- **理解没有文字的图片。**“描述图片”生成内容说明，“反推提示词”生成相似画面的参考描述；需要支持 `image_url` 的视觉模型，不会恢复原始提示词或生成参数。
+- **保持桌面操作简洁。**统一主界面、独立分类设置、中英文切换、浅深色主题、托盘常驻和可复用结果卡；支持多显示器框选，具体桌面与混合 DPI 组合仍需实机验证。
+
+<details>
+<summary>查看早期工作流演示</summary>
 
 <p align="center">
-  <img src="docs/demo.gif" width="800" alt="屏译截图 OCR 与翻译工作流演示">
+  <img src="docs/demo.gif" width="800" alt="屏译早期版本的截图、OCR 与翻译工作流演示">
 </p>
 
-演示展示了快捷键框选、OCR 结果、翻译和本地隐私状态。可直接下载 [最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)；标准版安装后即可离线使用中英基础功能。
+这段演示用于说明操作流程，界面与快捷键来自早期版本，不代表当前布局或 Linux 默认键。当前用法以上文为准；界面回归截图可在 [CI 工件](https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml) 中查看。
 
-## 为什么选择屏译
+</details>
 
-- **截图翻译一次完成**：全局快捷键框选，结果卡直接显示原文和译文。
-- **OCR 文字提取**：从图片、视频字幕、软件界面和不可复制网页中提取中英文文字。
-- **本机多模态 OCR**：可使用 llama.cpp、Ollama、LM Studio、vLLM 等视觉模型直接识图，或用 PaddleOCR 初稿配合大模型纠错。
-- **真正的离线保底**：内置 PaddleOCR ONNX 与 Argos Translate，中英识别和翻译无需联网。
-- **本地大模型增强**：支持 llama.cpp、Ollama、LM Studio、vLLM 和通用 OpenAI 兼容接口；默认自动识别原文，外语译成简体中文、中文译成英文，也可指定 34 种常用目标语言。
-- **隐私优先**：本地模式不上传截图与文字，默认不保存截图、正文、译文或历史记录。
-- **云端服务可选**：可自行配置 Google Cloud Vision OCR、Google Cloud Translation、百度服务或自定义 Chat Completions 接口。
-- **中英文界面**：可跟随系统，也可在设置中固定为简体中文或 English。
-- **跨平台桌面应用**：使用 Avalonia 与 C# 开发，支持 Windows x64 和 Ubuntu X11 x64。
-- **开箱运行**：Windows 自包含安装包/便携 ZIP，Ubuntu 提供 `.deb`/`.tar.gz`，无需另装运行时。
+<a id="models"></a>
+## 本机模型与云服务
 
-## 下载与使用
+**完全版管理本机模型：**进入 **设置 → 本地模型**，选择目录中的模型和后端，再点击“一键下载并配置”。下载支持断点续传与文件完整性校验。自动后端先尝试 Vulkan，失败时回退 CPU；显式选择 Vulkan 则报告错误而不自动切换。实际内存、显存需求与速度取决于模型和设备，以软件内目录及实测为准。
 
-从 [GitHub Releases](https://github.com/qingshihuan/pingyi/releases) 下载对应系统和版本：
+**已有本机服务：**标准版和完全版都可在 **设置 → 自定义接口** 中连接兼容端点，填写模型名称及服务要求的凭据。图片分析必须使用视觉模型并加载其视觉组件，仅支持文字的模型不能替代。完全版已应用的本机模型按需启动，不在打开主界面时预加载大模型。
 
-| 版本 | 文件名前缀 | 适合谁 | 首次使用 |
-| --- | --- | --- | --- |
-| 标准版 | `PingYi-` | 需要最小体积和中英离线保底；已有 Ollama/llama.cpp 等服务 | 安装后即可离线 OCR 与中英基础翻译 |
-| 完全版 | `PingYi-Complete-` | 希望由屏译管理多模态模型和 llama.cpp | 基础功能立即可用；增强模型需联网从魔搭下载一次 |
+**可选云端服务：**在 **设置 → 云端服务** 配置自己的 Google Cloud 或百度凭据，再在 **识别与翻译** 中选择提供商。OCR 与翻译提供商可分别选择，服务开通、配额和费用由用户自己的账户承担。自定义接口只允许本机回环地址使用 HTTP，非回环地址必须使用 HTTPS。
 
-Windows 优先下载 `*-win-x64-setup.exe`，安装程序会创建开始菜单和桌面快捷方式；免安装可使用 ZIP。Ubuntu X11 可安装 `.deb` 或解压 `.tar.gz`。标准版与完全版使用不同安装目录和数据目录，可以同时安装，不会覆盖原版本。
+图片任务的模型要求、上传确认和输出限制见 [图片分析说明](docs/IMAGE_ANALYSIS.md)；资源回收及性能测量口径见 [性能说明](docs/PERFORMANCE.md)。
 
-安装后启动屏译，按截图快捷键（Windows：`Ctrl+Alt+D`；Linux X11：`Ctrl+Shift+D`），拖动鼠标框选屏幕区域。多显示器会按各自 DPI 建立协同截图层，支持负坐标和跨屏框选。识别完成后可以复制原文、复制译文、复制全部、重试或固定结果卡；后续截图复用同一结果窗口，不会持续堆叠窗口。快捷键、OCR/翻译提供商、本地模型和凭据均在“设置”中管理；密钥只提供显示/隐藏控制，显示后可在输入框内使用标准复制和粘贴快捷键。
+<a id="privacy"></a>
+## 数据去向与隐私
 
-> Windows SmartScreen 可能会提示未识别的发布者，因为当前开源版本尚未购买商业代码签名证书。请只从本仓库 Releases 下载，并使用随 Release 提供的 SHA-256 校验文件核对成品。
+| 处理方式 | 数据发送到哪里 |
+| --- | --- |
+| 默认本地 OCR 与 Argos 翻译 | 在本机处理，推理过程不需要联网 |
+| 本机模型增强 | 将对应文字或所选图片交给配置的本机服务；外部服务的联网与留存行为由其自身配置决定 |
+| 远程 OCR／远程图片分析 | 将所选截图发送给选定的服务 |
+| 远程文字翻译 | 将识别后的文字发送给选定的服务，不等于上传整张截图 |
 
-### 自定义截屏快捷键（0.5.2）
+屏译默认不建立截图、识别正文、译文或图片分析的持久历史；日志不记录这些内容或密钥。凭据使用 Windows DPAPI 或 Linux Secret Service 处理，不写入普通 `settings.json`。
 
-打开“设置 → 外观与启动”，点击“录入快捷键…”并按下所需组合，Enter 确认、Esc 取消；也可直接手动输入。支持 Ctrl / Alt / Shift 中至少一个修饰键与一个 A–Z 字母或 0–9 数字。“恢复默认”可还原当前平台默认值；以上修改都需要点击“保存并应用”。录入期间暂停屏译自己的原生快捷键，结束后恢复已保存的组合；保存注册失败时尝试恢复原绑定，截图按钮始终独立可用。
+每次远程图片分析（含重试）发送前会单独确认接收端点和模型，文字翻译的上传许可不自动授权图片上传。模型下载、主动检查更新／开启自动更新检查、使用远程服务时会联网；自动更新检查默认关闭。
 
-Linux 默认 `Ctrl+Shift+D` 未列于 GNOME 官方常用系统快捷键表，但个人配置可能占用，Chrome 与 Konsole 也有同名应用内操作。Wayland 内的设置仅保存偏好，仍需在系统键盘设置中绑定截图命令。迁移规则、冲突说明与验证边界见 [Linux 截图与快捷键](docs/LINUX_CAPTURE.md) 和 [0.5.2 更新记录](docs/releases/v0.5.2.md)。
+**系统与外部服务仍有各自的数据边界。**Wayland 门户可能创建截图文件，屏译只清理临时目录中的门户副本；系统保存到其他目录的文件不保证由屏译删除。远程服务和自行部署的模型服务有各自的日志与留存设置。
 
-## 新版工作台与分类设置
+<a id="limits"></a>
+## 兼容范围与限制
 
-源码中的主界面已改为截图工作台：截图按钮和当前快捷键优先展示，模型可用性和处理方案继续读取真实配置，数据去向在“帮助与关于”中查看。主界面与设置窗口共用浅色/深色资源，支持中文与 English。
+正式分发面向 **Windows 10/11 x64** 与 **Ubuntu 22.04+ x64**。X11 使用应用框选层，Wayland 使用系统截图门户并由桌面管理全局快捷键。macOS、ARM、其他 Linux 发行版不在当前声明的正式支持范围内。
 
-设置使用左侧五类导航：**识别与翻译、本地模型、云端服务、自定义接口、外观与启动**。各页独立滚动，底部状态与“保存并应用”固定显示，切换分类保留未保存输入。识别引擎、翻译引擎及目标语言沿用立即生效；其他设置仍按保存、应用预设或验证按钮生效。
+内置基础模型面向简体中文与英文；更多语言、视觉识别及图片理解依赖所选服务或模型。OCR 与模型输出可能出错，需要核对。当前不提供实时覆盖翻译、PDF／图片批处理、表格／公式专项识别或持久历史记录。
 
-工作台支持 `Ctrl+,` 打开设置、`F5` 刷新状态；设置窗口支持 `Ctrl+S` 保存。默认全局截图键为 Windows `Ctrl+Alt+D`、Linux X11 `Ctrl+Shift+D`；其他自定义组合保留。当前源码统一为单一主界面，设置单独打开，不再提供重复的“经典界面”切换。
+CI 覆盖 Windows／Ubuntu 构建、单元与界面测试，并在隔离的 Xvfb／D-Bus 环境执行 Linux 原生检查。**自动化通过不代表所有真实 GNOME／Wayland、多屏、输入法或显卡配置均已验收。**
 
-实现、测试与平台验收边界见 [UI 改造说明](docs/UI_WORKSPACE.md)。顶部演示素材尚未更新为此次布局；真实 XAML 测试截图由 CI 的 `ui-snapshots-*` 工件提供。此次源码改造没有自动发布安装包，发布状态以 Releases 为准。
+<a id="docs"></a>
+## 使用与开发文档
 
-### 精致桌面视觉
+[Linux 截图与快捷键](docs/LINUX_CAPTURE.md) · [图片分析](docs/IMAGE_ANALYSIS.md) · [质量基线](docs/QUALITY_BASELINE.md) · [性能与资源](docs/PERFORMANCE.md)
 
-主界面、五类设置页和翻译结果卡采用统一的 macOS 灵感设计：银白/石墨灰底色、蓝色主操作、细边框、轻阴影和图标侧栏。中文显式使用系统无衬线字体回退，阅读区增大行距；保留平台窗口装饰、真实快捷键、固定保存栏与原有操作流程。
+[界面设计与验收](docs/UI_WORKSPACE.md) · [可靠性说明](docs/RELIABILITY_OPTIMIZATION.md) · [版本记录](docs/releases) · [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md)
 
-主界面进一步聚焦左侧截图操作与右侧原创静态文档插画，处理方案与模型状态分层排列，隐私说明收进帮助页。设置侧栏使用彩色图标；“识别与翻译”页改为标签与控件并排的分组表单，长内容仍在页内滚动。禁用按钮具有可辨识的视觉反馈。中文字体优先使用已安装的微软雅黑或 Noto 中文无衬线字体，不下载新字体。
+<a id="development"></a>
+### 从源码运行
 
-这只是视觉语言更新，不代表新增 macOS 支持。没有嵌入 Apple 字体、SF Symbols、网页运行时或实时模糊效果；此前按需启动、空闲资源回收和后台检查节流保持不变。设计与验收边界见 [UI 改造说明](docs/UI_WORKSPACE.md#精致桌面视觉迭代) 和 [原生界面精修说明](docs/UI_FINISHING.md)。
+开发需要 **.NET 10 SDK**；修改或运行 Argos 独立翻译引擎时需要 **Python 3.13**。下面的命令在仓库根目录执行：
 
-## 启动与资源优化
-
-新版工作台不再因启动或切回窗口而预加载本机大模型，截图时按需启动；默认本地功能仍保留离线完整性校验。未改变设置的短时间窗口切换不会重复探测，`F5` 可强制刷新。Argos 状态检查不再导入推理组件；闲置五分钟后自动释放 Python 翻译进程，下次使用自动启动，首次翻译可能需要重新加载。
-
-OCR 工作移出界面线程，限制原生线程池并关闭忙等，减少检测/识别输出数组的重复复制。模型安装或清理后会重启内部翻译引擎以刷新模型目录，无需重启整个界面。识别模型、阈值和图像精度保持不变；线程限制优先照顾桌面响应，不保证所有设备单次推理更快。
-
-具体改动、测试和性能测量口径见 [启动与资源优化说明](docs/PERFORMANCE.md)。CI 的引擎健康检查微基准不代表完整软件启动速度或实际模型推理性能。
-
-## 本地、云端与显卡边界
-
-| 能力 | 默认实现 | 是否联网 | 计算设备 |
-| --- | --- | --- | --- |
-| 截图与文字识别 | PaddleOCR + ONNX Runtime | 否 | CPU |
-| 本机多模态识别/纠错 | 兼容 `image_url` 的视觉大模型 | 否 | 由外部服务决定；需加载模型所需视觉组件 |
-| 中英基础翻译 | Argos Translate | 否 | CPU |
-| 本机大模型翻译 | llama.cpp / Ollama / LM Studio / vLLM | 否 | 由外部服务决定；多语言能力取决于模型 |
-| 百度 OCR | 百度含位置文字识别 | 是，上传所选图片 | 云端 |
-| 百度/自定义翻译 | 百度翻译或 Chat Completions | 是，仅上传识别文字 | 云端 |
-| Google OCR | Cloud Vision API | 是，上传所选图片 | 云端 |
-| Google 翻译 | Cloud Translation Basic v2 | 是，仅上传识别文字 | 云端 |
-
-标准包不携带 NVIDIA CUDA/cuDNN、AMD 或 Intel 专有 GPU 加速运行库。离线翻译引擎会携带官方 CTranslate2 平台 wheel 所需的 CPU/OpenMP 依赖，x64 平台包括 Intel oneMKL 与 oneDNN；每个成品都附带实际适用的 EULA、开源许可证与第三方声明。完全版另增加 MIT 许可的 llama.cpp Vulkan/CPU 运行时，不携带 CUDA、cuDNN 或 ROCm；Vulkan 可使用支持该接口的 AMD、NVIDIA 或 Intel 显卡。Ubuntu `.deb` 会安装 llama.cpp 所需的 OpenSSL、Vulkan loader、GNU OpenMP 与 C++ 系统运行库。外部本机大模型服务也可独立使用自己的加速方案。没有显卡不影响基础功能或完全版的 CPU 模式。
-
-## 配置 Google Cloud OCR 与翻译
-
-1. 在自己的 Google Cloud 项目中启用 [Cloud Vision API](https://cloud.google.com/vision/docs) 与 [Cloud Translation API](https://cloud.google.com/translate/docs/basic/translating-text)。
-2. 创建 API Key，并按 Google 的建议限制其只能访问这两个 API；如果平台条件允许，再增加应用或来源限制。
-3. 打开“设置 → 云端服务 → Google Cloud OCR 与翻译凭据”，点击“显示”后粘贴 Key，再选择“保存并验证 Google 凭据”。
-4. 在“识别与翻译”中分别选择 `Google Cloud Vision OCR` 或 `Google Cloud Translation`。两者可以与本地或其他云端提供商自由组合。
-
-Google 凭据由 Windows DPAPI 或 Linux Secret Service 保存，不写入 `settings.json`。验证 OCR 时只上传内置的 1×1 透明测试图，验证翻译时只发送固定单词 `test`。实际使用中，只有选择 Google OCR 才会上传所选截图；Google 翻译只接收识别后的文字。Google Cloud 的启用、配额和费用由用户自己的项目承担。
-
-## 完全版一键本机模型
-
-在“设置 → 本地模型 → 完全版 · 一键本机多模态模型”中先选模型，再选择运行后端并点击“一键下载并配置”。下载支持断点续传，完成后按固定文件大小和 SHA-256 校验；模型文件不会打进 Git 仓库或安装包。
-
-| 模型 | 下载量 | 建议设备 | 定位 |
-| --- | ---: | --- | --- |
-| Qwen3.5 2B Q4（推荐） | 约 1.82 GiB | 4 GB 显存可尝试，6 GB 更稳；也支持 CPU | 2026 新版，OCR、翻译和多语言能力均衡 |
-| Qwen3.5 2B Q8 | 约 2.50 GiB | 建议 6 GB 以上显存；也支持 CPU | 更重视语言精度与小字纠错 |
-| Gemma 4 E2B Q4 | 约 3.17 GiB | 建议 8 GB 显存；也支持 CPU | 2026-06 新模型，覆盖图像理解与 140+ 语言预训练 |
-
-运行后端有三种：
-
-- **自动检测（推荐）**：先尝试通用显卡 Vulkan，失败后自动回退 CPU。
-- **通用显卡 · Vulkan**：使用 AMD、NVIDIA 或 Intel 显卡；失败时明确报错，不回退 CPU。
-- **仅 CPU**：速度较慢，但兼容性和可移植性最高。
-
-完全版使用本机 `127.0.0.1:18080`，选择本机模式时不会上传截图或文字。模型来自魔搭的固定版本：[Qwen3.5 2B GGUF](https://modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF) 与 [Gemma 4 E2B GGUF](https://modelscope.cn/models/ggml-org/gemma-4-E2B-it-GGUF)。
-
-## 可靠性改进（0.3.2）
-
-模型校验改为固定缓冲区分块读取，降低大文件校验的临时内存占用；离线断句保留小数、版本号和域名。设置保存使用同一路径共享锁和独立临时文件，取消或失败时保留原设置并清理临时文件。自定义翻译返回空白或畸形结果时不再视为成功，而是按现有语言支持规则尝试离线回退；模型列表格式错误会显示为不可用。
-
-Python 引擎不再输出原始异常堆栈或回显依赖异常中的正文；健康检查与翻译的 Python 依赖初始化也纳入现有网络防护。默认离线方式、模型和第三方依赖版本保持不变。改动范围、内存测量口径与验收要求见 [可靠性优化说明](docs/RELIABILITY_OPTIMIZATION.md)，版本说明见 [0.3.2 更新记录](docs/releases/v0.3.2.md)。这些改进已合并主线；发布状态和可下载安装包以 [GitHub Releases](https://github.com/qingshihuan/pingyi/releases) 为准。
-
-## 已实现功能
-
-- Windows 虚拟桌面捕获、全局快捷键、多显示器和不同 DPI 框选。
-- Ubuntu X11 的 Xlib 截图与全局快捷键实现。
-- PaddleOCR PP-OCRv5 中英移动模型、ONNX Runtime CPU 推理和 SHA-256 完整性校验。
-- Argos 中英双向基础翻译，以及本机大模型不可用时的自动离线回退。
-- Google Cloud Vision OCR、Google Cloud Translation Basic v2、百度含位置 OCR、百度通用翻译和自定义 Chat Completions 翻译接口。
-- llama.cpp、Ollama、LM Studio、vLLM 与通用 OpenAI 兼容预设。
-- 本机多模态大模型 OCR，以及更适合小字、终端和特殊字体的 PaddleOCR + 视觉模型纠错模式。
-- 复制原文/译文/全部、重新处理、结果卡固定、托盘常驻和浅深色主题。
-- 单实例运行：重复启动会唤醒现有窗口或转发截图/设置命令，不会创建多个后台进程；每次处理都可取消并设有超时。
-- 单一任务优先主界面、独立设置窗口、故障修复卡和帮助与关于。
-- 简体中文与 English 界面，可跟随操作系统语言自动选择。
-- Windows DPAPI 与 Linux Secret Service 密钥存储；凭据支持遮罩查看、明文切换、复制和粘贴。
-- 自定义兼容服务仅允许本机回环地址使用 HTTP；任何非本机地址必须使用 HTTPS，避免凭据、识别文字或截图被明文传输。
-- 默认零历史记录；日志禁止记录截图、识别正文、译文和密钥。
-- 更新检查默认关闭；只有用户在设置中明确开启后才会联网检查新版本。
-
-## 当前兼容范围
-
-- Windows 10/11 x64。
-- Ubuntu 22.04+ X11 x64；Wayland 通过系统截图门户，系统快捷键需自行绑定。
-- PaddleOCR 与内置 Argos 基础翻译支持简体中文和英文；本机/自定义大模型翻译可在设置中选择 34 种常用目标语言。自动检测到非中英文时不会错误回退到中英 Argos 模型。
-- v1 暂不包含实时覆盖翻译、PDF/图片批处理、表格/公式专项识别和历史记录。
-
-## 从源码运行
-
-需要 [.NET 10 SDK](https://dotnet.microsoft.com/)：
-
-```powershell
+```sh
+dotnet restore PingYi.slnx
 dotnet build PingYi.slnx
 dotnet run --project src/PingYi.App/PingYi.App.csproj
 ```
 
-开发模式下，本地 OCR 不需要 Python。若要运行 Argos 独立翻译引擎：
+源码构建与正式安装包不同：基础模型和独立翻译引擎需要另外准备。`--settings` 可直接打开设置；`--capture` 支持首次启动截图或向已有实例转发命令。
 
-```powershell
-.\scripts\setup-engine.ps1
-```
+<details>
+<summary>展开引擎准备、测试与打包命令</summary>
 
-需要直接打开设置窗口排障时，可在可执行文件后添加 `--settings`；使用 `--capture` 可把截图命令转发给已经运行的实例。
+Windows 使用 `scripts/setup-engine.ps1`，Linux 使用 `scripts/setup-engine.sh` 准备翻译引擎环境。本地 OCR 本身不依赖 Python，但需要可用的 OCR 模型。
 
-## 测试与发布
-
-```powershell
+```sh
 dotnet test PingYi.slnx
-py -3 -m unittest discover -s engine_host -p "test_*.py"
-py -3 -m unittest discover -s scripts -p "test_*.py"
-.\scripts\run-quality-baseline.ps1 -ModelDirectory <已准备的离线模型目录>
-.\scripts\publish.ps1 -Runtime win-x64
-```
-
-OCR 固定场景分数、翻译对比与成品依赖审计见 [质量基线](docs/QUALITY_BASELINE.md)。发布脚本会生成裁剪后的自包含 .NET 程序、精简独立引擎并打包离线模型；发现 NVIDIA/CUDA/cuDNN、意外的 Torch 运行库或缺失的第三方许可证时会直接中止发布。每个成品都包含 `licenses/` 完整许可证目录，完全版只保留 llama.cpp server 所需文件。
-
-Inno Setup 位于自定义目录时，可传入 `-InnoCompiler "D:\path\to\ISCC.exe"`。发布机尚无模型源时，先运行：
-
-```powershell
+python -m unittest discover -s engine_host -p "test_*.py"
+python -m unittest discover -s scripts -p "test_*.py"
 python scripts/download-offline-models.py --destination artifacts/model-source
 ```
 
-构建完全版时还需准备固定版本的 llama.cpp CPU/Vulkan 运行时：
+Windows 中没有 `python` 命令时可使用已配置的 `py -3`。模型准备会联网；不要提交模型文件或本地配置。
+
+Windows 打包示例（PowerShell，读取仓库版本标记）：
 
 ```powershell
-py -3 scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
-.\scripts\publish.ps1 -Runtime win-x64 -Version 0.3.2 -Edition Complete -OfflineModelSource artifacts/model-source -LlamaRuntimeSource artifacts/llama-runtime/win-x64
+$version = (Get-Content .github/release-version.txt -Raw).Trim()
+.\scripts\setup-engine.ps1
+.\scripts\publish.ps1 -Runtime win-x64 -Version $version `
+  -OfflineModelSource artifacts/model-source -BuildInstaller
 ```
 
-Windows 支持可选 Authenticode 签名。先把代码签名证书导入当前用户证书库，再传入其 SHA-1 指纹；未传入时仍生成未签名成品：
+完全版还需准备固定版本的 llama.cpp CPU／Vulkan 运行时：
 
 ```powershell
-.\scripts\publish.ps1 -Runtime win-x64 -BuildInstaller `
-  -SigningCertificateThumbprint <40 位证书指纹> `
-  -TimestampUrl https://timestamp.digicert.com
+python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
+.\scripts\publish.ps1 -Runtime win-x64 -Version $version -Edition Complete `
+  -OfflineModelSource artifacts/model-source `
+  -LlamaRuntimeSource artifacts/llama-runtime/win-x64 -BuildInstaller
 ```
 
-GitHub Release 可配置仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64`（PFX 的 Base64）和 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`。未配置时工作流不会要求或伪造证书。构建任务只有仓库读取权限，只有最终发布任务拥有 Release 写权限。
+Inno Setup 不在默认路径时传入 `-InnoCompiler`。离线质量检查使用 `scripts/run-quality-baseline.ps1 -ModelDirectory <已准备的离线模型目录>`；分发前须执行质量基线与许可证审计，完整跨平台流程以 [Release 工作流](.github/workflows/release.yml) 为准。
 
-推送 `v*` 标签仍可触发发布；也可在 `main` 中更新 `.github/release-version.txt` 为新版本，并添加对应的 `docs/releases/v<版本>.md` 更新说明。普通代码或文档提交不会通过此入口自动发布。双平台构建、测试和全部 8 个成品附件检查通过后，工作流才创建对应标签和 GitHub Release，附带 `SHA256SUMS.txt`。已有标签指向不同提交时会拒绝覆盖。手动运行主线的工作流只构建、不发布；手动运行标签上的工作流保留发布行为。
+Windows 发布支持可选 `-SigningCertificateThumbprint` 和 `-TimestampUrl`。CI 可使用仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64` 与 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`；不要把证书或密码提交到仓库。
 
-## 参与贡献
+发布由 `v*` 标签，或 `main` 上 `.github/release-version.txt` 的版本变更触发，并读取对应的 `docs/releases/v<版本>.md`。工作流通过双平台测试、构建、全部 8 个附件核验后生成 Release 和校验和；已有标签指向其他提交时拒绝覆盖。普通 README 修改不更新版本或触发此发布入口。
 
-欢迎提交 Bug、OCR 失败样本、翻译效果反馈、功能建议和 Pull Request。请先阅读 [贡献指南](CONTRIBUTING.md) 与 [安全策略](SECURITY.md)。反馈截图前请遮挡隐私信息，本项目不会要求上传密钥或私人截图。
+</details>
 
-## 许可证
+## 参与贡献与许可
 
-屏译源码采用 [MIT License](LICENSE)。离线模型和第三方运行组件保留各自许可证，详见 [第三方声明](THIRD_PARTY_NOTICES.md)；安装后的 `licenses/` 目录提供本次成品实际包含组件的完整许可证正文与清单。
+欢迎提交 Bug、OCR 失败场景、翻译反馈和 Pull Request。提交前请阅读 [贡献指南](CONTRIBUTING.md)；不要上传私人截图、正文或凭据，安全问题按 [安全策略](SECURITY.md) 报告。
 
-## 后续易用性修复（源码）
-
-统一主界面并移除界面样式选择；旧设置中的 `interfaceStyle` 会被忽略，其余配置保留。界面语言选择立即保存，并更新已经打开的主界面、设置、帮助、方案窗口和结果卡控件，不需要重启，也不清空其他输入。
-
-“选择方案”使用可滚动的说明卡片，分别列出名称、处理方式、适用场景和条件；“大模型翻译”和“视觉纠错”使用当前配置的兼容接口，明确区分本机与远程地址，不默默替换接口或承诺模型精度。Google Cloud 和直接多模态 OCR 可从“自定义组合”进入设置。隐私说明移至主界面右上角的“帮助与关于”。
-
-截图期间会统一隐藏屏译的主界面、设置、结果及其他辅助窗口，等待桌面呈现后再取底图；完成、取消或失败后恢复原来可见的窗口。Windows 上临时抑制自身窗口的过渡动画，在受支持版本上临时排除自身窗口捕获，操作结束恢复原设置。
-
-这部分不覆盖已经发布的 v0.4.0 安装包；具体发布状态以 Releases 为准。验收范围和多显示器实机清单见 [五项易用性修复](docs/USABILITY_FIXES.md)。
-
-## Ubuntu / Linux 截图与快捷键
-
-Linux X11 默认使用 `Ctrl+Shift+D`，配置升级至 schema 10。旧版本使用的历史默认组合会迁移，其他自定义组合保留。注册冲突会明确提示，不再导致 Xlib 终止程序；截图按钮不依赖全局快捷键。
-
-Wayland 会话使用系统的 XDG Screenshot 门户显示交互式截图/授权界面，不再读取 XWayland 根窗口，也不会把门户截图按 X11 屏幕坐标重复裁剪。需要 `xdg-desktop-portal` 和桌面对应后端（Ubuntu GNOME：`xdg-desktop-portal-gnome`）；缺失时会显示修复指引，不会伪装为就绪。
-
-Wayland 全局绑定由系统管理：在“设置 → 外观与启动”保存所需快捷键偏好并复制截图命令，再到 Ubuntu“设置 → 键盘 → 自定义快捷键”中绑定，例如 `Ctrl+Shift+D`。软件内保存偏好不会自动改动或覆盖 Ubuntu 快捷键；首次启动和已运行时的 `--capture` 都进入截图流程。桌面启动器也提供“截图翻译”和“设置”操作。
-
-系统门户可能创建临时图片。屏译本地读取后清理临时目录副本；门户保存到 Pictures 等其他目录的文件由桌面管理，不能承诺这些文件被屏译清除。详细验证与限制见 `docs/LINUX_CAPTURE.md`。
+屏译源码采用 **[MIT License](LICENSE)**。模型及第三方组件保留各自许可，详见 [第三方声明](THIRD_PARTY_NOTICES.md)；正式程序包的 `licenses/` 目录包含实际分发组件的许可证与清单。
