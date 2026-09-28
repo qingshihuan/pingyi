@@ -1,6 +1,6 @@
 # Third-party notices
 
-Screen Insight (截屏释义, formerly PingYi) is licensed under MIT. Standard offline release packages additionally contain:
+Screen Insight (截屏释义, formerly PingYi) is licensed under MIT. Complete release packages contain the following offline components:
 
 - PaddlePaddle PP-OCRv5 mobile detection and recognition ONNX models, licensed under Apache-2.0. Source: https://huggingface.co/PaddlePaddle
 - Argos Translate runtime components, licensed under MIT. Source: https://github.com/argosopentech/argos-translate
@@ -20,7 +20,7 @@ PingYi release builds intentionally exclude NVIDIA CUDA, cuDNN and related
 proprietary GPU runtime binaries. The release dependency audit fails the build
 if these files, an NVIDIA Python package, or a Torch runtime are detected.
 
-PingYi Complete release packages additionally contain pinned official llama.cpp
+From v0.6.0, Complete is the only published edition. Its packages also contain pinned official llama.cpp
 CPU and Vulkan runtime binaries, licensed under MIT. Source and exact release:
 https://github.com/ggml-org/llama.cpp/releases/tag/b10227. These binaries do not
 include CUDA, cuDNN, ROCm, or model weights.

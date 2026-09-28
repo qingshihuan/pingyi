@@ -4,8 +4,8 @@ param(
     [string]$Configuration = "Release",
     [string]$Version = "0.1.0",
     [string]$OfflineModelSource,
-    [ValidateSet("Standard", "Complete")]
-    [string]$Edition = "Standard",
+    [ValidateSet("Complete")]
+    [string]$Edition = "Complete",
     [string]$LlamaRuntimeSource,
     [string]$InnoCompiler,
     [string]$SignTool,
@@ -20,7 +20,11 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 if ($Version.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
     throw "Version contains characters that are invalid in a file name."
 }
-$editionSuffix = if ($Edition -eq "Complete") { "-complete" } else { "" }
+$editionSuffix = "-complete"
+if ([string]::IsNullOrWhiteSpace($LlamaRuntimeSource) -or
+    -not (Test-Path -LiteralPath $LlamaRuntimeSource -PathType Container)) {
+    throw "Publishing requires -LlamaRuntimeSource with prepared Vulkan and CPU runtimes."
+}
 $output = Join-Path $projectRoot "artifacts\publish\$Runtime-$Version$editionSuffix"
 $engineOutput = Join-Path $projectRoot "artifacts\engine-host\$Runtime"
 $engineVenv = Join-Path $projectRoot ".venv-engine"
@@ -156,7 +160,7 @@ if ($signing) {
     }
 }
 
-$archivePrefix = if ($Edition -eq "Complete") { "PingYi-Complete" } else { "PingYi" }
+$archivePrefix = "PingYi-Complete"
 $archive = Join-Path $projectRoot "artifacts\$archivePrefix-$Version-$Runtime.zip"
 Compress-Archive -Path (Join-Path $output "*") -DestinationPath $archive -Force
 $publishBytes = (Get-ChildItem -LiteralPath $output -Recurse -File | Measure-Object Length -Sum).Sum

@@ -29,7 +29,7 @@ Feedback on OCR failure cases, packaging, and Linux compatibility is especially 
 
 我做了一个开源桌面截图 OCR 与翻译工具「屏译」，支持 Windows 10/11 和 Ubuntu X11，采用 MIT 许可证。
 
-按 `Ctrl+Alt+D` 框选屏幕区域，就能提取并复制原文或译文。标准版内置 PaddleOCR 与 Argos Translate，安装后无需网络、Python、单独的 .NET 环境或独立显卡，即可完成中英基础识别和翻译。完全版还可以通过内置 llama.cpp CPU/Vulkan 运行时一键管理轻量多模态 GGUF 模型，也支持已有的 Ollama、LM Studio、vLLM、llama.cpp、Google Cloud 和百度服务。
+按 `Ctrl+Alt+D` 框选屏幕区域，就能提取并复制原文或译文。完全版内置 PaddleOCR 与 Argos Translate，安装后无需网络、Python、单独的 .NET 环境或独立显卡，即可完成中英基础识别和翻译。还可以通过内置 llama.cpp CPU/Vulkan 运行时一键管理轻量多模态 GGUF 模型，也支持已有的 Ollama、LM Studio、vLLM、llama.cpp、Google Cloud 和百度服务。
 
 默认不保存截图、识别正文、译文或历史记录；本地模式不会发起网络请求。
 

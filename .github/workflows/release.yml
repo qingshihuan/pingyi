@@ -10,7 +10,7 @@ on:
       version:
         description: Version to place in the package names
         required: true
-        default: 0.3.2
+        default: 0.6.0
 
 permissions:
   contents: read
@@ -121,14 +121,12 @@ jobs:
           ./scripts/run-quality-baseline.ps1 -ModelDirectory ./artifacts/quality-models
           choco install innosetup --version 6.7.1 --yes --no-progress
           $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
-          ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
-            -OfflineModelSource ./artifacts/model-source -BuildInstaller @signingArguments
           python ./scripts/prepare-llama-runtime.py `
             --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
             -OfflineModelSource ./artifacts/model-source -Edition Complete `
             -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 `
-            -SkipEngine -BuildInstaller @signingArguments
+            -BuildInstaller @signingArguments
       - name: Remove optional Authenticode certificate
         if: always()
         shell: pwsh
@@ -144,8 +142,8 @@ jobs:
           name: windows-release
           if-no-files-found: error
           path: |
-            artifacts/PingYi-*-win-x64.zip
-            packaging/windows/Output/*-setup.exe
+            artifacts/PingYi-Complete-*-win-x64.zip
+            packaging/windows/Output/PingYi-Complete-*-setup.exe
 
   linux:
     needs: version
@@ -177,7 +175,6 @@ jobs:
           ./scripts/setup-engine.sh
           python scripts/download-offline-models.py --destination artifacts/model-source
           ./scripts/build-engine.sh
-          PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" ./scripts/publish.sh "$version"
           python scripts/prepare-llama-runtime.py \
             --runtime linux-x64 --destination artifacts/llama-runtime/linux-x64
           for backend in cpu vulkan; do
@@ -201,9 +198,8 @@ jobs:
               bash -euo pipefail -c '
                 export DEBIAN_FRONTEND=noninteractive
                 apt-get update
-                apt-get install -y /artifacts/PingYi-*-linux-x64.deb
+                apt-get install -y /artifacts/PingYi-Complete-*-linux-x64.deb
                 for executable in \
-                  /opt/pingyi/PingYi.App \
                   /opt/pingyi-complete/PingYi.App \
                   /opt/pingyi-complete/llama-runtime/cpu/llama-server \
                   /opt/pingyi-complete/llama-runtime/vulkan/llama-server; do
@@ -223,8 +219,8 @@ jobs:
           name: linux-release
           if-no-files-found: error
           path: |
-            artifacts/PingYi-*-linux-x64.tar.gz
-            artifacts/PingYi-*-linux-x64.deb
+            artifacts/PingYi-Complete-*-linux-x64.tar.gz
+            artifacts/PingYi-Complete-*-linux-x64.deb
 
   publish:
     if: github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v')
@@ -265,7 +261,7 @@ jobs:
           destination.mkdir()
           expected = {
               f"{prefix}{version}-{suffix}"
-              for prefix in ("PingYi-", "PingYi-Complete-")
+              for prefix in ("PingYi-Complete-",)
               for suffix in ("win-x64.zip", "win-x64-setup.exe", "linux-x64.tar.gz", "linux-x64.deb")
           }
           seen = set()

@@ -3,7 +3,7 @@ namespace PingYi.Core;
 public sealed record BrowserRequest
 {
     public string Operation { get; init; } = "status";
-    public string Edition { get; init; } = "standard";
+    public string Edition { get; init; } = "complete";
     public string? Text { get; init; }
     public string? Image { get; init; }
     public string SourceLanguage { get; init; } = "auto";

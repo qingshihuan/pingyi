@@ -33,18 +33,15 @@ Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot OCR and t
 <a id="download"></a>
 ## Download and install
 
-Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/releases/latest)**, expand **Assets**, and choose your platform and edition. Use the application packages, not GitHub's automatically generated `Source code` archives.
+Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/releases/latest)**, expand **Assets**, and choose your platform. Use the application packages, not GitHub's automatically generated `Source code` archives.
 
-| Edition | Included | Choose it for |
-| --- | --- | --- |
-| **Standard** · `PingYi-` | Offline OCR and basic Chinese-English translation; connections to external models and cloud providers | Offline essentials, or an existing Ollama / LM Studio service |
-| **Complete** · `PingYi-Complete-` | Standard features plus llama.cpp CPU / Vulkan runtimes and model download management | Downloading, configuring and running local multimodal models from Screen Insight |
+**Starting with v0.6.0, Complete is the only supported edition; Standard is no longer built or released.** It includes offline OCR and Chinese-English translation, external model and cloud connections, llama.cpp CPU / Vulkan runtimes, and model download management. All application packages use the `PingYi-Complete-` prefix.
 
 **Windows 10/11 x64:** choose the `*-win-x64-setup.exe` installer or a portable `*-win-x64.zip`. The installer creates Start Menu and desktop shortcuts.
 
 **Ubuntu 22.04+ x64:** choose a `*-linux-x64.deb` or extract a `*-linux-x64.tar.gz`. Linux still needs system graphics libraries and other dependencies; DEB packages declare them, and installing missing dependencies may require internet access. X11 and Wayland use different capture paths, explained below.
 
-Complete **does not bundle LLM weights**: download a model before using its enhancement features. Offline essentials remain available. Both editions have separate installation and data directories and can coexist. Each stable release provides eight application packages across the two editions, plus `SHA256SUMS.txt`.
+Complete **does not bundle LLM weights**: download a model before using its enhancement features. Offline essentials remain available. Each stable release provides four application packages, plus `SHA256SUMS.txt`. Existing Complete installations keep their installation and data directories. Legacy Standard data is not migrated or deleted; configure services and credentials again when switching to Complete.
 
 > Download only from this repository's Releases and verify SHA-256 checksums. Unsigned Windows builds may trigger SmartScreen. A checksum verifies file integrity; it is not a substitute for code signing.
 
@@ -78,9 +75,9 @@ Wayland capture uses the **XDG Screenshot portal**, not the XWayland root window
 <a id="features"></a>
 ## Browser extension (development build)
 
-The new Chrome / Edge extension reuses the running Screen Insight desktop app's translation and OCR providers. It supports automatic source-language detection, bilingual or translation-only pages, Alt-hover, selection/context-menu translation, region screenshot OCR, and text translation. Its blue theme and approved icon match the desktop app, with light/dark appearance following the system. Existing desktop settings and model directories remain compatible. See [build, registration and installation instructions](browser-extension/README.md).
+The new Chrome / Edge extension reuses the running Screen Insight desktop app's translation and OCR providers. It supports automatic source-language detection, bilingual or translation-only pages, Alt-hover, selection/context-menu translation, region screenshot OCR, and text translation. Its blue theme and approved icon match the desktop app, with light/dark appearance following the system. Existing Complete settings and model directories remain compatible. See [build, registration and installation instructions](browser-extension/README.md).
 
-This requires the desktop code in this change and its native messaging host; published v0.5.2 binaries do not include the bridge. Communication uses current-user named pipes, with no listening HTTP port or copied API keys. Content is not persisted. Remote text requires consent; remote OCR requires separate consent for each selected image. Ordinary web pages are supported; protected browser pages, built-in PDF viewers and cross-origin frame text are excluded. Each operation handles up to 200 loaded paragraphs; dynamic content requires another operation. Inline translations become part of the page DOM and can be read by the website.
+Desktop v0.6.0 includes the bridge, but desktop installers do not install the extension or register its native host. Select Complete in an existing extension. Development of the extension remains frozen. Communication uses current-user named pipes, with no listening HTTP port or copied API keys. Content is not persisted. Remote text requires consent; remote OCR requires separate consent for each selected image. Ordinary web pages are supported; protected browser pages, built-in PDF viewers and cross-origin frame text are excluded. Each operation handles up to 200 loaded paragraphs; dynamic content requires another operation. Inline translations become part of the page DOM and can be read by the website.
 
 ## What Screen Insight does
 
@@ -105,7 +102,7 @@ This recording illustrates the workflow using an earlier interface and shortcut 
 
 **Manage models in Complete:** open **Settings → Local models**, select a catalog model and backend, then **Download and configure**. Downloads support resuming and integrity checks. Auto tries Vulkan first and falls back to CPU; explicitly selecting Vulkan reports failure rather than switching automatically. Memory requirements and speed depend on the model and device; consult the in-app catalog and test your configuration.
 
-**Connect an existing local server:** both editions support compatible endpoints under **Settings → Custom endpoint**. Enter the model name and any credentials required by the server. Image analysis needs a vision model with its vision components loaded; a text-only model cannot replace it. An applied managed model starts on demand rather than preloading when the home screen opens.
+**Connect an existing local server:** use compatible endpoints under **Settings → Custom endpoint**. Enter the model name and any credentials required by the server. Image analysis needs a vision model with its vision components loaded; a text-only model cannot replace it. An applied managed model starts on demand rather than preloading when the home screen opens.
 
 **Use optional cloud providers:** add your own Google Cloud or Baidu credentials under **Settings → Cloud services**, then select providers under **Recognition & translation**. OCR and translation can use different providers. Service enablement, quotas and billing belong to your account. Custom endpoints may use HTTP only on loopback addresses; non-loopback endpoints must use HTTPS.
 
@@ -175,13 +172,6 @@ Windows packaging example in PowerShell, reading the repository's version marker
 ```powershell
 $version = (Get-Content .github/release-version.txt -Raw).Trim()
 .\scripts\setup-engine.ps1
-.\scripts\publish.ps1 -Runtime win-x64 -Version $version `
-  -OfflineModelSource artifacts/model-source -BuildInstaller
-```
-
-Complete also requires the pinned llama.cpp CPU / Vulkan runtimes:
-
-```powershell
 python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
 .\scripts\publish.ps1 -Runtime win-x64 -Version $version -Edition Complete `
   -OfflineModelSource artifacts/model-source `
@@ -192,7 +182,7 @@ Pass `-InnoCompiler` when Inno Setup is outside the default path. Run the offlin
 
 Windows publishing accepts optional `-SigningCertificateThumbprint` and `-TimestampUrl`. CI can use repository secrets `PINGYI_SIGNING_CERTIFICATE_BASE64` and `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Never commit certificates or passwords.
 
-A `v*` tag, or a version change to `.github/release-version.txt` on `main`, triggers publishing with the corresponding `docs/releases/v<version>.md`. The workflow generates the Release and checksums after both platform builds, tests and all eight package validations succeed. It refuses to replace an existing tag pointing at another commit. An ordinary README edit does not change the version or trigger this release entry point.
+A `v*` tag, or a version change to `.github/release-version.txt` on `main`, triggers publishing with the corresponding `docs/releases/v<version>.md`. The workflow generates the Release and checksums after both platform builds, tests and all four Complete package validations succeed. It refuses to replace an existing tag pointing at another commit. An ordinary README edit does not change the version or trigger this release entry point.
 
 </details>
 

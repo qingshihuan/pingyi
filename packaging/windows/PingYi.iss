@@ -1,22 +1,18 @@
 #ifndef Edition
-#define Edition "Standard"
+#define Edition "Complete"
 #endif
 #ifndef MyAppVersion
 #define MyAppVersion "0.1.0"
 #endif
-#if Edition == "Complete"
+#if Edition != "Complete"
+#error Only the Complete edition is supported
+#endif
 #define MyAppName "截屏释义 完全版"
 #define MyAppId "{{AD4A31EC-4A26-41B1-B86A-D4A7360C8687}"
 #define MyAppDirectory "PingYi Complete"
 #define MyOutputName "PingYi-Complete-" + MyAppVersion + "-win-x64-setup"
-#else
-#define MyAppName "截屏释义"
-#define MyAppId "{{CB72A4A2-277B-4763-9AC2-DF0B17107579}"
-#define MyAppDirectory "PingYi"
-#define MyOutputName "PingYi-" + MyAppVersion + "-win-x64-setup"
-#endif
 #ifndef SourceDir
-#define SourceDir "..\..\artifacts\publish\win-x64-0.1.0"
+#define SourceDir "..\..\artifacts\publish\win-x64-0.1.0-complete"
 #endif
 #define MyAppPublisher "PingYi contributors"
 #define MyAppExeName "PingYi.App.exe"

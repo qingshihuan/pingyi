@@ -40,7 +40,7 @@ public static partial class UiText
             ["选择云端翻译时，只发送识别后的纯文字。"] = "Cloud translation sends recognized text only.",
             ["多模态 OCR 会发送本次框选图片；127.0.0.1 服务不会离开设备。"] = "Multimodal OCR sends the selected image; loopback services at 127.0.0.1 stay on this device.",
             ["本地模型"] = "Local models",
-            ["标准版随安装包提供离线基础模型；每次加载都会校验完整性。"] = "The Standard edition includes baseline offline models and verifies them whenever they load.",
+            ["完全版随安装包提供离线基础模型；每次加载都会校验完整性。"] = "The Complete edition includes baseline offline models and verifies them whenever they load.",
             ["下载中英 OCR 模型"] = "Download Chinese/English OCR model",
             ["下载中英文字识别模型"] = "Download Chinese/English OCR model",
             ["下载中英翻译模型"] = "Download Chinese/English translation model",

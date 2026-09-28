@@ -9,7 +9,7 @@
 1. 退出托盘中的旧版截屏释义，再双击 `scripts/start-browser-desktop.cmd`。该入口启动 `artifacts/browser-desktop/win-x64/PingYi.App.exe`；完全版运行 `scripts/start-browser-desktop.cmd complete`。
 2. 当前机器已通过 `scripts/register-browser-host.py` 注册 `artifacts/browser-host/win-x64/PingYi.BrowserHost.exe`，供 Chrome / Edge / Chromium 当前用户使用。移动主机文件后需重新注册。
 3. 在浏览器扩展管理页打开开发者模式，“加载已解压的扩展程序”，选择项目中的 `browser-extension` 目录。也可解压 `artifacts/ScreenInsight-Browser-0.1.1.zip` 后加载内层目录。
-4. 打开插件，选择匹配的标准版/完全版，点击重新连接。提供商跟随桌面设置，模型和 API 凭据仍在截屏释义中管理。
+4. 打开插件，选择完全版（连接 v0.6.0 及更新桌面端），点击重新连接。提供商跟随桌面设置，模型和 API 凭据仍在截屏释义中管理。
 
 构建与其他机器安装见 [插件 README](../browser-extension/README.md)。这里的连接组件已注册状态仅描述本次开发机器，不代表仓库其他用户已安装。未修改用户平常使用的浏览器配置，实际加载在隔离测试配置中完成。
 

@@ -33,18 +33,15 @@
 <a id="download"></a>
 ## 下载与安装
 
-前往 **[GitHub Releases 最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)**，展开 **Assets**，选择系统与版本。普通用户下载下面的安装包，不要把 GitHub 自动生成的 `Source code` 源码压缩包当作安装包。
+前往 **[GitHub Releases 最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)**，展开 **Assets**，选择系统对应的程序包。普通用户下载下面的安装包，不要把 GitHub 自动生成的 `Source code` 源码压缩包当作安装包。
 
-| 版本 | 包含内容 | 适合的使用方式 |
-| --- | --- | --- |
-| **标准版** · `PingYi-` | 离线 OCR、中英基础翻译；可连接外部模型与云服务 | 先使用离线基础功能，或已有 Ollama、LM Studio 等服务 |
-| **完全版** · `PingYi-Complete-` | 标准版能力，加内置 llama.cpp CPU / Vulkan 运行时与模型下载管理 | 希望在截屏释义内下载、配置和运行本机多模态模型 |
+**从 v0.6.0 起仅提供完全版，停止构建和发布标准版。**完全版包含离线 OCR、中英基础翻译、外部模型与云服务连接，以及内置 llama.cpp CPU / Vulkan 运行时和模型下载管理。程序包统一使用 `PingYi-Complete-` 前缀。
 
 **Windows 10/11 x64：**选择 `*-win-x64-setup.exe` 安装程序，或 `*-win-x64.zip` 便携包。安装程序会创建开始菜单和桌面快捷方式。
 
 **Ubuntu 22.04+ x64：**选择 `*-linux-x64.deb`，或解压 `*-linux-x64.tar.gz`。Linux 仍需要系统图形库等依赖；DEB 会声明系统依赖，安装缺失依赖时可能需要联网。X11 与 Wayland 的截图方式不同，见下方说明。
 
-完全版**不附带大模型权重**，首次使用增强能力需要下载模型；离线基础功能不受影响。两个版本使用独立的安装与数据目录，可以共存。每次正式发布提供两版共 8 个程序包及 `SHA256SUMS.txt`。
+完全版**不附带大模型权重**，首次使用增强能力需要下载模型；离线基础功能不受影响。每次正式发布提供 4 个程序包及 `SHA256SUMS.txt`。沿用原完全版的安装与数据目录，已有完全版配置可直接继续使用；旧标准版数据保留在原目录，不会自动迁移或删除，切换后需在完全版中重新配置服务与凭据。
 
 > 请仅从本仓库 Releases 下载，并核对 SHA-256。Windows 的未签名构建可能触发 SmartScreen 提示；校验和用于核对下载文件，不替代代码签名。
 
@@ -84,7 +81,7 @@ Wayland 使用 **XDG Screenshot portal**，不读取 XWayland 根窗口。Ubuntu
 
 源码与加载目录为 [`browser-extension/`](browser-extension/README.md)。桌面 v0.6.0 起保留连接能力；插件和原生连接组件仍需单独构建、注册，正式桌面安装包不会自动安装它们。**[构建、注册与使用说明](browser-extension/README.md)**。连接仅走当前用户的本机命名管道，不开放网络端口；正文和截图只在内存中处理，不把 API 密钥复制到浏览器。远程文字翻译需授权，远程 OCR 每张截图单独确认。
 
-桌面与插件共用蓝色主题和定稿图标，插件随系统切换浅色／深色。改名沿用原有配置和模型目录，更新后无需重新配置。
+桌面与插件共用蓝色主题和定稿图标，插件随系统切换浅色／深色。已有插件连接新版桌面时选择“完全版”；旧版连接协议保留兼容。
 
 插件适用于普通网页；浏览器内部页面、内置 PDF 查看器与跨域 iframe 不支持正文翻译。基础 Argos 仍限中英，更多语言依赖所选服务。每次最多处理当前已加载正文的 200 段，可停止并恢复原文；内嵌译文可被网页自身读取。具体限制与验证见插件文档。
 
@@ -111,7 +108,7 @@ Wayland 使用 **XDG Screenshot portal**，不读取 XWayland 根窗口。Ubuntu
 
 **完全版管理本机模型：**进入 **设置 → 本地模型**，选择目录中的模型和后端，再点击“一键下载并配置”。下载支持断点续传与文件完整性校验。自动后端先尝试 Vulkan，失败时回退 CPU；显式选择 Vulkan 则报告错误而不自动切换。实际内存、显存需求与速度取决于模型和设备，以软件内目录及实测为准。
 
-**已有本机服务：**标准版和完全版都可在 **设置 → 自定义接口** 中连接兼容端点，填写模型名称及服务要求的凭据。图片分析必须使用视觉模型并加载其视觉组件，仅支持文字的模型不能替代。完全版已应用的本机模型按需启动，不在打开主界面时预加载大模型。
+**已有本机服务：**在 **设置 → 自定义接口** 中连接兼容端点，填写模型名称及服务要求的凭据。图片分析必须使用视觉模型并加载其视觉组件，仅支持文字的模型不能替代。完全版已应用的本机模型按需启动，不在打开主界面时预加载大模型。
 
 **可选云端服务：**在 **设置 → 云端服务** 配置自己的 Google Cloud 或百度凭据，再在 **识别与翻译** 中选择提供商。OCR 与翻译提供商可分别选择，服务开通、配额和费用由用户自己的账户承担。自定义接口只允许本机回环地址使用 HTTP，非回环地址必须使用 HTTPS。
 
@@ -181,13 +178,6 @@ Windows 打包示例（PowerShell，读取仓库版本标记）：
 ```powershell
 $version = (Get-Content .github/release-version.txt -Raw).Trim()
 .\scripts\setup-engine.ps1
-.\scripts\publish.ps1 -Runtime win-x64 -Version $version `
-  -OfflineModelSource artifacts/model-source -BuildInstaller
-```
-
-完全版还需准备固定版本的 llama.cpp CPU／Vulkan 运行时：
-
-```powershell
 python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
 .\scripts\publish.ps1 -Runtime win-x64 -Version $version -Edition Complete `
   -OfflineModelSource artifacts/model-source `
@@ -198,7 +188,7 @@ Inno Setup 不在默认路径时传入 `-InnoCompiler`。离线质量检查使�
 
 Windows 发布支持可选 `-SigningCertificateThumbprint` 和 `-TimestampUrl`。CI 可使用仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64` 与 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`；不要把证书或密码提交到仓库。
 
-发布由 `v*` 标签，或 `main` 上 `.github/release-version.txt` 的版本变更触发，并读取对应的 `docs/releases/v<版本>.md`。工作流通过双平台测试、构建、全部 8 个附件核验后生成 Release 和校验和；已有标签指向其他提交时拒绝覆盖。普通 README 修改不更新版本或触发此发布入口。
+发布由 `v*` 标签，或 `main` 上 `.github/release-version.txt` 的版本变更触发，并读取对应的 `docs/releases/v<版本>.md`。工作流通过双平台测试、构建、全部 4 个完全版程序包核验后生成 Release 和校验和；已有标签指向其他提交时拒绝覆盖。普通 README 修改不更新版本或触发此发布入口。
 
 </details>
 

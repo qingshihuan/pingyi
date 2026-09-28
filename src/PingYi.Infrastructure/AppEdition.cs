@@ -2,14 +2,10 @@ namespace PingYi.Infrastructure;
 
 public static class AppEdition
 {
-    public static bool IsComplete { get; } =
-        string.Equals(
-            Environment.GetEnvironmentVariable("PINGYI_EDITION"),
-            "complete",
-            StringComparison.OrdinalIgnoreCase) ||
-        File.Exists(Path.Combine(AppContext.BaseDirectory, "pingyi-complete.edition"));
+    // Source builds and release packages use the same, sole supported edition.
+    public static bool IsComplete => true;
 
-    public static string ProductName => IsComplete ? "截屏释义 完全版" : "截屏释义";
-    public static string DataDirectoryName => IsComplete ? "PingYiComplete" : "PingYi";
-    public static string LinuxDataDirectoryName => IsComplete ? "pingyi-complete" : "pingyi";
+    public static string ProductName => "截屏释义 完全版";
+    public static string DataDirectoryName => "PingYiComplete";
+    public static string LinuxDataDirectoryName => "pingyi-complete";
 }

@@ -2,23 +2,21 @@
 set -euo pipefail
 
 version="${1:-0.1.0}"
-edition="${2:-standard}"
-if [[ "$edition" != "standard" && "$edition" != "complete" ]]; then
-  echo "Edition must be standard or complete" >&2
+edition="${2:-complete}"
+if [[ "$edition" != "complete" ]]; then
+  echo "Only the complete edition is published" >&2
   exit 2
 fi
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-edition_suffix=""
-archive_prefix="PingYi"
-package_name="pingyi"
-install_name="pingyi"
-desktop_name="pingyi.desktop"
-if [[ "$edition" == "complete" ]]; then
-  edition_suffix="-complete"
-  archive_prefix="PingYi-Complete"
-  package_name="pingyi-complete"
-  install_name="pingyi-complete"
-  desktop_name="pingyi-complete.desktop"
+edition_suffix="-complete"
+archive_prefix="PingYi-Complete"
+package_name="pingyi-complete"
+install_name="pingyi-complete"
+desktop_name="pingyi-complete.desktop"
+runtime_source="${PINGYI_LLAMA_RUNTIME_SOURCE:-}"
+if [[ -z "$runtime_source" || ! -d "$runtime_source" ]]; then
+  echo "Publishing requires PINGYI_LLAMA_RUNTIME_SOURCE" >&2
+  exit 1
 fi
 publish_dir="$project_root/artifacts/publish/linux-x64$edition_suffix"
 engine_dir="$project_root/artifacts/engine-host/linux-x64/pingyi-engine"
@@ -74,8 +72,6 @@ if [[ "$edition" == "complete" ]]; then
       -e 's/^Exec=pingyi/Exec=pingyi-complete/' \
       -e 's/^Icon=pingyi$/Icon=pingyi-complete/' \
       "$project_root/packaging/linux/pingyi.desktop" > "$deb_root/usr/share/applications/$desktop_name"
-else
-  cp "$project_root/packaging/linux/pingyi.desktop" "$deb_root/usr/share/applications/$desktop_name"
 fi
 cp "$project_root/src/PingYi.App/Assets/screen-insight-icon-512.png" \
   "$deb_root/usr/share/icons/hicolor/512x512/apps/$install_name.png"

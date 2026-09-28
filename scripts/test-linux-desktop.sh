@@ -5,9 +5,9 @@ app="$PWD/src/PingYi.App/bin/Release/net10.0/PingYi.App.dll"
 root="$(mktemp -d)"
 export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data" XDG_SESSION_TYPE=x11
 export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/no-bundled-models"
-mkdir -p "$XDG_CONFIG_HOME/pingyi" "$PWD/artifacts/ui"
+mkdir -p "$XDG_CONFIG_HOME/pingyi-complete" "$PWD/artifacts/ui"
 # Intentionally omit optional fields and retain the schema-9 default: exercise migration to Ctrl+Shift+D.
-cat > "$XDG_CONFIG_HOME/pingyi/settings.json" <<'JSON'
+cat > "$XDG_CONFIG_HOME/pingyi-complete/settings.json" <<'JSON'
 {"schemaVersion":9,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+Shift+D","checkForUpdates":false}
 JSON
 openbox > "$root/wm.log" 2>&1 &
@@ -56,7 +56,7 @@ wait_no_overlay() {
 }
 cancel_and_restore() {
   xdotool windowactivate --sync "$overlay" key Escape
-  main=$(wait_window 'Screen Insight')
+  main=$(wait_window 'Screen Insight Complete')
   wait_no_overlay
 }
 echo 'Testing cold-start --capture with partial settings'
