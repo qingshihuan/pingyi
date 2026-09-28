@@ -12,7 +12,20 @@
 
 Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot recognition tool. Select **Smart capture** and a screen region. Local text and QR probes recommend translation, image description or QR decoding. Uncertain or mixed content asks for your choice; manual actions remain available on the same image without another capture.
 
-**The current source adds automatic tasks, Basic / Lightweight modes and first-run model setup. Installed-package features depend on the corresponding Release notes.** Routing is a content-based heuristic, not a guarantee of user intent or recognition accuracy. [Rules, migration and verification limits](docs/AUTOMATIC_CAPTURE.md)
+**Version 0.7.0 includes automatic tasks, Basic / Lightweight modes and first-run model setup. Installed-package features depend on the corresponding Release notes.** Routing is a content-based heuristic, not a guarantee of user intent or recognition accuracy. [Rules, migration and verification limits](docs/AUTOMATIC_CAPTURE.md)
+
+<!-- screen-insight-videos:start -->
+## Watch the product and setup videos
+
+**One-click local model setup turns screenshot translation, image description and reference prompts into desktop actions. QR codes use a separate local decoder, not the model.**
+
+| Product introduction · 60 seconds | First-run guide · 1 minute 50 seconds |
+| --- | --- |
+| [![Product introduction](docs/videos/intro-poster.jpg)](docs/videos/screen-insight-intro-zh-CN.mp4) | [![First-run guide](docs/videos/setup-poster.jpg)](docs/videos/screen-insight-setup-zh-CN.mp4) |
+
+Made with Remotion: 1080p/30fps, Chinese captions and an original instrumental score, no voiceover. Native v0.7.0 UI with authored synthetic examples; process animations are not performance measurements. [Videos and editable source](docs/videos/README.md) · [Windows upgrade and restart guidance](docs/WINDOWS_UPGRADE.md)
+
+<!-- screen-insight-videos:end -->
 
 <a id="download"></a>
 ## Download and install

@@ -1,0 +1,149 @@
+name: Remotion documentation videos
+
+on:
+  push:
+    branches: [docs/remotion-product-videos]
+    paths:
+      - media/remotion/**
+      - tests/PingYi.App.Tests/VideoPreviewTests.cs
+      - .github/workflows/videos.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screen-insight-videos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install rendering tools and Chinese fonts (never redistributed)
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk ffmpeg
+      - name: Test application and export synthetic native UI frames
+        env:
+          PINGYI_VIDEO_ASSETS: ${{ github.workspace }}/media/remotion/public
+        run: |
+          dotnet test PingYi.slnx -c Release
+          python -m unittest discover -s engine_host -p 'test_*.py'
+          python -m unittest discover -s scripts -p 'test_*.py'
+          cp src/PingYi.App/Assets/screen-insight-icon-512.png media/remotion/public/icon.png
+      - name: Prepare original music and Chinese subtitles
+        run: python media/remotion/tools/assets.py prepare
+      - name: Install locked renderer dependencies
+        working-directory: media/remotion
+        run: |
+          if test -f package-lock.json; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+          npm run typecheck
+          npx remotion versions
+      - name: Studio smoke test and render covers
+        working-directory: media/remotion
+        run: |
+          npm run studio -- --port=3400 > studio.log 2>&1 &
+          studio=$!
+          trap 'kill "$studio" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl --silent --fail http://localhost:3400/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://localhost:3400/ >/dev/null
+          npx remotion still src/index.tsx ProductIntro ../../docs/videos/intro-poster.jpg --frame=90
+          npx remotion still src/index.tsx FirstRunGuide ../../docs/videos/setup-poster.jpg --frame=90
+      - name: Render both full HD videos
+        working-directory: media/remotion
+        run: |
+          npm run render:promo
+          npm run render:setup
+      - name: Validate encoded media, export QA frames, and update documentation links
+        run: |
+          python media/remotion/tools/assets.py publish
+          git diff --check
+      - name: Upload review media and scene frames
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: screen-insight-video-review
+          path: |
+            docs/videos/*.mp4
+            docs/videos/*.jpg
+            docs/videos/*.srt
+            docs/videos/render-manifest.json
+            artifacts/video-qa/**/*.jpg
+            media/remotion/studio.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload generated publication files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: screen-insight-video-publication
+          path: |
+            docs/videos/
+            media/remotion/public/*.png
+            media/remotion/public/*.m4a
+            media/remotion/package-lock.json
+            README.md
+            README.en.md
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-branch:
+    needs: render
+    if: github.ref == 'refs/heads/docs/remotion-product-videos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: docs/remotion-product-videos
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: screen-insight-video-publication
+          path: generated-video-publication
+      - name: Commit only reviewed-path assets to the dedicated branch
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA" || { echo 'Branch changed; refusing to overwrite newer work.' >&2; exit 1; }
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('generated-video-publication')
+          exact = {'README.md', 'README.en.md', 'THIRD_PARTY_NOTICES.md', 'media/remotion/package-lock.json'}
+          for path in root.rglob('*'):
+              if path.is_symlink(): raise SystemExit('Symlinks are not publication assets')
+              if not path.is_file(): continue
+              name = path.relative_to(root).as_posix()
+              if name not in exact and not name.startswith(('docs/videos/', 'media/remotion/public/')):
+                  raise SystemExit('Unexpected publication path: ' + name)
+              if path.stat().st_size > 45 * 1024 * 1024:
+                  raise SystemExit('Oversized publication file: ' + name)
+              if path.suffix.lower() in ('.ttf', '.otf', '.woff', '.woff2'):
+                  raise SystemExit('Font files must not be published')
+          PY
+          cp -a generated-video-publication/. .
+          rm -rf generated-video-publication
+          git add README.md README.en.md THIRD_PARTY_NOTICES.md docs/videos media/remotion/public media/remotion/package-lock.json
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: publish Remotion product and first-run videos with captions and provenance'
+            git push origin HEAD:refs/heads/docs/remotion-product-videos
+          fi
