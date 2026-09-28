@@ -1,0 +1,103 @@
+name: Verify owned backend shutdown
+on:
+  push:
+    branches: [feat/hardware-aware-runtime]
+    paths: [scripts/integrate-backend-shutdown.py, .github/workflows/shutdown-integration.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Apply reviewable integration edits
+        run: python scripts/integrate-backend-shutdown.py
+      - name: Install native desktop test dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk xvfb xauth xdotool x11-utils scrot dbus-x11 python3-gi openbox
+      - name: Build and test source with real synthetic backend processes
+        run: |
+          dotnet test PingYi.slnx -c Release
+          python -m unittest discover -s engine_host -p "test_*.py"
+          python -m unittest discover -s scripts -p "test_*.py"
+        env:
+          PINGYI_UI_ARTIFACTS: ${{ github.workspace }}/artifacts/ui
+      - name: Native Linux capture and explicit exit
+        if: runner.os == 'Linux'
+        timeout-minutes: 5
+        run: |
+          dbus-run-session -- xvfb-run -a bash -euo pipefail -c '
+            export XDG_SESSION_TYPE=x11 PINGYI_LINUX_NATIVE_TESTS=1
+            export PINGYI_PORTAL_READY="$RUNNER_TEMP/portal-ready"
+            export PINGYI_PORTAL_CLOSED="$RUNNER_TEMP/portal-closed"
+            /usr/bin/python3 scripts/linux-portal-fixture.py &
+            fixture=$!
+            trap "kill $fixture 2>/dev/null || true" EXIT
+            for i in $(seq 1 100); do test -f "$PINGYI_PORTAL_READY" && break; sleep 0.05; done
+            test -f "$PINGYI_PORTAL_READY"
+            dotnet test tests/PingYi.Core.Tests/PingYi.Core.Tests.csproj -c Release --no-build --filter FullyQualifiedName~LinuxDesktopTests
+            bash scripts/test-linux-desktop.sh
+          '
+      - name: Export the tested source-only patch
+        if: runner.os == 'Linux'
+        run: |
+          git diff --check
+          mkdir -p artifacts/shutdown
+          git diff --binary > artifacts/shutdown/tested.patch
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: runner.os == 'Linux'
+        with:
+          name: tested-shutdown-source
+          path: artifacts/shutdown/tested.patch
+          retention-days: 2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: shutdown-ui-${{ matrix.os }}
+          path: artifacts/ui/*.png
+          retention-days: 3
+          if-no-files-found: ignore
+  publish-branch:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tested-shutdown-source
+          path: /tmp/tested-shutdown
+      - name: Commit only tested edits without overwriting concurrent work
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          test "$(git ls-remote origin refs/heads/feat/hardware-aware-runtime | cut -f1)" = "$EXPECTED_HEAD"
+          git apply --check /tmp/tested-shutdown/tested.patch
+          git apply --index /tmp/tested-shutdown/tested.patch
+          git diff --cached --check
+          git diff --cached --name-only | while read -r path; do
+            case "$path" in
+              src/*|tests/*|docs/*|README.md|README.en.md|THIRD_PARTY_NOTICES.md|scripts/test-linux-desktop.sh|scripts/integrate-backend-shutdown.py|.github/workflows/shutdown-integration.yml) ;;
+              *) echo "Unexpected changed path"; exit 1 ;;
+            esac
+          done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: integrate verified owned-backend exit and resource cleanup'
+          git push origin HEAD:feat/hardware-aware-runtime
