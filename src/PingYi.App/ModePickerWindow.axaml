@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PingYi.App.ModePickerWindow" Classes="workspace"
         Title="{DynamicResource String.PickerTitle}" Width="740" Height="740" MinWidth="620" MinHeight="460"
-        Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" WindowStartupLocation="CenterOwner">
+        Icon="avares://PingYi.App/Assets/screen-insight-icon.png" WindowStartupLocation="CenterOwner">
   <Window.Styles>
     <StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/>
     <Style Selector="RadioButton.mode-choice">

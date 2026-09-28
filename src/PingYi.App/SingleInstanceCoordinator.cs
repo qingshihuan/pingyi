@@ -6,7 +6,7 @@ using System.Text;
 namespace PingYi.App;
 
 /// <summary>
-/// Keeps one UI process per PingYi edition and forwards commands from later launches.
+/// Keeps one UI process per Screen Insight edition and forwards commands from later launches.
 /// The IPC payload is deliberately limited to a small allow-list; no user content is sent.
 /// </summary>
 internal sealed class SingleInstanceCoordinator : IDisposable

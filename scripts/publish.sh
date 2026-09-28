@@ -70,14 +70,14 @@ mkdir -p "$deb_root/DEBIAN" "$deb_root/opt/$install_name" \
   "$deb_root/usr/share/icons/hicolor/512x512/apps"
 cp -a "$publish_dir/." "$deb_root/opt/$install_name/"
 if [[ "$edition" == "complete" ]]; then
-  sed -e 's/^Name=屏译$/Name=屏译 完全版/' \
+  sed -e 's/^Name=截屏释义$/Name=截屏释义 完全版/' -e 's/^Name\[en\]=Screen Insight$/Name[en]=Screen Insight Complete/' \
       -e 's/^Exec=pingyi/Exec=pingyi-complete/' \
       -e 's/^Icon=pingyi$/Icon=pingyi-complete/' \
       "$project_root/packaging/linux/pingyi.desktop" > "$deb_root/usr/share/applications/$desktop_name"
 else
   cp "$project_root/packaging/linux/pingyi.desktop" "$deb_root/usr/share/applications/$desktop_name"
 fi
-cp "$project_root/src/PingYi.App/Assets/pingyi-v2-icon-512.png" \
+cp "$project_root/src/PingYi.App/Assets/screen-insight-icon-512.png" \
   "$deb_root/usr/share/icons/hicolor/512x512/apps/$install_name.png"
 cp "$project_root/LICENSE" "$deb_root/usr/share/doc/$install_name/copyright"
 ln -s "/opt/$install_name/PingYi.App" "$deb_root/usr/bin/$install_name"

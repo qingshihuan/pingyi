@@ -61,7 +61,7 @@ public class ImageAnalysisUiTests
         try
         {
             window.Show(); window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
-            foreach (var name in new[] { "CaptureButtonV2", "DescribeImageButton", "ReconstructPromptButton" })
+            foreach (var name in new[] { "CaptureButtonV2", "DescribeImageButton", "ReconstructPromptButton", "QrCodeButton" })
             {
                 var control = C<Button>(window, name);
                 var point = control.TranslatePoint(default, window);

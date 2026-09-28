@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>截屏释义</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header><div class="brand"><img src="icon.png" alt="" width="36" height="36"><div><h1>截屏释义</h1><p>识别 · 翻译 · 理解</p></div></div><span class="badge" id="connection">连接中</span></header>
+<main>
+  <div class="languages"><label>原文语言<select id="sourceLanguage"><option value="auto">自动检测</option></select></label><span class="arrow" aria-hidden="true">→</span><label>译文语言<select id="targetLanguage"><option value="zh">简体中文</option></select></label></div>
+  <section class="provider"><div class="row"><span class="eyebrow">翻译服务</span><button class="text-button" id="reconnect">重新连接</button></div><strong id="providerName">正在连接本机 截屏释义…</strong><p id="privacy">模型与 API 配置跟随桌面端</p><label class="edition">连接版本<select id="edition"><option value="standard">标准版</option><option value="complete">完全版</option></select></label></section>
+  <fieldset class="modes"><legend>阅读方式</legend><label><input type="radio" name="mode" value="bilingual" checked><span>双语对照</span></label><label><input type="radio" name="mode" value="translation"><span>仅看译文</span></label></fieldset>
+  <button class="primary" id="page">翻译当前网页 <kbd>Alt+A</kbd></button>
+  <button class="restore" id="restore">恢复原文 / 停止翻译</button>
+  <div class="tools"><label class="tool"><span><strong>鼠标悬停</strong><small>停留片刻，按住 Alt 翻译</small></span><input id="hover" type="checkbox" role="switch"></label><label class="tool"><span><strong>划词翻译</strong><small>选中文字，点浮标翻译</small></span><input id="selection" type="checkbox" role="switch" checked></label><button class="tool" id="region"><span><strong>圈选翻译</strong><small>识别图片与不可复制文字</small></span><kbd>Alt+S</kbd></button><button class="tool" id="textToggle"><span><strong>文本翻译</strong><small>粘贴一段文字</small></span><span aria-hidden="true">↗</span></button></div>
+  <section id="textPanel" hidden><label for="inputText">待翻译文字</label><textarea id="inputText" maxlength="12000" rows="4" placeholder="在这里输入或粘贴文字…"></textarea><button class="secondary" id="translateText">翻译文本</button><div id="textResult" dir="auto"></div></section>
+  <p id="feedback" role="status" aria-live="polite"></p>
+</main>
+<footer><span><i></i>正文与截图不留存</span><a href="help.html" target="_blank">安装与帮助 ↗</a></footer>
+<script type="module" src="popup.js"></script>
+</body></html>

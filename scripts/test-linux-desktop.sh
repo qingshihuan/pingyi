@@ -46,7 +46,7 @@ wait_window() {
 }
 wait_no_overlay() {
   for i in $(seq 1 100); do
-    if ! xdotool search --onlyvisible --name '^PingYi Capture$' >/dev/null 2>&1; then
+    if ! xdotool search --onlyvisible --name '^Screen Insight Capture$' >/dev/null 2>&1; then
       return 0
     fi
     sleep 0.05
@@ -56,11 +56,11 @@ wait_no_overlay() {
 }
 cancel_and_restore() {
   xdotool windowactivate --sync "$overlay" key Escape
-  main=$(wait_window 'PingYi')
+  main=$(wait_window 'Screen Insight')
   wait_no_overlay
 }
 echo 'Testing cold-start --capture with partial settings'
-overlay=$(wait_window 'PingYi Capture')
+overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
 echo 'Testing the real Start capture button'
 xdotool windowactivate --sync "$main"
@@ -68,16 +68,16 @@ xdotool windowactivate --sync "$main"
 # This is an actual pointer click, not a direct invocation of the coordinator.
 scrot "$PWD/artifacts/ui/native-linux-main.png"
 xdotool mousemove --window "$main" 200 238 click 1
-overlay=$(wait_window 'PingYi Capture')
+overlay=$(wait_window 'Screen Insight Capture')
 sleep 0.2
 scrot "$PWD/artifacts/ui/native-linux-button-capture.png"
 cancel_and_restore
 echo 'Testing second-process --capture'
 timeout 15s dotnet "$app" --capture
-overlay=$(wait_window 'PingYi Capture')
+overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
 echo 'Testing registered X11 shortcut after schema-9 migration'
 xdotool key --clearmodifiers ctrl+shift+d
-overlay=$(wait_window 'PingYi Capture')
+overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
 echo 'Native desktop: partial settings, cold --capture, real button click, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'

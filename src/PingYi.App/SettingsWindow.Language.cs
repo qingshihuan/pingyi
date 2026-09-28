@@ -65,7 +65,7 @@ public partial class SettingsWindow
 
     private void RefreshWindowTitle() =>
         Title = UiText.IsEnglish
-            ? AppEdition.IsComplete ? "PingYi Complete Settings" : "PingYi Settings"
+            ? AppEdition.IsComplete ? "Screen Insight Complete Settings" : "Screen Insight Settings"
             : $"{AppEdition.ProductName}设置";
 
     private void OnLanguageChanged(object? sender, EventArgs e)

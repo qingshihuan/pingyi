@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "截屏释义 · 网页翻译",
+  "version": "0.1.1",
+  "description": "连接本机截屏释义，使用已配置的本地模型或 API 翻译网页、选中文字和圈选截图。",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "截屏释义",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "translate-page": {
+      "suggested_key": {
+        "default": "Alt+A"
+      },
+      "description": "翻译网页 / 恢复原文"
+    },
+    "translate-region": {
+      "suggested_key": {
+        "default": "Alt+S"
+      },
+      "description": "圈选截图翻译"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7lcdf49Wf2Gl8WwjudEZAnH8f0g7XtTmWH44HgxPzH5ScpKdswW6jIm7K1fAN6WifZTdmG1faZvpbfJXcGKL/QvT0hwI7O6B1NXS1tSx697ESXSMEppPEwxBCYOpPwdnbZPeya/vJ99VX4gaqUDG23zWqxGcqUGiDrYoFcv8zfvJ3NK9UZHuGcSdAqx7aETEOSgd4ldOdYAmzcOWCkl1CrCind5TP39LLr7/14hnrS5adOkbIi9DjCv7AHQvUMAaUhKqixGtTSeZPOhZKNinliPzfYa5kYNjiHsKgUL06xmKIUwyXylnk3gVmh8vtDcX8uM4Fl5QAkK2gMh+XxoAuQIDAQAB"
+}

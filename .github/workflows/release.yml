@@ -287,7 +287,7 @@ jobs:
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: PingYi ${{ needs.version.outputs.tag }}
+          name: 截屏释义 ${{ needs.version.outputs.tag }}
           body_path: ${{ needs.version.outputs.notes }}
           prerelease: ${{ contains(needs.version.outputs.version, '-') }}
           make_latest: ${{ !contains(needs.version.outputs.version, '-') }}

@@ -78,6 +78,7 @@ public partial class ResultWindow : Window
 
     public void SetLoading(string status, string privacy)
     {
+        ClearQrResults();
         SetStatusVisual(status, "SecondaryTextBrush", "BrandBrush", isProcessing: true);
         PrivacyText.Text = privacy;
         SourceTextBox.Text = string.Empty;
@@ -113,12 +114,14 @@ public partial class ResultWindow : Window
 
     private async void CopyTranslationButton_OnClick(object? sender, RoutedEventArgs e) =>
         await CopyAsync(TranslationTextBox.Text ?? string.Empty,
-            Purpose == CapturePurpose.TranslateText ? "译文已复制" : UiText.Get("String.AnalysisCopied"));
+            Purpose == CapturePurpose.TranslateText ? "译文已复制" : UiText.Get(
+                Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
 
     private async void CopyAllButton_OnClick(object? sender, RoutedEventArgs e)
     {
         await CopyAsync(BuildCopyText(), Purpose == CapturePurpose.TranslateText
-            ? "原文与译文已复制" : UiText.Get("String.AnalysisCopied"));
+            ? "原文与译文已复制" : UiText.Get(
+                Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
     }
 
     private async Task CopyAsync(string text, string status)

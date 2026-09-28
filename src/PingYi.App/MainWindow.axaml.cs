@@ -34,7 +34,7 @@ public partial class MainWindow : Window, IMainWindowShell
         _services = services;
         _captureCoordinator = captureCoordinator;
         _openSettings = openSettings;
-        Title = UiText.IsEnglish ? "PingYi" : AppEdition.ProductName;
+        Title = UiText.IsEnglish ? "Screen Insight" : AppEdition.ProductName;
         LoadSettings();
         Opened += async (_, _) => await RefreshDashboardAsync();
         Activated += async (_, _) => await RefreshSettingsFromStoreAsync();
@@ -198,7 +198,7 @@ public partial class MainWindow : Window, IMainWindowShell
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
-        Title = UiText.IsEnglish ? AppEdition.IsComplete ? "PingYi Complete" : "PingYi" : AppEdition.ProductName;
+        Title = UiText.IsEnglish ? AppEdition.IsComplete ? "Screen Insight Complete" : "Screen Insight" : AppEdition.ProductName;
         LoadSettings();
     }
 

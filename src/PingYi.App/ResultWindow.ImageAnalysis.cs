@@ -16,16 +16,27 @@ public partial class ResultWindow
         if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
         Purpose = purpose;
         var isText = purpose == CapturePurpose.TranslateText;
-        var key = purpose == CapturePurpose.DescribeImage ? "String.DescribeImage" : "String.ReconstructPrompt";
+        var isQr = purpose == CapturePurpose.DecodeQrCode;
+        var key = purpose switch
+        {
+            CapturePurpose.DescribeImage => "String.DescribeImage",
+            CapturePurpose.DecodeQrCode => "String.DecodeQrCode",
+            _ => "String.ReconstructPrompt"
+        };
+        ClearQrResults();
+        QrResultButton.IsVisible = !isQr;
+        CopyAllButton.Classes.Set("primary", !isQr);
+        CopyAllButton.Classes.Set("secondary", isQr);
         TranslateResultButton.IsVisible = !isText;
         SourceCard.IsVisible = isText;
-        AnalysisHint.IsVisible = !isText;
+        AnalysisHint.IsVisible = !isText && !isQr;
         ResultContentGrid.RowDefinitions = new RowDefinitions(isText ? "*,*" : "0,*");
         ResultContentGrid.RowSpacing = isText ? 14 : 0;
         ThemeResources.Use(ResultHeading, TextBlock.TextProperty, isText ? "String.ResultTitle" : key);
-        ThemeResources.Use(OutputHeading, TextBlock.TextProperty, isText ? "Text.80461c2decc5" : key);
+        ThemeResources.Use(OutputHeading, TextBlock.TextProperty, isText ? "Text.80461c2decc5" : isQr ? "String.QrContent" : key);
         ThemeResources.Use(TranslationTextBox, AutomationProperties.NameProperty, isText ? "Text.49e1e6be89fd" : key);
-        ThemeResources.Use(CopyOutputButton, AutomationProperties.NameProperty, isText ? "Text.032eb48c7a43" : "String.CopyAnalysis");
+        ThemeResources.Use(CopyOutputButton, AutomationProperties.NameProperty,
+            isText ? "Text.032eb48c7a43" : isQr ? "String.QrCopy" : "String.CopyAnalysis");
     }
 
     public void SetAnalysisResult(ImageAnalysisResult result)
@@ -49,7 +60,8 @@ public partial class ResultWindow
     private void CancelProcessing_OnClick(object? sender, RoutedEventArgs e)
     {
         CancelRequested?.Invoke();
-        SetStatusVisual(UiText.Get("String.ProcessingCancelled"), "SecondaryTextBrush", "BrandBrush", false);
+        SetStatusVisual(UiText.Get(Purpose == CapturePurpose.DecodeQrCode ? "String.QrCancelled" : "String.ProcessingCancelled"),
+            "SecondaryTextBrush", "BrandBrush", false);
     }
 
     private async void TranslateResult_OnClick(object? sender, RoutedEventArgs e)
@@ -57,9 +69,12 @@ public partial class ResultWindow
         if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.TranslateText);
     }
 
-    internal string BuildCopyText() => Purpose == CapturePurpose.TranslateText
-        ? $"{UiText.T("原文")}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{UiText.T("译文")}{Environment.NewLine}{TranslationTextBox.Text}"
-        : TranslationTextBox.Text ?? string.Empty;
+    internal string BuildCopyText() => Purpose switch
+    {
+        CapturePurpose.TranslateText => $"{UiText.T("原文")}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{UiText.T("译文")}{Environment.NewLine}{TranslationTextBox.Text}",
+        CapturePurpose.DecodeQrCode => string.Join(Environment.NewLine + Environment.NewLine, _qrResults.Select(result => result.Text)),
+        _ => TranslationTextBox.Text ?? string.Empty
+    };
 
     private async void DescribeResult_OnClick(object? sender, RoutedEventArgs e)
     {

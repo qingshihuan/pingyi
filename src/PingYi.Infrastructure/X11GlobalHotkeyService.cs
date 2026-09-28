@@ -45,7 +45,7 @@ internal sealed class X11GlobalHotkeyService : IGlobalHotkeyService
         if (thread is null) return;
         // Joining on the UI thread would prevent clean cancellation and frozen-server recovery.
         if (!await Task.Run(() => thread.Join(TimeSpan.FromSeconds(2))))
-            throw new InvalidOperationException("X11 快捷键线程未能停止，请退出屏译后重试。");
+            throw new InvalidOperationException("X11 快捷键线程未能停止，请退出截屏释义后重试。");
         _thread = null;
     }
     private void EventLoop(GlobalHotkeyGesture gesture, TaskCompletionSource started)

@@ -1,6 +1,6 @@
 # Third-party notices
 
-PingYi is licensed under MIT. Standard offline release packages additionally contain:
+Screen Insight (截屏释义, formerly PingYi) is licensed under MIT. Standard offline release packages additionally contain:
 
 - PaddlePaddle PP-OCRv5 mobile detection and recognition ONNX models, licensed under Apache-2.0. Source: https://huggingface.co/PaddlePaddle
 - Argos Translate runtime components, licensed under MIT. Source: https://github.com/argosopentech/argos-translate
@@ -150,3 +150,15 @@ headless test packages, Windows User32 and system X11 integrations. They add no
 keyboard hook package, production dependency, font, model, telemetry or retained
 key-event history. Wayland bindings remain explicitly managed by the desktop;
 no private compositor API or automatic system-configuration edit is introduced.
+
+## Browser extension and native messaging bridge
+
+The Screen Insight browser extension, interface icons/product assets, native messaging host and current-user registration script are project code under the repository MIT license. The extension bundles no third-party JavaScript, fonts, analytics, credentials or model weights. It uses Chromium extension APIs (Native Messaging, scripting, storage, context menus, language detection and visible-tab capture), which are provided by the user's browser and are not redistributed. The desktop bridge reuses the existing .NET, SkiaSharp, OCR and translation dependencies listed above; no new inference libraries are bundled.
+
+## Screen Insight branding (2026-09-28)
+
+The approved blue, orange, white and black icon is derived from the project's existing icon, revised with OpenAI image generation at the maintainer's request. The source image and exported PNG/ICO files are project assets; no third-party icon pack, font or artwork was added. `scripts/build-brand-icons.cjs` uses sharp (Apache-2.0) only as an optional development-time image resizer/encoder; sharp is not bundled with the desktop application or browser extension. Desktop and browser colors come from the project's existing ApplePalette resources. See `design-assets/BRANDING.md` for the approved artwork and reproduction instructions.
+
+## Offline QR decoding (2026-09-28)
+
+Desktop QR decoding adds [ZXing.Net 0.16.11](https://www.nuget.org/packages/ZXing.Net/0.16.11), licensed under Apache-2.0 ([upstream project and license](https://github.com/micjahn/ZXing.Net)). Its managed decoder consumes pixels from the existing SkiaSharp image pipeline; no System.Drawing binding, camera framework, model, external service or new native runtime is added. The release license collector discovers the NuGet package and includes its license text. QR screenshots and decoded payloads stay in memory and are not logged or saved. Only an explicit click sends an HTTP/HTTPS URL to the operating system's default browser. Synthetic test QR codes contain example text or local loopback URLs. The frozen browser extension and its protocol are unchanged.

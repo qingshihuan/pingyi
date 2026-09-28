@@ -120,7 +120,7 @@ internal sealed class NativeCaptureState : IDisposable
         if (handle?.HandleDescriptor != "HWND" || handle.Handle == IntPtr.Zero) return null;
         var state = new NativeCaptureState(handle.Handle);
         // Only our own windows, only during this operation. Do not globally prevent users
-        // from taking screenshots of PingYi or change display-affinity settings permanently.
+        // from taking screenshots of Screen Insight or change display-affinity settings permanently.
         if (DwmGetWindowAttribute(state._handle, TransitionsForceDisabled, out state._previousTransitions, 4) >= 0)
         {
             var disabled = 1;

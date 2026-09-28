@@ -3,14 +3,14 @@
   <x:String x:Key="String.DescribeImage">Describe image</x:String>
   <x:String x:Key="String.ReconstructPrompt">Reconstruct prompt</x:String>
   <x:String x:Key="String.TranslateText">Translate text</x:String>
-  <x:String x:Key="String.VisionEntryHint">Analyze images without text · Vision model required</x:String>
+  <x:String x:Key="String.VisionEntryHint">Image analysis needs a vision model · QR decoding works offline</x:String>
   <x:String x:Key="String.ModelCpuFallback">GPU startup failed. Trying CPU; you can cancel waiting…</x:String>
   <x:String x:Key="String.ModelLoadingElapsed">Loading local model ({0}s)… Cold starts can take longer. You can cancel waiting.</x:String>
   <x:String x:Key="String.ModelLoadingWait">Checking and loading the local model… You can cancel waiting.</x:String>
   <x:String x:Key="String.ModelStartTimeout">Local model startup timed out. Check memory, GPU drivers or use a smaller model.</x:String>
   <x:String x:Key="String.VisionConfiguration">Configure an image-capable model in Custom endpoint, or install and apply a managed multimodal model in Complete edition.</x:String>
   <x:String x:Key="String.VisionHttps">Remote image analysis requires HTTPS; only loopback endpoints may use HTTP.</x:String>
-  <x:String x:Key="String.VisionLocal">Image sent to the loopback vision service · PingYi keeps no analysis history</x:String>
+  <x:String x:Key="String.VisionLocal">Image sent to the loopback vision service · Screen Insight keeps no analysis history</x:String>
   <x:String x:Key="String.VisionRemote">The full selected image will be sent to {0} · Confirmation required</x:String>
   <x:String x:Key="String.AnalysisPreparing">Preparing image analysis…</x:String>
   <x:String x:Key="String.VisionNotSent">Cancelled: no image was sent.</x:String>

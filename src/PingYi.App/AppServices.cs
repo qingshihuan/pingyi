@@ -24,6 +24,23 @@ public sealed partial class AppServices : IAsyncDisposable
     private CancellationTokenSource? _managedRuntimeStartupCancellation;
     private string _managedRuntimeConfiguration = string.Empty;
     private int _disposeState;
+    private BrowserBridgeServer? _browserBridge;
+
+    public void StartBrowserBridge()
+    {
+        if (_browserBridge is not null) return;
+        var handler = new BrowserTranslationService(Providers, async token =>
+            { await WaitForManagedRuntimeAsync(token); });
+        _browserBridge = new BrowserBridgeServer(BrowserWire.PipeName(AppEdition.IsComplete ? "complete" : "standard"),
+            async (request, token) =>
+            {
+                // Status is an immutable snapshot and must stay responsive during slow inference.
+                if (request.Operation == "status") return new BrowserResponse(true, Status: handler.GetStatus(Settings));
+                await _settingsTransitionGate.WaitAsync(token);
+                try { return await handler.HandleAsync(request, Settings, token); }
+                finally { _settingsTransitionGate.Release(); }
+            });
+    }
 
     private AppServices(
         AppDataPaths paths,
@@ -85,6 +102,7 @@ public sealed partial class AppServices : IAsyncDisposable
     public IGlobalHotkeyService HotkeyService { get; }
     public IScreenCaptureService ScreenCaptureService { get; }
     public IImageCropper ImageCropper { get; }
+    public IQrCodeDecoder QrCodeDecoder { get; } = new ZxingQrCodeDecoder();
     public ProviderRegistry Providers { get; }
     public ManagedModelService ManagedModels { get; }
     public GitHubReleaseUpdateService UpdateService { get; }
@@ -396,6 +414,7 @@ public sealed partial class AppServices : IAsyncDisposable
             // download; the shared lifetime token breaks that wait so shutdown cannot
             // deadlock behind an infinite-timeout download.
             _lifetime.Cancel();
+            if (_browserBridge is not null) await _browserBridge.DisposeAsync();
             await _settingsTransitionGate.WaitAsync();
             try
             {

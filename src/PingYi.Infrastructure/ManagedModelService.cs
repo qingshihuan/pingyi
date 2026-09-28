@@ -467,7 +467,7 @@ public sealed class ManagedModelService : IAsyncDisposable
     {
         if (!IsCompleteEdition || !HasBundledRuntime)
         {
-            throw new InvalidOperationException("此功能需要屏译完全版内置的 llama.cpp 运行时。");
+            throw new InvalidOperationException("此功能需要截屏释义完全版内置的 llama.cpp 运行时。");
         }
     }
 
@@ -610,7 +610,7 @@ public sealed class ManagedModelService : IAsyncDisposable
                 catch (OperationCanceledException)
                 {
                     // Keep ownership and abort fallback rather than starting a second server.
-                    throw new TimeoutException("旧模型进程未能及时退出，请退出屏译后重试。");
+                    throw new TimeoutException("旧模型进程未能及时退出，请退出截屏释义后重试。");
                 }
             }
             stopped = true;

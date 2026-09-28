@@ -6,7 +6,7 @@
   <x:String x:Key="Polish.DataBoundary">Data &amp; privacy</x:String>
   <x:String x:Key="Polish.RecognitionGroup">Text recognition</x:String>
   <x:String x:Key="Polish.TranslationGroup">Translation preferences</x:String>
-  <x:String x:Key="String.AppName">PingYi</x:String>
+  <x:String x:Key="String.AppName">Screen Insight</x:String>
   <x:String x:Key="String.AppTagline">Capture, recognize, and translate in one step</x:String>
   <x:String x:Key="String.BaselineModels">Offline baseline model status</x:String>
   <x:String x:Key="String.Cancel">Cancel</x:String>
@@ -54,7 +54,7 @@
   <x:String x:Key="String.OtherShortcuts">Esc: cancel region selection.&#10;Ctrl+,: open Settings from the main window.&#10;F5: refresh status in the main window.&#10;Ctrl+S: save configuration in Settings.</x:String>
   <x:String x:Key="String.PickerHint">Compare use cases, processing methods, and requirements. Selecting a card does not apply it.</x:String>
   <x:String x:Key="String.PickerTitle">Choose a processing mode</x:String>
-  <x:String x:Key="String.PrivacyBody">PingYi does not keep a history of screenshots, recognized text, or translations, and does not put this content or credentials in logs. Displayed results are held in memory.&#10;&#10;Cloud OCR sends the selected image to its provider. Multimodal endpoints also receive images. Cloud translation sends recognized text. Whether a compatible endpoint runs locally depends on its actual address; the endpoint itself controls its own data processing.&#10;&#10;Model downloads, credential validation, and manual update checks use the network. Automatic update checks run only after you enable them. Keys use system secure storage; if the Linux key service is unavailable they remain in the current session only.</x:String>
+  <x:String x:Key="String.PrivacyBody">Screen Insight does not keep a history of screenshots, recognized text, or translations, and does not put this content or credentials in logs. Displayed results are held in memory.&#10;&#10;Cloud OCR sends the selected image to its provider. Multimodal endpoints also receive images. Cloud translation sends recognized text. Whether a compatible endpoint runs locally depends on its actual address; the endpoint itself controls its own data processing.&#10;&#10;Model downloads, credential validation, and manual update checks use the network. Automatic update checks run only after you enable them. Keys use system secure storage; if the Linux key service is unavailable they remain in the current session only.</x:String>
   <x:String x:Key="String.PrivacyTitle">Privacy &amp; data</x:String>
   <x:String x:Key="String.QuickHelp">Quick start</x:String>
   <x:String x:Key="String.QuickHelpBody">Select Start capture or use the global shortcut, then drag to select an area. Release to recognize and translate. In the result card, select text, copy the source or translation, process again, or pin the card. Change engines and target languages in Settings → Recognition &amp; translation.</x:String>
@@ -104,13 +104,13 @@
   <x:String x:Key="Text.354b28c85333">Source</x:String>
   <x:String x:Key="Text.378c7842fe76">Translation credentials: checking secure storage…</x:String>
   <x:String x:Key="Text.3893958187ff">Reading the current mode's data boundary</x:String>
-  <x:String x:Key="Text.3a57aee6d162">PingYi</x:String>
+  <x:String x:Key="Text.3a57aee6d162">Screen Insight</x:String>
   <x:String x:Key="Text.3ce928cae715">Recognize and translate again</x:String>
   <x:String x:Key="Text.3d13868593ae">Interface language</x:String>
   <x:String x:Key="Text.3fd47edce45b">Close</x:String>
   <x:String x:Key="Text.415c32ababe7">Translation model: checking…</x:String>
   <x:String x:Key="Text.42910cbc1cab">Service preset</x:String>
-  <x:String x:Key="Text.43fb060119c0">PingYi Results</x:String>
+  <x:String x:Key="Text.43fb060119c0">Screen Insight Results</x:String>
   <x:String x:Key="Text.44ac539067ed">Local models</x:String>
   <x:String x:Key="Text.492a56a00f11">Open download page</x:String>
   <x:String x:Key="Text.4986d0c80645">Download Chinese/English translation model</x:String>
@@ -191,7 +191,7 @@
   <x:String x:Key="Text.ea9502326203">Verify offline models at startup</x:String>
   <x:String x:Key="Text.ef1361324428">The shortcut is re-registered when saved. Conflicts appear in this window.</x:String>
   <x:String x:Key="Text.f14f03fae6b1">Remove downloaded models</x:String>
-  <x:String x:Key="Text.f2eabda76179">Open PingYi settings</x:String>
+  <x:String x:Key="Text.f2eabda76179">Open Screen Insight settings</x:String>
   <x:String x:Key="Text.f3a95ab3397b">Translation secret</x:String>
   <x:String x:Key="Text.f724eb814a6a">Local LLM translation · PaddleOCR + compatible endpoint</x:String>
   <x:String x:Key="Text.faaa0cb2ce66">Check now</x:String>
@@ -226,4 +226,21 @@
   <x:String x:Key="Workspace.SecretHint">Select Reveal to edit a key, then save or validate. Keys use the existing system secure store.</x:String>
   <x:String x:Key="Workspace.Settings">Settings</x:String>
   <x:String x:Key="Workspace.Workspace">Capture workspace</x:String>
+  <x:String x:Key="String.DecodeQrCode">Read QR code</x:String>
+  <x:String x:Key="String.QrContent">QR code content</x:String>
+  <x:String x:Key="String.QrCancelled">QR decoding cancelled.</x:String>
+  <x:String x:Key="String.QrEntryHint">Select a QR code to decode locally. No model or API needed.</x:String>
+  <x:String x:Key="String.QrLoading">Decoding QR codes locally…</x:String>
+  <x:String x:Key="String.QrPrivacy">Local decoding · No model or saved content · Links open in your default browser</x:String>
+  <x:String x:Key="String.QrSelect">Select QR code</x:String>
+  <x:String x:Key="String.QrNotFound">No QR code found. Capture the complete code with some blank space around it.</x:String>
+  <x:String x:Key="String.QrFailed">Could not decode this capture. Select a smaller area with a clear, complete QR code.</x:String>
+  <x:String x:Key="String.QrWebResult">Web link decoded · Ready to open in your default browser</x:String>
+  <x:String x:Key="String.QrTextResult">QR code decoded · Content is ready to copy</x:String>
+  <x:String x:Key="String.QrOpenLink">Open in browser</x:String>
+  <x:String x:Key="String.QrOpened">Sent to your default browser</x:String>
+  <x:String x:Key="String.QrOpenFailed">Could not open your browser. Copy the URL and open it manually.</x:String>
+  <x:String x:Key="String.QrCopy">Copy QR code content</x:String>
+  <x:String x:Key="String.QrCopied">QR code content copied</x:String>
+  <x:String x:Key="String.QrHelp">Choose Read QR code on the home screen or tray menu, then capture the complete QR code. You can also decode the same capture from its result card. Decoding is fully local and needs no OCR, model or API. Select between multiple codes, copy the current item or copy all. HTTP/HTTPS URLs offer an Open in browser button. Other payloads, such as text or Wi-Fi settings, are displayed for copying and are not executed.</x:String>
 </ResourceDictionary>

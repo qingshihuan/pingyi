@@ -45,7 +45,7 @@ public class UsabilityRegressionTests
             await settings.LanguageChangeTask;
             settings.UpdateLayout(); home.UpdateLayout(); help.UpdateLayout();
             Assert.Equal("en-US", (await store.LoadAsync()).UiLanguage);
-            Assert.Equal("PingYi", Application.Current!.Resources["String.AppName"]);
+            Assert.Equal("Screen Insight", Application.Current!.Resources["String.AppName"]);
             Assert.Equal("Save and apply", C<Button>(settings, "SaveSettingsButton").Content);
             Assert.Equal("Help & About", C<Button>(home, "HelpButton").Content);
             Assert.Contains(settings.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Appearance & startup");
@@ -60,7 +60,7 @@ public class UsabilityRegressionTests
             C<ComboBox>(settings, "UiLanguageCombo").SelectedIndex = 1;
             await settings.LanguageChangeTask;
             Assert.Equal("zh-CN", (await store.LoadAsync()).UiLanguage);
-            Assert.Equal("屏译", Application.Current.Resources["String.AppName"]);
+            Assert.Equal("截屏释义", Application.Current.Resources["String.AppName"]);
             Assert.Equal("保存并应用", C<Button>(settings, "SaveSettingsButton").Content);
             Assert.Equal("帮助与关于", C<Button>(home, "HelpButton").Content);
             Assert.Equal("unsaved-model-模型", input.Text);

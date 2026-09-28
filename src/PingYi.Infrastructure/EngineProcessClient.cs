@@ -182,7 +182,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
         startInfo.Environment["PYTHONUNBUFFERED"] = "1";
 
         _process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("无法启动屏译本地引擎。");
+            ?? throw new InvalidOperationException("无法启动截屏释义本地引擎。");
         _ = DrainStandardErrorAsync(_process);
     }
 

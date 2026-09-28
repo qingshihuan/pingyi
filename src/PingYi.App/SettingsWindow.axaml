@@ -1,10 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.SettingsWindow" x:Name="RootWindow" Classes="workspace" Title="{DynamicResource Text.3a57aee6d162}" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" Width="1040" Height="760" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:PingYi.App" x:Class="PingYi.App.SettingsWindow" x:Name="RootWindow" Classes="workspace" Title="{DynamicResource Text.3a57aee6d162}" Icon="avares://PingYi.App/Assets/screen-insight-icon.png" Width="1040" Height="760" MinWidth="800" MinHeight="560" KeyDown="Workspace_OnKeyDown" WindowStartupLocation="CenterScreen">
   <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
   <!-- Native categories, quiet grouped forms and a fixed action bar. -->
   <Grid RowDefinitions="76,*,Auto" ColumnDefinitions="220,*">
     <Border Grid.RowSpan="3" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"/>
     <StackPanel Margin="24,20,18,16" Orientation="Horizontal" Spacing="10">
-      <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="32" Height="32"/>
+      <Border Background="White" CornerRadius="8" Width="32" Height="32"><Image Source="avares://PingYi.App/Assets/screen-insight-icon-512.png" Width="32" Height="32"/></Border>
       <StackPanel VerticalAlignment="Center" Spacing="2">
         <TextBlock Text="{DynamicResource String.AppName}" FontWeight="SemiBold" FontSize="16"/>
         <TextBlock Text="{DynamicResource Workspace.Preferences}" Classes="workspace-help" FontSize="11"/>

@@ -6,6 +6,9 @@ namespace PingYi.App;
 
 public partial class MainWindow
 {
+    private async void QrCode_OnClick(object? sender, RoutedEventArgs e) =>
+        await CaptureImageAnalysisAsync(sender as Button, CapturePurpose.DecodeQrCode);
+
     private async void DescribeImage_OnClick(object? sender, RoutedEventArgs e) =>
         await CaptureImageAnalysisAsync(sender as Button, CapturePurpose.DescribeImage);
 

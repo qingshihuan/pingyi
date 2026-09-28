@@ -5,7 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\pingyi-v2-icon.ico</ApplicationIcon>
+    <Product>截屏释义</Product>
+    <Description>截图识别、翻译与图片释义</Description>
+    <Title>截屏释义</Title>
+    <ApplicationIcon>Assets\screen-insight-icon.ico</ApplicationIcon>
     <NoWarn Condition="'$(PublishTrimmed)' == 'true'">$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 

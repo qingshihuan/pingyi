@@ -43,10 +43,10 @@ public partial class SettingsWindow
 
     private static string ShortcutSaveHint => LinuxDesktopSession.IsWayland
         ? UiText.IsEnglish
-            ? "Save this preference, then bind the same shortcut to the capture command in desktop Settings. PingYi cannot register it directly on Wayland."
-            : "请保存此偏好，再到系统设置中将相同快捷键绑定到截图命令；Wayland 下屏译不能直接注册全局快捷键。"
+            ? "Save this preference, then bind the same shortcut to the capture command in desktop Settings. Screen Insight cannot register it directly on Wayland."
+            : "请保存此偏好，再到系统设置中将相同快捷键绑定到截图命令；Wayland 下截屏释义不能直接注册全局快捷键。"
         : UiText.IsEnglish
-            ? "Click Save to apply the shortcut. If registration fails, PingYi tries to restore the previous binding."
+            ? "Click Save to apply the shortcut. If registration fails, Screen Insight tries to restore the previous binding."
             : "点击保存后应用快捷键；注册失败时会尝试恢复原快捷键。";
 
     private void RefreshHotkeyEditor()
@@ -119,6 +119,6 @@ public partial class App
     internal void RefreshHotkeyTooltip()
     {
         if (_trayIcon is not null && _services is not null && !_isExiting)
-            _trayIcon.ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {_services.Settings.Hotkey}";
+            _trayIcon.ToolTipText = $"{(UiText.IsEnglish ? "Screen Insight" : AppEdition.ProductName)} · {_services.Settings.Hotkey}";
     }
 }

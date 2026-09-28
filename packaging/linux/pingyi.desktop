@@ -1,5 +1,6 @@
 [Desktop Entry]
-Name=屏译
+Name=截屏释义
+Name[en]=Screen Insight
 GenericName=Screenshot Translator
 Comment=截图、提取并翻译屏幕文字
 Exec=pingyi

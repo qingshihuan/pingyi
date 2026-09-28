@@ -25,7 +25,7 @@ public partial class HelpAboutWindow : Window
     private void RefreshDetails()
     {
         var settings = _settings();
-        ProductText.Text = UiText.IsEnglish ? AppEdition.IsComplete ? "PingYi Complete" : "PingYi" : AppEdition.ProductName;
+        ProductText.Text = UiText.IsEnglish ? AppEdition.IsComplete ? "Screen Insight Complete" : "Screen Insight" : AppEdition.ProductName;
         var version = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
             ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "—";
         VersionText.Text = $"{UiText.Get("String.Version")}: {version}";

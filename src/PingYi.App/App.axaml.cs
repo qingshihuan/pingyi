@@ -46,6 +46,7 @@ public partial class App : Application
         try
         {
             _services = await AppServices.CreateAsync();
+            _services.StartBrowserBridge();
             UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
@@ -124,10 +125,12 @@ public partial class App : Application
 
     private TrayIcon CreateTrayIcon()
     {
-        var showItem = new NativeMenuItem(UiText.IsEnglish ? "Open PingYi" : $"打开 {AppEdition.ProductName}");
+        var showItem = new NativeMenuItem(UiText.IsEnglish ? "Open Screen Insight" : $"打开 {AppEdition.ProductName}");
         showItem.Click += (_, _) => ShowMainWindow();
         var captureItem = new NativeMenuItem(UiText.T("截图翻译"));
         captureItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell);
+        var qrItem = new NativeMenuItem(UiText.Get("String.DecodeQrCode"));
+        qrItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell, CapturePurpose.DecodeQrCode);
         var updateItem = new NativeMenuItem(UiText.IsEnglish ? "Check for updates" : "检查更新");
         updateItem.Click += (_, _) => _ = CheckForUpdatesAsync(userInitiated: true);
         var exitItem = new NativeMenuItem(UiText.T("退出"));
@@ -135,6 +138,7 @@ public partial class App : Application
 
         var menu = new NativeMenu();
         menu.Add(captureItem);
+        menu.Add(qrItem);
         menu.Add(showItem);
         menu.Add(updateItem);
         menu.Add(new NativeMenuItemSeparator());
@@ -142,7 +146,7 @@ public partial class App : Application
         var tray = new TrayIcon
         {
             Icon = CreateWindowIcon(),
-            ToolTipText = $"{(UiText.IsEnglish ? "PingYi" : AppEdition.ProductName)} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
+            ToolTipText = $"{(UiText.IsEnglish ? "Screen Insight" : AppEdition.ProductName)} · {_services?.Settings.Hotkey ?? AppSettings.DefaultHotkey}",
             Menu = menu,
             IsVisible = true
         };
@@ -154,7 +158,7 @@ public partial class App : Application
     {
         try
         {
-            using var stream = AssetLoader.Open(new Uri("avares://PingYi.App/Assets/pingyi-v2-icon.png"));
+            using var stream = AssetLoader.Open(new Uri("avares://PingYi.App/Assets/screen-insight-icon.png"));
             return new WindowIcon(stream);
         }
         catch
@@ -258,8 +262,8 @@ public partial class App : Application
             {
                 _mainShell?.SetGlobalStatus(
                     UiText.IsEnglish
-                        ? $"PingYi {update.LatestVersion} is available. Open Settings or use the tray menu to download it."
-                        : $"屏译 {update.LatestVersion} 已发布，可在设置或托盘菜单中打开下载页。",
+                        ? $"Screen Insight {update.LatestVersion} is available. Open Settings or use the tray menu to download it."
+                        : $"截屏释义 {update.LatestVersion} 已发布，可在设置或托盘菜单中打开下载页。",
                     isError: false);
                 if (userInitiated)
                 {

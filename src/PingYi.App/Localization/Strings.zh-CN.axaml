@@ -6,7 +6,7 @@
   <x:String x:Key="Polish.DataBoundary">数据与隐私</x:String>
   <x:String x:Key="Polish.RecognitionGroup">文字识别</x:String>
   <x:String x:Key="Polish.TranslationGroup">翻译偏好</x:String>
-  <x:String x:Key="String.AppName">屏译</x:String>
+  <x:String x:Key="String.AppName">截屏释义</x:String>
   <x:String x:Key="String.AppTagline">截图、识别、翻译，一次完成</x:String>
   <x:String x:Key="String.BaselineModels">离线基础模型状态</x:String>
   <x:String x:Key="String.Cancel">取消</x:String>
@@ -54,7 +54,7 @@
   <x:String x:Key="String.OtherShortcuts">Esc：取消框选。&#10;Ctrl+,：在主界面打开设置。&#10;F5：在主界面刷新状态。&#10;Ctrl+S：在设置窗口保存配置。</x:String>
   <x:String x:Key="String.PickerHint">先看适用场景，再确认处理方式和使用条件。选中不会立即应用。</x:String>
   <x:String x:Key="String.PickerTitle">选择处理方案</x:String>
-  <x:String x:Key="String.PrivacyBody">屏译不保存截图、识别正文或译文的历史记录，也不把这些内容或密钥写入日志；显示中的结果会保留在内存中。&#10;&#10;只有选择云端 OCR 时才向对应服务发送所选图片；使用多模态接口时也会发送图片。云端翻译发送识别后的文字。兼容接口是否在本机运行，以实际配置地址为准，本机服务本身的数据处理由其实现决定。&#10;&#10;模型下载、凭据验证和手动检查更新会联网；自动检查更新仅在主动开启后进行。密钥使用系统安全存储；Linux 密钥服务不可用时只保留在当前会话。</x:String>
+  <x:String x:Key="String.PrivacyBody">截屏释义不保存截图、识别正文或译文的历史记录，也不把这些内容或密钥写入日志；显示中的结果会保留在内存中。&#10;&#10;只有选择云端 OCR 时才向对应服务发送所选图片；使用多模态接口时也会发送图片。云端翻译发送识别后的文字。兼容接口是否在本机运行，以实际配置地址为准，本机服务本身的数据处理由其实现决定。&#10;&#10;模型下载、凭据验证和手动检查更新会联网；自动检查更新仅在主动开启后进行。密钥使用系统安全存储；Linux 密钥服务不可用时只保留在当前会话。</x:String>
   <x:String x:Key="String.PrivacyTitle">隐私与数据</x:String>
   <x:String x:Key="String.QuickHelp">快速上手</x:String>
   <x:String x:Key="String.QuickHelpBody">点击“开始截图”或按全局快捷键，拖动框选区域；松开鼠标开始识别与翻译。结果卡支持选择文字、复制原文、复制译文、重新处理和固定。需要其他语言或引擎时，在设置的“识别与翻译”页调整。</x:String>
@@ -104,13 +104,13 @@
   <x:String x:Key="Text.354b28c85333">原文</x:String>
   <x:String x:Key="Text.378c7842fe76">翻译凭据：正在检查安全存储…</x:String>
   <x:String x:Key="Text.3893958187ff">正在读取当前方案的数据范围</x:String>
-  <x:String x:Key="Text.3a57aee6d162">屏译</x:String>
+  <x:String x:Key="Text.3a57aee6d162">截屏释义</x:String>
   <x:String x:Key="Text.3ce928cae715">重新识别和翻译</x:String>
   <x:String x:Key="Text.3d13868593ae">界面语言</x:String>
   <x:String x:Key="Text.3fd47edce45b">关闭</x:String>
   <x:String x:Key="Text.415c32ababe7">翻译模型：正在检查…</x:String>
   <x:String x:Key="Text.42910cbc1cab">服务预设</x:String>
-  <x:String x:Key="Text.43fb060119c0">屏译结果</x:String>
+  <x:String x:Key="Text.43fb060119c0">截屏释义结果</x:String>
   <x:String x:Key="Text.44ac539067ed">本地模型</x:String>
   <x:String x:Key="Text.492a56a00f11">打开下载页</x:String>
   <x:String x:Key="Text.4986d0c80645">下载中英翻译模型</x:String>
@@ -191,7 +191,7 @@
   <x:String x:Key="Text.ea9502326203">启动时校验离线模型</x:String>
   <x:String x:Key="Text.ef1361324428">保存后立即重新注册；冲突时会在当前窗口提示。</x:String>
   <x:String x:Key="Text.f14f03fae6b1">清理下载模型</x:String>
-  <x:String x:Key="Text.f2eabda76179">打开屏译设置</x:String>
+  <x:String x:Key="Text.f2eabda76179">打开截屏释义设置</x:String>
   <x:String x:Key="Text.f3a95ab3397b">翻译密钥</x:String>
   <x:String x:Key="Text.f724eb814a6a">本机大模型翻译 · PaddleOCR + 兼容接口</x:String>
   <x:String x:Key="Text.faaa0cb2ce66">立即检查更新</x:String>
@@ -226,4 +226,21 @@
   <x:String x:Key="Workspace.SecretHint">点击“显示”后编辑密钥，再保存或验证。密钥沿用系统安全存储。</x:String>
   <x:String x:Key="Workspace.Settings">设置</x:String>
   <x:String x:Key="Workspace.Workspace">截图翻译工作台</x:String>
+  <x:String x:Key="String.DecodeQrCode">解析二维码</x:String>
+  <x:String x:Key="String.QrContent">二维码内容</x:String>
+  <x:String x:Key="String.QrCancelled">二维码解析已取消。</x:String>
+  <x:String x:Key="String.QrEntryHint">框选二维码，本地解析，无需模型或 API。</x:String>
+  <x:String x:Key="String.QrLoading">正在本地解析二维码…</x:String>
+  <x:String x:Key="String.QrPrivacy">本地解析 · 无需模型 · 不保存内容 · 点击网址后由默认浏览器访问</x:String>
+  <x:String x:Key="String.QrSelect">选择二维码</x:String>
+  <x:String x:Key="String.QrNotFound">未发现二维码，请重新框选完整二维码并保留四周留白。</x:String>
+  <x:String x:Key="String.QrFailed">二维码解析失败，请缩小范围并重新框选清晰、完整的二维码。</x:String>
+  <x:String x:Key="String.QrWebResult">已解析网址 · 可在默认浏览器打开</x:String>
+  <x:String x:Key="String.QrTextResult">二维码解析完成 · 可复制内容</x:String>
+  <x:String x:Key="String.QrOpenLink">在浏览器打开</x:String>
+  <x:String x:Key="String.QrOpened">已交给默认浏览器打开</x:String>
+  <x:String x:Key="String.QrOpenFailed">无法打开默认浏览器，请复制网址手动访问。</x:String>
+  <x:String x:Key="String.QrCopy">复制二维码内容</x:String>
+  <x:String x:Key="String.QrCopied">二维码内容已复制</x:String>
+  <x:String x:Key="String.QrHelp">在主页或托盘菜单选择“解析二维码”，框选屏幕中的完整二维码；也可在结果卡中解析同一张截图。解析完全在本地进行，无需 OCR、模型或 API。多个二维码可逐个查看，支持复制当前项或全部内容。HTTP/HTTPS 网址显示“在浏览器打开”按钮；普通文字、Wi-Fi 信息等显示为可复制内容，不自动执行。</x:String>
 </ResourceDictionary>

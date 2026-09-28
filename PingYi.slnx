@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/PingYi.BrowserHost/PingYi.BrowserHost.csproj" />
     <Project Path="src/PingYi.App/PingYi.App.csproj" />
     <Project Path="src/PingYi.Core/PingYi.Core.csproj" />
     <Project Path="src/PingYi.Infrastructure/PingYi.Infrastructure.csproj" />

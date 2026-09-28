@@ -8,14 +8,14 @@ namespace PingYi.App;
 internal static class LinuxDesktopUi
 {
     public static string ExternalShortcutHelp => UiText.IsEnglish
-        ? "Wayland: bind the capture command in Ubuntu Settings → Keyboard → Custom Shortcuts. Saving a shortcut in PingYi only stores your preference; the capture button works independently."
-        : "Wayland：请在 Ubuntu 设置 → 键盘 → 自定义快捷键中绑定截图命令。屏译内保存的快捷键仅是偏好，不会自动修改系统绑定；也可直接点击截图按钮。";
+        ? "Wayland: bind the capture command in Ubuntu Settings → Keyboard → Custom Shortcuts. Saving a shortcut in Screen Insight only stores your preference; the capture button works independently."
+        : "Wayland：请在 Ubuntu 设置 → 键盘 → 自定义快捷键中绑定截图命令。截屏释义内保存的快捷键仅是偏好，不会自动修改系统绑定；也可直接点击截图按钮。";
     public static string ShortcutLabel(string gesture) => LinuxDesktopSession.IsWayland
         ? (UiText.IsEnglish ? "System shortcut" : "系统快捷键")
         : gesture.Replace("+", "  ", StringComparison.Ordinal);
     public static string PortalPrivacyNote => !LinuxDesktopSession.IsWayland ? "" : UiText.IsEnglish
-        ? "\nWayland screenshots use the desktop's permission dialog. The portal may create a temporary image; PingYi reads it locally and removes temporary-directory copies. Files saved elsewhere by the desktop remain under its control."
-        : "\nWayland 截图通过系统授权界面取得。门户可能创建临时图片；屏译在本地读取，并清理临时目录中的副本。系统保存到其他目录的截图仍由系统管理。";
+        ? "\nWayland screenshots use the desktop's permission dialog. The portal may create a temporary image; Screen Insight reads it locally and removes temporary-directory copies. Files saved elsewhere by the desktop remain under its control."
+        : "\nWayland 截图通过系统授权界面取得。门户可能创建临时图片；截屏释义在本地读取，并清理临时目录中的副本。系统保存到其他目录的截图仍由系统管理。";
     public static string CaptureCommand
     {
         get

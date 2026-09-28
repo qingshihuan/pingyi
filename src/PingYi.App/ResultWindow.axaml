@@ -42,7 +42,7 @@
         </Grid>
       </Border>
       <Border Grid.Row="1" Classes="workspace-card" Padding="12" BorderBrush="{DynamicResource BrandSoftBrush}">
-        <Grid RowDefinitions="Auto,*" RowSpacing="6">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="6">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock x:Name="OutputHeading" Text="{DynamicResource Text.80461c2decc5}" Classes="workspace-label" Foreground="{DynamicResource BrandBrush}" VerticalAlignment="Center" />
             <Button Grid.Column="1" x:Name="CopyOutputButton" Classes="ghost" Click="CopyTranslationButton_OnClick" Padding="8,3" MinHeight="28" AutomationProperties.Name="{DynamicResource Text.032eb48c7a43}">
@@ -52,7 +52,12 @@
               </StackPanel>
             </Button>
           </Grid>
-          <TextBox Grid.Row="1" x:Name="TranslationTextBox" Classes="result-text" FontSize="15" LineHeight="25"
+          <Grid Grid.Row="1" x:Name="QrSelectionPanel" IsVisible="False" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+            <TextBlock Text="{DynamicResource String.QrSelect}" Classes="workspace-help" VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="1" x:Name="QrSelectionCombo" HorizontalAlignment="Stretch"
+                      SelectionChanged="QrSelection_OnChanged" AutomationProperties.Name="{DynamicResource String.QrSelect}"/>
+          </Grid>
+          <TextBox Grid.Row="2" x:Name="TranslationTextBox" Classes="result-text" FontSize="15" LineHeight="25"
                    IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{DynamicResource Text.49e1e6be89fd}" />
         </Grid>
       </Border>
@@ -61,6 +66,7 @@
       <WrapPanel x:Name="ImageActionPanel">
         <Button x:Name="DescribeResultButton" Content="{DynamicResource String.DescribeImage}" Classes="secondary" Click="DescribeResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
         <Button x:Name="PromptResultButton" Content="{DynamicResource String.ReconstructPrompt}" Classes="secondary" Click="PromptResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
+        <Button x:Name="QrResultButton" Content="{DynamicResource String.DecodeQrCode}" Classes="secondary" Click="QrResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,6,4"/>
         <Button x:Name="TranslateResultButton" IsVisible="False" Content="{DynamicResource String.TranslateText}" Classes="ghost" Click="TranslateResult_OnClick" MinHeight="30" Padding="10,4" Margin="0,0,0,4"/>
       </WrapPanel>
       <TextBlock x:Name="AnalysisHint" Text="{DynamicResource String.AnalysisCaution}" IsVisible="False" Classes="workspace-help" FontSize="11" LineHeight="16"/>
@@ -68,7 +74,9 @@
         <Button x:Name="CancelProcessingButton" Content="{DynamicResource String.CancelProcessing}" Classes="secondary" IsVisible="False" Click="CancelProcessing_OnClick" Margin="0,0,6,4"/>
         <Button x:Name="RepairButton" Content="{DynamicResource String.OpenSettings}" Classes="secondary" IsVisible="False" Click="RepairButton_OnClick" AutomationProperties.Name="{DynamicResource Text.b46b3d4ca814}" Margin="0,0,6,4" />
         <Button x:Name="RetryButton" Content="{DynamicResource String.Retry}" Classes="secondary" Click="RetryButton_OnClick" AutomationProperties.Name="{DynamicResource Text.3ce928cae715}" Margin="0,0,6,4" />
-        <Button Content="{DynamicResource String.CopyAll}" Classes="primary" Click="CopyAllButton_OnClick" AutomationProperties.Name="{DynamicResource Text.5159e7c4e585}" Margin="0,0,0,4" />
+        <Button x:Name="CopyAllButton" Content="{DynamicResource String.CopyAll}" Classes="primary" Click="CopyAllButton_OnClick" AutomationProperties.Name="{DynamicResource Text.5159e7c4e585}" Margin="0,0,6,4" />
+        <Button x:Name="OpenQrLinkButton" Content="{DynamicResource String.QrOpenLink}" Classes="primary" IsVisible="False"
+                Click="OpenQrLink_OnClick" Margin="0,0,0,4"/>
       </WrapPanel>
       <TextBlock x:Name="PrivacyText" Text="{DynamicResource Text.93be5e37dda7}" Classes="workspace-help" FontSize="11" LineHeight="17" TextAlignment="Center" MaxHeight="34" TextTrimming="CharacterEllipsis"
                  ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" />

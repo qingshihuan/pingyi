@@ -1,0 +1,13 @@
+/* Matched to src/PingYi.App/Styles/ApplePalette.axaml; follows the system theme. */
+:root{
+  color-scheme:light dark;
+  --bg:#F8F9FC;--panel:#FFFFFF;--subtle:#F0F1F4;--hover:#E8EFFA;--input:#FFFFFF;
+  --text:#1D1D1F;--muted:#62646C;--border:#E0E2E8;--divider:#E9EAEE;
+  --brand:#0865D9;--brand-soft:#EAF2FF;--accent:#0765DB;--accent-hover:#0756BB;--ring:#408AEE;
+  --success-bg:#EAF6EF;--success-text:#227547;--switch-off:#70727A;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#191B20;--panel:#23252B;--subtle:#2D3038;--hover:#343D4E;--input:#1C1E24;
+  --text:#F2F2F7;--muted:#AFB2BE;--border:#3D404A;--divider:#34363F;
+  --brand:#75ADFF;--brand-soft:#283C58;--success-bg:#233C30;--success-text:#80D9A3;--switch-off:#62646C;
+}}

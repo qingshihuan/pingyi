@@ -365,6 +365,11 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         ResultWindow window,
         ImageFrame image)
     {
+        if (window.Purpose == CapturePurpose.DecodeQrCode)
+        {
+            await ProcessQrCodeAsync(operation, window, image);
+            return;
+        }
         if (window.Purpose != CapturePurpose.TranslateText)
         {
             await ProcessImageAnalysisAsync(operation, window, image);

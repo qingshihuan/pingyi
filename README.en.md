@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="src/PingYi.App/Assets/pingyi-v2-icon-512.png" width="96" height="96" alt="PingYi icon">
+  <img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="Screen Insight icon">
 </p>
 
-<h1 align="center">PingYi</h1>
+<h1 align="center">Screen Insight</h1>
 
 <p align="center"><strong>Select a screen region. Extract text. Understand what you see.</strong></p>
 <p align="center">Offline-first screenshot translation and image understanding · Windows / Ubuntu · MIT licensed</p>
@@ -24,7 +24,9 @@
   <a href="https://github.com/qingshihuan/pingyi/issues">Report an issue</a>
 </p>
 
-PingYi is a desktop screenshot OCR and translation app. Select text on your screen to recognize, translate and copy it, without switching to a browser or manually uploading a file. Connect a compatible vision model to describe images or create reference prompts for visually similar scenes.
+Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot OCR and translation app. Select text on your screen to recognize, translate and copy it, without switching to a browser or manually uploading a file. Connect a compatible vision model to describe images or create reference prompts for visually similar scenes.
+
+**Development focus (2026-09-28):** browser extension development is frozen while the existing extension and desktop bridge remain available. Desktop QR decoding now reads selected screen regions locally, supports copying decoded content, and offers an explicit default-browser action for HTTP/HTTPS URLs. It needs no OCR engine, model or API. See [usage and verification](docs/DESKTOP_QR.md).
 
 **Basic Chinese-English OCR and translation work offline, without a discrete GPU.** Release packages include the baseline models and application runtimes; a separate Python or .NET installation is not required. Image understanding and LLM enhancement are optional and require a separately configured or downloaded compatible model.
 
@@ -36,7 +38,7 @@ Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/
 | Edition | Included | Choose it for |
 | --- | --- | --- |
 | **Standard** · `PingYi-` | Offline OCR and basic Chinese-English translation; connections to external models and cloud providers | Offline essentials, or an existing Ollama / LM Studio service |
-| **Complete** · `PingYi-Complete-` | Standard features plus llama.cpp CPU / Vulkan runtimes and model download management | Downloading, configuring and running local multimodal models from PingYi |
+| **Complete** · `PingYi-Complete-` | Standard features plus llama.cpp CPU / Vulkan runtimes and model download management | Downloading, configuring and running local multimodal models from Screen Insight |
 
 **Windows 10/11 x64:** choose the `*-win-x64-setup.exe` installer or a portable `*-win-x64.zip`. The installer creates Start Menu and desktop shortcuts.
 
@@ -49,7 +51,7 @@ Complete **does not bundle LLM weights**: download a model before using its enha
 <a id="quick-start"></a>
 ## Start in three steps
 
-1. **Open PingYi.** Keep local OCR and Chinese-English offline translation selected for your first run. No API key is needed.
+1. **Open Screen Insight.** Keep local OCR and Chinese-English offline translation selected for your first run. No API key is needed.
 2. **Select a screen region.** Choose **Start capture**, or use the shortcut below. Wayland opens the system screenshot / permission dialog.
 3. **Read and copy.** Copy the source, translation or both from the result card. Retry or pin the card when needed; Escape cancels region selection.
 
@@ -63,7 +65,7 @@ Complete **does not bundle LLM weights**: download a model before using its enha
 
 Open **Settings → Appearance & startup**. Type a combination, or choose **Record shortcut…**, press the combination, then use **Enter to confirm or Escape to cancel**. Select **Save and apply** to activate the change. **Restore default** also requires saving.
 
-Supported combinations contain at least one of `Ctrl`, `Alt` or `Shift`, plus one `A–Z` letter or top-row `0–9` digit. Super, function and keypad keys are not supported. Recording temporarily suspends PingYi's own native global binding, then restores the saved combination. Failed registration attempts to restore the previous binding and reports the error; button capture remains available.
+Supported combinations contain at least one of `Ctrl`, `Alt` or `Shift`, plus one `A–Z` letter or top-row `0–9` digit. Super, function and keypad keys are not supported. Recording temporarily suspends Screen Insight's own native global binding, then restores the saved combination. Failed registration attempts to restore the previous binding and reports the error; button capture remains available.
 
 Global shortcuts can overlap with system, application or personal bindings. No combination is guaranteed conflict-free. See [Linux capture and shortcuts](docs/LINUX_CAPTURE.md) for conflicts and migration of custom combinations versus previous defaults.
 
@@ -71,10 +73,16 @@ Global shortcuts can overlap with system, application or personal bindings. No c
 
 Wayland capture uses the **XDG Screenshot portal**, not the XWayland root window. Ubuntu GNOME requires `xdg-desktop-portal` and a matching backend, typically `xdg-desktop-portal-gnome`.
 
-**Saving a shortcut in PingYi stores a preference, not a system binding.** Copy the capture command from Settings and bind the same combination under your desktop's **Keyboard → Custom Shortcuts**. PingYi does not rewrite system shortcuts. An existing system binding can intercept recording; enter the combination manually and adjust desktop settings instead. See [dependencies, troubleshooting and validation limits](docs/LINUX_CAPTURE.md).
+**Saving a shortcut in Screen Insight stores a preference, not a system binding.** Copy the capture command from Settings and bind the same combination under your desktop's **Keyboard → Custom Shortcuts**. Screen Insight does not rewrite system shortcuts. An existing system binding can intercept recording; enter the combination manually and adjust desktop settings instead. See [dependencies, troubleshooting and validation limits](docs/LINUX_CAPTURE.md).
 
 <a id="features"></a>
-## What PingYi does
+## Browser extension (development build)
+
+The new Chrome / Edge extension reuses the running Screen Insight desktop app's translation and OCR providers. It supports automatic source-language detection, bilingual or translation-only pages, Alt-hover, selection/context-menu translation, region screenshot OCR, and text translation. Its blue theme and approved icon match the desktop app, with light/dark appearance following the system. Existing desktop settings and model directories remain compatible. See [build, registration and installation instructions](browser-extension/README.md).
+
+This requires the desktop code in this change and its native messaging host; published v0.5.2 binaries do not include the bridge. Communication uses current-user named pipes, with no listening HTTP port or copied API keys. Content is not persisted. Remote text requires consent; remote OCR requires separate consent for each selected image. Ordinary web pages are supported; protected browser pages, built-in PDF viewers and cross-origin frame text are excluded. Each operation handles up to 200 loaded paragraphs; dynamic content requires another operation. Inline translations become part of the page DOM and can be read by the website.
+
+## What Screen Insight does
 
 - **Extract and translate screen text.** Read text from images, video subtitles, application windows and non-selectable pages. Bundled PaddleOCR and Argos Translate provide offline Chinese-English essentials.
 - **Add models when you need them.** Connect llama.cpp, Ollama, LM Studio, vLLM or another compatible Chat Completions service. Choose direct vision OCR, PaddleOCR with visual correction, or LLM translation; quality and language coverage depend on the model.
@@ -113,11 +121,11 @@ See [image analysis](docs/IMAGE_ANALYSIS.md) for model requirements, upload conf
 | Remote OCR / remote image analysis | The selected screenshot goes to the chosen service |
 | Remote text translation | Recognized text goes to the chosen service; this is not the same as uploading the screenshot |
 
-PingYi does not create persistent screenshot, recognized-text, translation or image-analysis history by default. Logs exclude this content and secrets. Credentials use Windows DPAPI or Linux Secret Service rather than ordinary `settings.json` storage.
+Screen Insight does not create persistent screenshot, recognized-text, translation or image-analysis history by default. Logs exclude this content and secrets. Credentials use Windows DPAPI or Linux Secret Service rather than ordinary `settings.json` storage.
 
 Every remote image-analysis request, including retries, separately confirms the destination and model before sending. Text-translation permission does not authorize image uploads. Model downloads, manually checking for updates / enabling automatic update checks, and remote services use the network. Automatic update checks are off by default.
 
-**The operating system and external services have their own data boundaries.** Wayland portals may create screenshot files; PingYi cleans up portal copies in temporary directories, but does not guarantee deletion of files the desktop saves elsewhere. Remote providers and independently configured model servers have their own logging and retention settings.
+**The operating system and external services have their own data boundaries.** Wayland portals may create screenshot files; Screen Insight cleans up portal copies in temporary directories, but does not guarantee deletion of files the desktop saves elsewhere. Remote providers and independently configured model servers have their own logging and retention settings.
 
 <a id="limits"></a>
 ## Compatibility and limits
@@ -192,4 +200,4 @@ A `v*` tag, or a version change to `.github/release-version.txt` on `main`, trig
 
 Bug reports, OCR failure scenarios, translation feedback and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Do not upload private screenshots, text or credentials; report security issues according to [SECURITY.md](SECURITY.md).
 
-PingYi source is licensed under **[MIT](LICENSE)**. Models and third-party components retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). Each application package includes a `licenses/` directory with the applicable license texts and manifest.
+Screen Insight source is licensed under **[MIT](LICENSE)**. Models and third-party components retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). Each application package includes a `licenses/` directory with the applicable license texts and manifest.

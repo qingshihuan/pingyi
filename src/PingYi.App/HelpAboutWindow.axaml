@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PingYi.App.HelpAboutWindow" Classes="workspace" Width="800" Height="740" MinWidth="620" MinHeight="460"
-        Title="{DynamicResource String.HelpTitle}" Icon="avares://PingYi.App/Assets/pingyi-v2-icon.png" WindowStartupLocation="CenterOwner">
+        Title="{DynamicResource String.HelpTitle}" Icon="avares://PingYi.App/Assets/screen-insight-icon.png" WindowStartupLocation="CenterOwner">
   <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
   <Grid Margin="28" RowDefinitions="Auto,*,Auto" RowSpacing="18">
     <StackPanel Spacing="6">
@@ -11,7 +11,7 @@
       <StackPanel Spacing="16" Margin="0,0,8,8">
         <Border Classes="workspace-card">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-            <Image Source="avares://PingYi.App/Assets/pingyi-v2-icon-512.png" Width="48" Height="48"/>
+            <Border Background="White" CornerRadius="8" Width="48" Height="48"><Image Source="avares://PingYi.App/Assets/screen-insight-icon-512.png" Width="48" Height="48"/></Border>
             <StackPanel Grid.Column="1" Spacing="5">
               <TextBlock x:Name="ProductText" Classes="workspace-section"/>
               <TextBlock x:Name="VersionText" Classes="workspace-help"/>
@@ -29,6 +29,9 @@
             <Border Height="1" Background="{DynamicResource DividerBrush}"/>
             <TextBlock Text="{DynamicResource String.VisionHelpTitle}" Classes="workspace-label"/>
             <TextBlock Text="{DynamicResource String.VisionHelp}" Classes="workspace-help"/>
+            <Border Height="1" Background="{DynamicResource DividerBrush}"/>
+            <TextBlock Text="{DynamicResource String.DecodeQrCode}" Classes="workspace-label"/>
+            <TextBlock Text="{DynamicResource String.QrHelp}" Classes="workspace-help"/>
           </StackPanel>
         </Border>
         <Border Classes="workspace-card">
