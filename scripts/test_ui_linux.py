@@ -23,4 +23,5 @@ class LinuxUiContracts(unittest.TestCase):
     def test_capture_errors_restore_a_visible_window(self):
         source = (ROOT / 'src/PingYi.App/CaptureCoordinator.cs').read_text(encoding='utf-8-sig')
         self.assertIn('mainWindow?.Show();', source)
-        self.assertIn('LinuxDesktopUi.DescribeError(exception)', source)
+        self.assertIn('mainWindow?.Activate();', source)
+        self.assertRegex(source, r'mainWindow\?\.SetGlobalStatus\(LinuxDesktopUi\.DescribeError\(\w+\),\s*(?:isError:\s*)?true\)')

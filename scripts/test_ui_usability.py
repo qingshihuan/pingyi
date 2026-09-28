@@ -48,8 +48,9 @@ class UsabilityStructureTests(unittest.TestCase):
     def test_capture_transactions_share_one_restore_path_and_native_barrier(self):
         coordinator = (APP / 'CaptureCoordinator.cs').read_text(encoding='utf8')
         scope = (APP / 'CaptureWindowScope.cs').read_text(encoding='utf8')
-        self.assertIn('desktopLifetime.Windows.ToList()', coordinator)
-        self.assertIn('CaptureWindowScope.RunAsync', coordinator)
+        self.assertRegex(coordinator, r'IClassicDesktopStyleApplicationLifetime\s+(\w+)\s*\?\s*\1\.Windows\.ToList\(\)')
+        self.assertEqual(1, coordinator.count('CaptureWindowScope.RunAsync'))
+        self.assertIn('DesktopCaptureBarrier.WaitAsync', coordinator)
         self.assertIn('finally { IsCapturingScreen = false; }', coordinator)
         self.assertLess(scope.index('snapshot.Hide()'), scope.index('await waitForDesktop'))
         self.assertLess(scope.index('await waitForDesktop'), scope.index('await captureAndSelect'))
