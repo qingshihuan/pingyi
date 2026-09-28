@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Apply reviewable integration edits
-        run: python scripts/integrate-backend-shutdown.py
+        run: python -X utf8 scripts/integrate-backend-shutdown.py
       - name: Install native desktop test dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk xvfb xauth xdotool x11-utils scrot dbus-x11 python3-gi openbox
