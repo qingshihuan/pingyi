@@ -1,6 +1,6 @@
 # 一键识别、基础／轻量模式与首次配置
 
-本说明对应当前源码实现；发行版以各自 Release 为准。本次不提升版本标记，不修改浏览器协议或 Complete 安装／数据目录。
+本说明对应 v0.7.0 源码实现；安装包与发布状态以 [v0.7.0 Release](https://github.com/qingshihuan/pingyi/releases/tag/v0.7.0) 为准。本次不修改浏览器协议或 Complete 安装／数据目录。
 
 ## 一次截图，任务可纠正
 
@@ -68,4 +68,4 @@ Core 测试覆盖明确文字、紧密短字、混合二维码正文、空白与
 
 Smart capture runs local QR / PaddleOCR probes, recommends translation, image description or QR decoding, and asks for a choice when evidence is mixed or uncertain. Manual tasks always override; the same image is reused and obsolete operations cannot overwrite the new result. Empty OCR is a tentative description route, never proof that text is absent.
 
-Basic is direct local vision OCR plus local model translation. Lightweight retains PaddleOCR / Argos. The correction provider and visual-correction mode are removed. First-run download is explicit, verified and committed only after synthetic OCR / translation checks; users may instead connect an existing local server or skip to Lightweight. Existing preferences migrate without overwriting endpoints or credentials. Automatic remote processing requires per-request confirmation; QR URLs never open automatically. No new dependency, package variant, browser protocol, retained history or release version is introduced.
+Basic is direct local vision OCR plus local model translation. Lightweight retains PaddleOCR / Argos. The correction provider and visual-correction mode are removed. First-run download is explicit, verified and committed only after synthetic OCR / translation checks; users may instead connect an existing local server or skip to Lightweight. Existing preferences migrate without overwriting endpoints or credentials. Automatic remote processing requires per-request confirmation; QR URLs never open automatically. These changes ship with v0.7.0; no new dependency, package variant, browser protocol or retained history is introduced.
