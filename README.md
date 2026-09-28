@@ -17,15 +17,18 @@
 **v0.7.0 已加入自动任务、基础／轻量模式与首次模型配置引导；安装包功能以对应 Release 说明为准。**自动选择是基于可见内容的启发式推荐，不是对用户意图或识别准确率的保证。[完整规则、升级与验证边界](docs/AUTOMATIC_CAPTURE.md)
 
 <!-- screen-insight-videos:start -->
-## 先看两支视频
+## 软件介绍与设置视频下载
 
 **一键部署本机轻量大模型，让截图翻译、图片描述和参考提示词成为桌面常用能力。二维码由独立的本地解码器处理，不需要模型。**
 
 | 软件介绍 · 60 秒 | 首次设置 · 1 分 50 秒 |
 | --- | --- |
-| [![软件介绍](docs/videos/intro-poster.jpg)](docs/videos/screen-insight-intro-zh-CN.mp4) | [![首次设置教程](docs/videos/setup-poster.jpg)](docs/videos/screen-insight-setup-zh-CN.mp4) |
+| [![软件介绍](docs/videos/intro-poster.jpg)](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-intro-zh-CN.mp4) | [![首次设置教程](docs/videos/setup-poster.jpg)](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-setup-zh-CN.mp4) |
+| [下载介绍 MP4](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-intro-zh-CN.mp4) | [下载设置 MP4](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-setup-zh-CN.mp4) |
 
-Remotion 制作，1080p／30fps，中文字幕与原创配乐，无旁白。使用 v0.7.0 原生界面和合成示例；流程动画不是实测耗时。[播放／下载与源码](docs/videos/README.md) · [旧版升级与重启排障](docs/WINDOWS_UPGRADE.md)
+**点击封面或下方链接下载 MP4，再用本地播放器打开。GitHub 文件预览页不提供这两支视频的在线播放；“文件过大，无法显示”不代表视频损坏。**
+
+Remotion 制作，1080p／30fps，中文字幕与原创配乐，无旁白。使用 v0.7.0 原生界面和合成示例；流程动画不是实测耗时。[下载、播放说明与源码](docs/videos/README.md) · [旧版升级与重启排障](docs/WINDOWS_UPGRADE.md)
 
 <!-- screen-insight-videos:end -->
 

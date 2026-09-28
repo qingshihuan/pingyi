@@ -15,15 +15,18 @@ Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot recogniti
 **Version 0.7.0 includes automatic tasks, Basic / Lightweight modes and first-run model setup. Installed-package features depend on the corresponding Release notes.** Routing is a content-based heuristic, not a guarantee of user intent or recognition accuracy. [Rules, migration and verification limits](docs/AUTOMATIC_CAPTURE.md)
 
 <!-- screen-insight-videos:start -->
-## Watch the product and setup videos
+## Download the product and setup videos
 
 **One-click local model setup turns screenshot translation, image description and reference prompts into desktop actions. QR codes use a separate local decoder, not the model.**
 
 | Product introduction · 60 seconds | First-run guide · 1 minute 50 seconds |
 | --- | --- |
-| [![Product introduction](docs/videos/intro-poster.jpg)](docs/videos/screen-insight-intro-zh-CN.mp4) | [![First-run guide](docs/videos/setup-poster.jpg)](docs/videos/screen-insight-setup-zh-CN.mp4) |
+| [![Product introduction](docs/videos/intro-poster.jpg)](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-intro-zh-CN.mp4) | [![First-run guide](docs/videos/setup-poster.jpg)](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-setup-zh-CN.mp4) |
+| [Download introduction MP4](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-intro-zh-CN.mp4) | [Download setup MP4](https://github.com/qingshihuan/pingyi/raw/refs/heads/main/docs/videos/screen-insight-setup-zh-CN.mp4) |
 
-Made with Remotion: 1080p/30fps, Chinese captions and an original instrumental score, no voiceover. Native v0.7.0 UI with authored synthetic examples; process animations are not performance measurements. [Videos and editable source](docs/videos/README.md) · [Windows upgrade and restart guidance](docs/WINDOWS_UPGRADE.md)
+**Click a cover or download link to save the MP4, then open it in a local video player. The GitHub file preview is not an online player for these videos; its file-size warning does not mean the video is damaged.**
+
+Made with Remotion: 1080p/30fps, Chinese captions and an original instrumental score, no voiceover. Native v0.7.0 UI with authored synthetic examples; process animations are not performance measurements. [Downloads, playback instructions and source](docs/videos/README.md) · [Windows upgrade and restart guidance](docs/WINDOWS_UPGRADE.md)
 
 <!-- screen-insight-videos:end -->
 
