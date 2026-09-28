@@ -27,6 +27,12 @@ public sealed class JsonSettingsStore : ISettingsStore
             var root = document.RootElement;
             if (root.ValueKind == JsonValueKind.Null) return new AppSettings();
             var settings = root.Deserialize(PingYiJsonContext.Default.AppSettings) ?? new AppSettings();
+            // Source-generated JSON can supply CLR defaults for absent optional members.
+            // An explicit false is a user choice; an absent automatic-task flag is not.
+            settings = settings with
+            {
+                AutomaticCaptureEnabled = !root.TryGetProperty("automaticCaptureEnabled", out _) || settings.AutomaticCaptureEnabled
+            };
             // Existing JSON without a schema predates today's defaults. A missing file is
             // different: it is a new install and should offer Basic setup, not migrate it.
             var schema = root.TryGetProperty("schemaVersion", out var version) && version.TryGetInt32(out var value) ? value : 0;
