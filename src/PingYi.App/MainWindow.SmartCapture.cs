@@ -31,21 +31,19 @@ public partial class MainWindow
             hero.Children.Add(_modelSetupButton);
         }
         _translateCaptureButton.Click += async (_, _) => await CaptureImageAnalysisAsync(_translateCaptureButton, CapturePurpose.TranslateText);
-        _modelSetupButton.Click += async (_, _) => await ShowInitialSetupAsync(force: true);
+        _modelSetupButton.Click += async (_, _) => await ShowInitialSetupAsync(true);
         _automaticCaptureToggle.IsCheckedChanged += async (_, _) =>
         {
             if (_loadingAutomaticPreference) return;
             try
             {
-                if (_services is not null)
-                    await _services.SaveSettingsAsync(_services.Settings with { AutomaticCaptureEnabled = _automaticCaptureToggle.IsChecked == true });
+                if (_services is not null) await _services.SaveAutomaticCapturePreferenceAsync(_automaticCaptureToggle.IsChecked == true);
             }
             catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
             RefreshSmartCaptureUi();
         };
         RefreshSmartCaptureUi();
     }
-
     private void RefreshSmartCaptureUi()
     {
         _loadingAutomaticPreference = true;
@@ -75,7 +73,6 @@ public partial class MainWindow
         }
         finally { _loadingAutomaticPreference = false; }
     }
-
     private async Task ShowInitialSetupAsync(bool force = false)
     {
         if (_services is null || (!force && _services.Settings.InitialSetupCompleted)) return;

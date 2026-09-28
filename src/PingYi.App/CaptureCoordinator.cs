@@ -30,6 +30,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     public async Task StartCaptureAsync(IMainWindowShell? mainWindow, CapturePurpose purpose = CapturePurpose.Auto)
     {
         if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
+        if (services.IsInitialSetupActive) return;
         if (purpose == CapturePurpose.Auto && !services.Settings.AutomaticCaptureEnabled) purpose = CapturePurpose.TranslateText;
         var operation = BeginOperation();
         if (operation is null) return;
@@ -84,7 +85,6 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         }
         finally { if (enteredGate) _operationGate.Release(); EndOperation(operation); }
     }
-
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0) { await _disposeCompletion.Task; return; }
@@ -93,7 +93,6 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         try
         {
             foreach (var operation in operations) Cancel(operation);
-            // Wait for native work to leave its finally blocks before AppServices disposes it.
             await Task.WhenAll(operations.Select(operation => operation.Completion.Task));
             ResultWindow[] windows;
             lock (_operationSync)
@@ -111,12 +110,12 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         OperationContext operation;
         lock (_operationSync)
         {
-            if (Volatile.Read(ref _disposeState) != 0) return null;
+            if (Volatile.Read(ref _disposeState) != 0 || services.IsInitialSetupActive) return null;
             previous = _currentOperation;
             operation = new OperationContext(Interlocked.Increment(ref _nextOperationId), new CancellationTokenSource()) { TargetWindow = targetWindow };
             _currentOperation = operation; _operations.Add(operation);
         }
-        Cancel(previous); // Outside the lock: callbacks may marshal to the UI thread.
+        Cancel(previous);
         return operation;
     }
     private void EndOperation(OperationContext operation)
@@ -137,8 +136,9 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     { if (!IsCurrent(operation)) throw new OperationCanceledException(operation.Token); }
     private static void Cancel(OperationContext? operation)
     {
-        if (operation is null || operation.Cancellation.IsCancellationRequested) return;
-        try { operation.Cancellation.Cancel(); } catch (ObjectDisposedException) { }
+        if (operation is null) return;
+        try { if (!operation.Cancellation.IsCancellationRequested) operation.Cancellation.Cancel(); }
+        catch (ObjectDisposedException) { }
     }
     private ResultWindow GetResultWindow()
     {
@@ -166,7 +166,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         lock (_operationSync)
         {
             operation = _currentOperation;
-            _windowImages.Remove(window); // Closing ends this screenshot's in-memory session.
+            _windowImages.Remove(window);
             if (window.IsPinned)
             {
                 _pinnedWindows.Remove(window);
@@ -180,13 +180,13 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     private async Task RetrySelectionAsync(ResultWindow window, CapturePurpose? requestedPurpose = null)
     {
         if (!_windowImages.TryGetValue(window, out var image)) return;
-        var purpose = requestedPurpose ?? window.Purpose;
+        // A retry of an automatic result remains automatic, including its upload confirmation.
+        var purpose = requestedPurpose ?? window.RequestedPurpose;
         var operation = BeginOperation(window);
         if (operation is null) return;
         var entered = false;
         try
         {
-            // Supersede first; do not let a late previous result overwrite this manual choice.
             window.BeginPurpose(purpose);
             window.SetLoading(CaptureUiText.Preparing, CaptureUiText.LocalProbePrivacy);
             await _operationGate.WaitAsync(operation.Token);
@@ -227,13 +227,15 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
             return UiText.T("图片与文字发送到本机大模型服务 · 内容不离开设备");
         if (ocr.Location == ProviderExecutionLocation.Local && translation.Location == ProviderExecutionLocation.Local)
             return UiText.T("全程本地处理 · 内容不离开设备");
+        var destination = !local && (ocr.Location == ProviderExecutionLocation.Configurable || translation.Location == ProviderExecutionLocation.Configurable)
+            ? $"\n{settings.CustomTranslationEndpoint}\n{settings.CustomTranslationModel}" : "";
         if (ocr.UploadsImage)
-            return UiText.IsEnglish
+            return (UiText.IsEnglish
                 ? $"The selected image is sent to {UiText.ProviderName(ocr.Id, ocr.DisplayName)}; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
-                : $"所选图片将发送给 {ocr.DisplayName}；文字将发送给 {translation.DisplayName}";
-        return UiText.IsEnglish
+                : $"所选图片将发送给 {ocr.DisplayName}；文字将发送给 {translation.DisplayName}") + destination;
+        return (UiText.IsEnglish
             ? $"The image is recognized locally; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
-            : $"图片在本地识别；文字将发送给 {translation.DisplayName}";
+            : $"图片在本地识别；文字将发送给 {translation.DisplayName}") + destination;
     }
     private sealed class OperationContext(long id, CancellationTokenSource cancellation)
     {
