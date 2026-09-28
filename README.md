@@ -1,155 +1,122 @@
 <p align="center">
-  <img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="截屏释义 图标">
+  <img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="截屏释义图标">
 </p>
-
 <h1 align="center">截屏释义</h1>
-
-<p align="center"><strong>框选屏幕，提取文字，读懂内容。</strong></p>
-<p align="center">离线优先的截图翻译与图片理解工具 · Windows / Ubuntu · MIT 开源</p>
-
-<p align="center">
-  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
-</p>
-
+<p align="center"><strong>一次截图，读懂内容。</strong></p>
+<p align="center">自动选择文字翻译、图片描述或二维码解析 · 本机模型优先 · Windows / Ubuntu</p>
+<p align="center"><a href="README.md">简体中文</a> · <a href="README.en.md">English</a></p>
 <p align="center">
   <a href="https://github.com/qingshihuan/pingyi/releases/latest"><img src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag" alt="最新正式版"></a>
   <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg?branch=main" alt="主线 CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0f766e" alt="MIT License"></a>
 </p>
+<p align="center"><a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>下载正式版</strong></a> · <a href="#quick-start">快速开始</a> · <a href="#docs">使用与开发文档</a> · <a href="https://github.com/qingshihuan/pingyi/issues">反馈问题</a></p>
 
-<p align="center">
-  <a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>下载正式版</strong></a> ·
-  <a href="#quick-start">快速开始</a> ·
-  <a href="#docs">使用与开发文档</a> ·
-  <a href="https://github.com/qingshihuan/pingyi/issues">反馈问题</a>
-</p>
+截屏释义（原 PingYi／屏译）是一款桌面截图识别工具。点击“一键识别”并框选屏幕，软件先在本地检查文字与二维码，再选择文字翻译、图片描述或二维码解析。判断不明确时由你选择；结果窗口始终保留手动任务切换，使用同一张截图，无需重新框选。
 
-截屏释义（原 PingYi／屏译）是一款桌面截图 OCR 与翻译工具。无需切换到浏览器或手动上传文件，框选屏幕上的文字即可识别、翻译和复制；连接兼容的视觉模型后，还能描述图片、生成相似画面的参考提示词。
-
-**当前开发方向（2026-09-28）：**浏览器插件暂时冻结开发，保留现有插件与桌面连接接口；后续优先完善桌面端。新增“解析二维码”：框选屏幕中的二维码，在本地解析并复制内容，HTTP/HTTPS 网址可一键交给默认浏览器打开。无需 OCR、模型或 API，支持中文、旋转、反色和同一截图中的多个二维码。[使用与验证说明](docs/DESKTOP_QR.md)
-
-**中英基础 OCR 与翻译可离线运行，无需独立显卡。**正式安装包包含基础模型及应用运行时，不需要另装 Python 或 .NET。图片理解和大模型增强是可选能力，需要另行配置或下载兼容模型。
+**当前源码新增自动任务、基础／轻量模式与首次模型配置引导；已发布安装包的功能以对应 Release 说明为准。**自动选择是基于可见内容的启发式推荐，不是对用户意图或识别准确率的保证。[完整规则、升级与验证边界](docs/AUTOMATIC_CAPTURE.md)
 
 <a id="download"></a>
 ## 下载与安装
 
-前往 **[GitHub Releases 最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)**，展开 **Assets**，选择系统对应的程序包。普通用户下载下面的安装包，不要把 GitHub 自动生成的 `Source code` 源码压缩包当作安装包。
+前往 **[GitHub Releases 最新正式版](https://github.com/qingshihuan/pingyi/releases/latest)**，展开 **Assets** 并选择程序包；GitHub 自动生成的 `Source code` 是源码，不是安装程序。
 
-**从 v0.6.0 起仅提供完全版，停止构建和发布标准版。**完全版包含离线 OCR、中英基础翻译、外部模型与云服务连接，以及内置 llama.cpp CPU / Vulkan 运行时和模型下载管理。程序包统一使用 `PingYi-Complete-` 前缀。
+从 v0.6.0 起仅分发完全版，文件名前缀为 `PingYi-Complete-`。Windows 10/11 x64 提供 `*-win-x64-setup.exe` 与便携 ZIP；Ubuntu 22.04+ x64 提供 DEB 与 tar.gz。共 4 个程序包，附 `SHA256SUMS.txt`。DEB 声明系统图形库等依赖，安装缺失依赖时可能需要联网。
 
-**Windows 10/11 x64：**选择 `*-win-x64-setup.exe` 安装程序，或 `*-win-x64.zip` 便携包。安装程序会创建开始菜单和桌面快捷方式。
+安装包包含应用运行时、轻量 OCR／中英翻译模型，以及 llama.cpp CPU／Vulkan 运行时；不需要另装 Python 或 .NET。**大模型权重不在安装包内**，由用户在引导页选择下载。基础／轻量是软件内的处理模式，不是两个安装版本，也不会改变现有完全版数据目录。旧标准版数据留在原目录，不会自动迁移或删除。
 
-**Ubuntu 22.04+ x64：**选择 `*-linux-x64.deb`，或解压 `*-linux-x64.tar.gz`。Linux 仍需要系统图形库等依赖；DEB 会声明系统依赖，安装缺失依赖时可能需要联网。X11 与 Wayland 的截图方式不同，见下方说明。
-
-完全版**不附带大模型权重**，首次使用增强能力需要下载模型；离线基础功能不受影响。每次正式发布提供 4 个程序包及 `SHA256SUMS.txt`。沿用原完全版的安装与数据目录，已有完全版配置可直接继续使用；旧标准版数据保留在原目录，不会自动迁移或删除，切换后需在完全版中重新配置服务与凭据。
-
-> 请仅从本仓库 Releases 下载，并核对 SHA-256。Windows 的未签名构建可能触发 SmartScreen 提示；校验和用于核对下载文件，不替代代码签名。
+> 请仅从本仓库 Releases 下载并核对 SHA-256。未签名 Windows 构建可能触发 SmartScreen；校验和核对文件完整性，不替代代码签名。
 
 <a id="quick-start"></a>
-## 三步开始使用
+## 首次使用
 
-1. **启动截屏释义。**首次使用保留本地 OCR 与中英离线翻译方案，无需配置 API Key。
-2. **选择屏幕区域。**点击“开始截图”，或使用下表中的快捷键；Wayland 会显示系统截图／授权界面。
-3. **读取并复制结果。**在结果卡中复制原文、译文或全部内容，也可重试、固定结果卡；按 Esc 可取消框选。
+1. **选择处理模式。**首次打开软件显示模型配置引导：可一键下载并配置基础模式，连接已有本机服务，或选择“暂不下载，使用轻量模式”。没有点击下载就不会自动下载大模型。
+2. **框选屏幕。**点击“一键识别”或按截图快捷键。正常探测到文字时进入翻译，二维码可直接在本地解码；文字与二维码混合或证据不足时显示任务选择。
+3. **查看或改选结果。**随时切换为文字翻译、图片描述、二维码解析或手动提示词反推。切换会取消前一任务，复用原截图，防止旧结果覆盖新选择。关闭结果窗口结束这张截图的会话。
 
-| 桌面环境 | 默认截图入口 |
+| 处理模式 | 识别与翻译 | 使用条件 |
+| --- | --- | --- |
+| **基础模式（新安装默认）** | 本地自定义大模型 OCR → 本地自定义大模型翻译 | 支持图片输入的本机模型及视觉组件；可由引导页一键配置 |
+| **轻量模式** | PaddleOCR → Argos Translate | 安装包内的中英基础模型，无需下载大模型或独立显卡 |
+| **其他组合** | PaddleOCR＋大模型翻译、百度或自定义提供商组合 | 根据选择配置模型或云端凭据；不会标为本机基础模式 |
+
+已删除“PaddleOCR＋大模型纠错”和“视觉纠错”方案。**基础模式直接把截图交给视觉模型转录，不先生成 PaddleOCR 初稿让模型纠正。**自动任务判断仍可使用本地 PaddleOCR 探测文字；这是分流步骤，不是纠错链。选择轻量模式后，图片描述仍需要另外配置视觉模型。
+
+引导页展示模型下载量、许可、来源与设备提示。点击下载后才从魔搭获取并校验模型，启动本机服务，以固定合成图片和短句检查 OCR／翻译接口，成功后保存基础模式配置。取消或失败不标记配置完成，可重试或使用轻量模式；已下载部分保留以便续传。该连接检查不代表真实截图准确率或所有设备性能已验收。
+
+已有配置升级时保留原 OCR／翻译选择、端点、模型、语言和快捷键；只有旧纠错 OCR ID 迁移为直接视觉 OCR，不强制覆盖其他偏好。主界面的“模型配置引导”可随时重新打开。
+
+### 截图与自定义快捷键
+
+| 桌面 | 默认入口 |
 | --- | --- |
-| Windows | `Ctrl+Alt+D`，或主界面截图按钮 |
-| Linux X11 | `Ctrl+Shift+D`，或主界面截图按钮 |
-| Linux Wayland | 主界面截图按钮；全局快捷键需在桌面系统中绑定截图命令 |
+| Windows | `Ctrl+Alt+D` 或主界面按钮 |
+| Linux X11 | `Ctrl+Shift+D` 或主界面按钮 |
+| Linux Wayland | 主界面按钮；系统全局快捷键需在桌面键盘设置中绑定截图命令 |
 
-### 自定义快捷键
+主界面“自动判断任务”可关闭，关闭后主按钮／默认快捷键直接执行文字翻译；手动翻译、图片描述、二维码和提示词入口始终保留。
 
-打开 **设置 → 外观与启动**，手动输入组合，或点击 **“录入快捷键…”** 后按下组合，使用 **Enter 确认、Esc 取消**。点击 **“保存并应用”** 后生效；**“恢复默认”** 同样需要保存。
-
-支持 `Ctrl`、`Alt`、`Shift` 中至少一个修饰键，加一个 `A–Z` 字母或主键盘 `0–9` 数字；暂不支持 Super、功能键和小键盘键。录入期间暂停截屏释义自己的原生全局绑定，结束后恢复已保存的组合。新键注册失败时会尝试恢复原绑定，并显示错误；仍可使用截图按钮。
-
-全局快捷键可能与系统、其他应用或个人设置重叠，不能保证任意组合都无冲突。已有自定义组合与旧默认值的升级处理，见 [Linux 截图与快捷键说明](docs/LINUX_CAPTURE.md)。
+在 **设置 → 外观与启动** 手动输入快捷键，或点击“录入快捷键…”后按组合，Enter 确认、Esc 取消，最后“保存并应用”。恢复默认同样需要保存。支持 Ctrl／Alt／Shift 中至少一个修饰键加 A–Z 或主键盘 0–9；不支持 Super、功能键和小键盘键。录入期间暂停软件自身的原生绑定，结束后恢复保存的组合；注册冲突会提示并尝试恢复旧键。
 
 ### Ubuntu Wayland
 
-Wayland 使用 **XDG Screenshot portal**，不读取 XWayland 根窗口。Ubuntu GNOME 需要 `xdg-desktop-portal` 及匹配的桌面后端（通常为 `xdg-desktop-portal-gnome`）。
-
-**软件内保存快捷键只是保存偏好，不代表系统已完成绑定。**请复制设置页提供的截图命令，到系统 **键盘 → 自定义快捷键** 中绑定同一组合。截屏释义不会自动改写桌面快捷键；系统占用的组合可能无法被录入窗口捕获，此时可手动输入并在系统中调整。详见 [依赖、排障与验证边界](docs/LINUX_CAPTURE.md)。
+Wayland 使用公开 XDG Screenshot portal，不读取 XWayland 根窗口；需要 `xdg-desktop-portal` 和匹配后端（Ubuntu GNOME 通常为 `xdg-desktop-portal-gnome`）。应用内保存快捷键只是偏好，不是系统注册成功。复制设置页的截图命令，在系统 **键盘 → 自定义快捷键** 中显式绑定；软件不会覆盖桌面绑定。其他程序与个人配置可能占用相同组合。[Linux 依赖与排障](docs/LINUX_CAPTURE.md)
 
 <a id="features"></a>
-## 浏览器插件（开发版）
+## 桌面能力
 
-**开发已冻结。**保留现有功能与本机 Native Messaging／命名管道连接，不新增插件功能或推进商店上架。桌面二维码功能独立实现，不改变插件协议；连接不会开放 TCP 监听端口。
+**自动任务与手动纠正。**一次框选可用于翻译、描述或二维码；含多个二维码时可选择结果。二维码不需要大模型或 API，解码不会自动打开网址，只有明确点击才交给浏览器。[二维码说明](docs/DESKTOP_QR.md)
 
-新增 **Chrome / Edge 网页翻译插件**，复用正在运行的截屏释义所选翻译与 OCR 服务，包括本地 Argos、本机大模型、Google / 百度及自定义 API。支持自动检测语言、双语对照或仅译文、网页翻译、Alt 悬停、划词浮标/右键翻译、圈选截图 OCR 和面板文本翻译。
+**直接视觉 OCR 和翻译。**支持 llama.cpp、Ollama、LM Studio、vLLM 等兼容 Chat Completions 服务。基础模式仅接受本机回环端点；远程端点归入自定义组合。识别质量与语言范围取决于所选模型。轻量模式继续提供中英离线兜底。
 
-源码与加载目录为 [`browser-extension/`](browser-extension/README.md)。桌面 v0.6.0 起保留连接能力；插件和原生连接组件仍需单独构建、注册，正式桌面安装包不会自动安装它们。**[构建、注册与使用说明](browser-extension/README.md)**。连接仅走当前用户的本机命名管道，不开放网络端口；正文和截图只在内存中处理，不把 API 密钥复制到浏览器。远程文字翻译需授权，远程 OCR 每张截图单独确认。
+**图片描述与提示词。**需要兼容 `image_url` 的视觉模型，文字模型不能替代。“反推提示词”是手动任务，生成相似画面的参考描述，不恢复原始提示词、种子或生成参数。[图片分析说明](docs/IMAGE_ANALYSIS.md)
 
-桌面与插件共用蓝色主题和定稿图标，插件随系统切换浅色／深色。已有插件连接新版桌面时选择“完全版”；旧版连接协议保留兼容。
-
-插件适用于普通网页；浏览器内部页面、内置 PDF 查看器与跨域 iframe 不支持正文翻译。基础 Argos 仍限中英，更多语言依赖所选服务。每次最多处理当前已加载正文的 200 段，可停止并恢复原文；内嵌译文可被网页自身读取。具体限制与验证见插件文档。
-
-## 能做什么
-
-- **从屏幕提取与翻译文字。**识别图片、视频字幕、软件界面和不可复制网页中的文字；内置 PaddleOCR 与 Argos Translate 提供中英离线基础能力。
-- **按需要增强识别与翻译。**连接 llama.cpp、Ollama、LM Studio、vLLM 或其他兼容 Chat Completions 的服务；选择直接视觉 OCR、PaddleOCR 加视觉纠错或大模型翻译，效果与语言范围取决于模型。
-- **理解没有文字的图片。**“描述图片”生成内容说明，“反推提示词”生成相似画面的参考描述；需要支持 `image_url` 的视觉模型，不会恢复原始提示词或生成参数。
-- **保持桌面操作简洁。**统一主界面、独立分类设置、中英文切换、浅深色主题、托盘常驻和可复用结果卡；支持多显示器框选，具体桌面与混合 DPI 组合仍需实机验证。
+**桌面交互。**中英文切换、浅深色主题、独立分类设置、托盘与可复用结果卡。支持多显示器框选，具体混合 DPI、输入法和桌面环境仍需实机验证。
 
 <details>
-<summary>查看早期工作流演示</summary>
+<summary>早期工作流演示</summary>
 
-<p align="center">
-  <img src="docs/demo.gif" width="800" alt="截屏释义早期版本的截图、OCR 与翻译工作流演示">
-</p>
+<p align="center"><img src="docs/demo.gif" width="800" alt="早期版本的截图 OCR 与翻译演示"></p>
 
-这段演示用于说明操作流程，界面与快捷键来自早期版本，不代表当前布局或 Linux 默认键。当前用法以上文为准；界面回归截图可在 [CI 工件](https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml) 中查看。
+演示来自旧版本，不能代表当前界面、处理模式或 Linux 默认键。当前用法以上文为准。
 
 </details>
 
 <a id="models"></a>
 ## 本机模型与云服务
 
-**完全版管理本机模型：**进入 **设置 → 本地模型**，选择目录中的模型和后端，再点击“一键下载并配置”。下载支持断点续传与文件完整性校验。自动后端先尝试 Vulkan，失败时回退 CPU；显式选择 Vulkan 则报告错误而不自动切换。实际内存、显存需求与速度取决于模型和设备，以软件内目录及实测为准。
+**本机模型：**首次引导或 **设置 → 本地模型** 可下载、配置。自动后端优先尝试 Vulkan，失败时回退 CPU；显式选 Vulkan 时不自动切换。下载量和设备提示见软件目录，速度与内存需求以实际设备为准，不承诺所有模型适用于所有硬件。
 
-**已有本机服务：**在 **设置 → 自定义接口** 中连接兼容端点，填写模型名称及服务要求的凭据。图片分析必须使用视觉模型并加载其视觉组件，仅支持文字的模型不能替代。完全版已应用的本机模型按需启动，不在打开主界面时预加载大模型。
+**已有服务：**在 **设置 → 自定义接口** 填写本机兼容端点、模型名和所需凭据，确认模型支持视觉输入。模型配置之后按需加载；切换自动任务开关不会主动启动大模型。
 
-**可选云端服务：**在 **设置 → 云端服务** 配置自己的 Google Cloud 或百度凭据，再在 **识别与翻译** 中选择提供商。OCR 与翻译提供商可分别选择，服务开通、配额和费用由用户自己的账户承担。自定义接口只允许本机回环地址使用 HTTP，非回环地址必须使用 HTTPS。
-
-图片任务的模型要求、上传确认和输出限制见 [图片分析说明](docs/IMAGE_ANALYSIS.md)；资源回收及性能测量口径见 [性能说明](docs/PERFORMANCE.md)。
+**可选云服务：**在 **设置 → 云端服务** 配置自己的 Google Cloud 或百度凭据，并在识别与翻译中分别选择提供商。费用、配额和服务条款由用户自己的账户承担。非回环自定义端点必须使用 HTTPS，不能用明文 HTTP 传输截图或文字。
 
 <a id="privacy"></a>
-## 数据去向与隐私
+## 数据去向
 
-| 处理方式 | 数据发送到哪里 |
+| 场景 | 数据边界 |
 | --- | --- |
-| 默认本地 OCR 与 Argos 翻译 | 在本机处理，推理过程不需要联网 |
-| 本机模型增强 | 将对应文字或所选图片交给配置的本机服务；外部服务的联网与留存行为由其自身配置决定 |
-| 远程 OCR／远程图片分析 | 将所选截图发送给选定的服务 |
-| 远程文字翻译 | 将识别后的文字发送给选定的服务，不等于上传整张截图 |
+| 自动任务探测、二维码、轻量 OCR／翻译 | 本机处理，探测不访问云端、不下载模型 |
+| 基础模式／本机模型 | 图片和文字交给配置的本机服务；独立模型服务的日志和联网行为取决于其自身设置 |
+| 自动选择了远程 OCR 或翻译 | 执行前单独确认本次数据去向；拒绝不发送 |
+| 远程图片描述／提示词 | 每次请求及重试确认接收端点与模型，不沿用文字翻译授权 |
 
-截屏释义默认不建立截图、识别正文、译文或图片分析的持久历史；日志不记录这些内容或密钥。凭据使用 Windows DPAPI 或 Linux Secret Service 处理，不写入普通 `settings.json`。
+截图、文字、分析结果及二维码载荷不写入历史或日志；同图切换的探测缓存仅保留在内存会话中。凭据使用 Windows DPAPI 或 Linux Secret Service，不写入普通设置文件。自动更新检查默认关闭；明确下载模型、主动检查更新及使用远程服务会联网。
 
-每次远程图片分析（含重试）发送前会单独确认接收端点和模型，文字翻译的上传许可不自动授权图片上传。模型下载、主动检查更新／开启自动更新检查、使用远程服务时会联网；自动更新检查默认关闭。
+系统与外部服务有独立的留存边界：Wayland 门户可能创建截图文件，软件仅清理临时目录副本，不保证删除桌面保存到其他位置的文件；远程和自行部署服务也可能记录请求。
 
-**系统与外部服务仍有各自的数据边界。**Wayland 门户可能创建截图文件，截屏释义只清理临时目录中的门户副本；系统保存到其他目录的文件不保证由截屏释义删除。远程服务和自行部署的模型服务有各自的日志与留存设置。
+## 浏览器插件：开发冻结
 
-<a id="limits"></a>
-## 兼容范围与限制
-
-正式分发面向 **Windows 10/11 x64** 与 **Ubuntu 22.04+ x64**。X11 使用应用框选层，Wayland 使用系统截图门户并由桌面管理全局快捷键。macOS、ARM、其他 Linux 发行版不在当前声明的正式支持范围内。
-
-内置基础模型面向简体中文与英文；更多语言、视觉识别及图片理解依赖所选服务或模型。OCR 与模型输出可能出错，需要核对。当前不提供实时覆盖翻译、PDF／图片批处理、表格／公式专项识别或持久历史记录。
-
-CI 覆盖 Windows／Ubuntu 构建、单元与界面测试，并在隔离的 Xvfb／D-Bus 环境执行 Linux 原生检查。**自动化通过不代表所有真实 GNOME／Wayland、多屏、输入法或显卡配置均已验收。**
+保留已有 Chrome／Edge 插件及桌面 Native Messaging／当前用户命名管道连接，不新增插件功能，不推进商店上架，也不开放 TCP 监听。插件及原生连接组件仍需单独构建和注册，桌面安装包不会自动安装插件。API 密钥不复制到浏览器，远程 OCR 每张图片单独确认。插件已有正文、选区与悬停翻译等功能及网页限制，以 [插件文档](browser-extension/README.md) 为准；本次不修改插件协议。
 
 <a id="docs"></a>
-## 使用与开发文档
+## 使用、开发与验证
 
-[Linux 截图与快捷键](docs/LINUX_CAPTURE.md) · [图片分析](docs/IMAGE_ANALYSIS.md) · [质量基线](docs/QUALITY_BASELINE.md) · [性能与资源](docs/PERFORMANCE.md)
+[自动任务与首次引导](docs/AUTOMATIC_CAPTURE.md) · [Linux 截图](docs/LINUX_CAPTURE.md) · [二维码](docs/DESKTOP_QR.md) · [图片分析](docs/IMAGE_ANALYSIS.md) · [性能](docs/PERFORMANCE.md) · [质量基线](docs/QUALITY_BASELINE.md) · [版本记录](docs/releases)
 
-[界面设计与验收](docs/UI_WORKSPACE.md) · [可靠性说明](docs/RELIABILITY_OPTIMIZATION.md) · [版本记录](docs/releases) · [贡献指南](CONTRIBUTING.md) · [安全策略](SECURITY.md)
+正式平台范围为 Windows 10/11 x64 和 Ubuntu 22.04+ x64。macOS、ARM 及其他 Linux 发行版不在当前声明的正式支持范围内。当前不包含实时覆盖翻译、PDF／图片批处理、表格／公式专项识别或持久历史。自动分流、OCR 和模型输出可能错误，请使用手动切换并核对结果。
 
-<a id="development"></a>
-### 从源码运行
-
-开发需要 **.NET 10 SDK**；修改或运行 Argos 独立翻译引擎时需要 **Python 3.13**。下面的命令在仓库根目录执行：
+开发需要 .NET 10 SDK；独立 Argos 引擎需要 Python 3.13。在仓库根目录执行：
 
 ```sh
 dotnet restore PingYi.slnx
@@ -157,12 +124,12 @@ dotnet build PingYi.slnx
 dotnet run --project src/PingYi.App/PingYi.App.csproj
 ```
 
-源码构建与正式安装包不同：基础模型和独立翻译引擎需要另外准备。`--settings` 可直接打开设置；`--capture` 支持首次启动截图或向已有实例转发命令。
+源码构建需要另行准备模型、翻译引擎和 llama.cpp；缺少 llama.cpp 时引导禁用下载配置，仍可选择已有本机服务或轻量模式。`--settings` 打开设置，`--capture` 从首次或已有实例发起截图。
 
 <details>
-<summary>展开引擎准备、测试与打包命令</summary>
+<summary>测试与打包命令</summary>
 
-Windows 使用 `scripts/setup-engine.ps1`，Linux 使用 `scripts/setup-engine.sh` 准备翻译引擎环境。本地 OCR 本身不依赖 Python，但需要可用的 OCR 模型。
+Windows 使用 `scripts/setup-engine.ps1`，Linux 使用 `scripts/setup-engine.sh` 准备翻译环境。本地 PaddleOCR 不依赖 Python，但需要模型。
 
 ```sh
 dotnet test PingYi.slnx
@@ -171,9 +138,7 @@ python -m unittest discover -s scripts -p "test_*.py"
 python scripts/download-offline-models.py --destination artifacts/model-source
 ```
 
-Windows 中没有 `python` 命令时可使用已配置的 `py -3`。模型准备会联网；不要提交模型文件或本地配置。
-
-Windows 打包示例（PowerShell，读取仓库版本标记）：
+模型准备会联网，Windows 可用已配置的 `py -3` 替代 `python`。完全版打包示例（PowerShell）：
 
 ```powershell
 $version = (Get-Content .github/release-version.txt -Raw).Trim()
@@ -184,16 +149,14 @@ python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifact
   -LlamaRuntimeSource artifacts/llama-runtime/win-x64 -BuildInstaller
 ```
 
-Inno Setup 不在默认路径时传入 `-InnoCompiler`。离线质量检查使用 `scripts/run-quality-baseline.ps1 -ModelDirectory <已准备的离线模型目录>`；分发前须执行质量基线与许可证审计，完整跨平台流程以 [Release 工作流](.github/workflows/release.yml) 为准。
+Inno Setup 非默认位置可传 `-InnoCompiler`；质量基线使用 `scripts/run-quality-baseline.ps1 -ModelDirectory <模型目录>`。可选签名参数为 `-SigningCertificateThumbprint` 与 `-TimestampUrl`，仓库机密名为 `PINGYI_SIGNING_CERTIFICATE_BASE64` 和 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`。不要提交模型、截图、凭据或证书。
 
-Windows 发布支持可选 `-SigningCertificateThumbprint` 和 `-TimestampUrl`。CI 可使用仓库机密 `PINGYI_SIGNING_CERTIFICATE_BASE64` 与 `PINGYI_SIGNING_CERTIFICATE_PASSWORD`；不要把证书或密码提交到仓库。
-
-发布由 `v*` 标签，或 `main` 上 `.github/release-version.txt` 的版本变更触发，并读取对应的 `docs/releases/v<版本>.md`。工作流通过双平台测试、构建、全部 4 个完全版程序包核验后生成 Release 和校验和；已有标签指向其他提交时拒绝覆盖。普通 README 修改不更新版本或触发此发布入口。
+发布仅由版本标签或 `.github/release-version.txt` 的主线变更触发；双平台构建、测试、4 个 Complete 包核验和许可证审计通过后发布。现有标签指向其他提交时不得覆盖。此次功能开发不自动修改版本或替换已有 Release。[完整工作流](.github/workflows/release.yml)
 
 </details>
 
-## 参与贡献与许可
+自动化包括纯策略、配置迁移、合成模型响应、界面和隔离 Xvfb／D-Bus 原生检查；**不等于真实模型准确率、物理 GNOME／Wayland、多屏或所有显卡已验收**。
 
-欢迎提交 Bug、OCR 失败场景、翻译反馈和 Pull Request。提交前请阅读 [贡献指南](CONTRIBUTING.md)；不要上传私人截图、正文或凭据，安全问题按 [安全策略](SECURITY.md) 报告。
+## 贡献与许可
 
-截屏释义源码采用 **[MIT License](LICENSE)**。模型及第三方组件保留各自许可，详见 [第三方声明](THIRD_PARTY_NOTICES.md)；正式程序包的 `licenses/` 目录包含实际分发组件的许可证与清单。
+欢迎通过 Issue／PR 反馈，先阅读 [贡献指南](CONTRIBUTING.md) 与 [安全策略](SECURITY.md)，不要上传私人截图、识别正文或凭据。源码采用 [MIT License](LICENSE)，模型和第三方组件保留各自许可，见 [第三方声明](THIRD_PARTY_NOTICES.md) 及成品 `licenses/` 清单。

@@ -1,149 +1,120 @@
-<p align="center">
-  <img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="Screen Insight icon">
-</p>
-
+<p align="center"><img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="Screen Insight icon"></p>
 <h1 align="center">Screen Insight</h1>
-
-<p align="center"><strong>Select a screen region. Extract text. Understand what you see.</strong></p>
-<p align="center">Offline-first screenshot translation and image understanding · Windows / Ubuntu · MIT licensed</p>
-
-<p align="center">
-  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a>
-</p>
-
+<p align="center"><strong>One capture. Understand the content.</strong></p>
+<p align="center">Automatic translation, image description or QR decoding · Local models first · Windows / Ubuntu</p>
+<p align="center"><a href="README.md">简体中文</a> · <a href="README.en.md">English</a></p>
 <p align="center">
   <a href="https://github.com/qingshihuan/pingyi/releases/latest"><img src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag" alt="Latest stable release"></a>
   <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg?branch=main" alt="Main branch CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0f766e" alt="MIT License"></a>
 </p>
+<p align="center"><a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>Download</strong></a> · <a href="#quick-start">Quick start</a> · <a href="#docs">Documentation</a> · <a href="https://github.com/qingshihuan/pingyi/issues">Report an issue</a></p>
 
-<p align="center">
-  <a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>Download</strong></a> ·
-  <a href="#quick-start">Quick start</a> ·
-  <a href="#docs">Documentation</a> ·
-  <a href="https://github.com/qingshihuan/pingyi/issues">Report an issue</a>
-</p>
+Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot recognition tool. Select **Smart capture** and a screen region. Local text and QR probes recommend translation, image description or QR decoding. Uncertain or mixed content asks for your choice; manual actions remain available on the same image without another capture.
 
-Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot OCR and translation app. Select text on your screen to recognize, translate and copy it, without switching to a browser or manually uploading a file. Connect a compatible vision model to describe images or create reference prompts for visually similar scenes.
-
-**Development focus (2026-09-28):** browser extension development is frozen while the existing extension and desktop bridge remain available. Desktop QR decoding now reads selected screen regions locally, supports copying decoded content, and offers an explicit default-browser action for HTTP/HTTPS URLs. It needs no OCR engine, model or API. See [usage and verification](docs/DESKTOP_QR.md).
-
-**Basic Chinese-English OCR and translation work offline, without a discrete GPU.** Release packages include the baseline models and application runtimes; a separate Python or .NET installation is not required. Image understanding and LLM enhancement are optional and require a separately configured or downloaded compatible model.
+**The current source adds automatic tasks, Basic / Lightweight modes and first-run model setup. Installed-package features depend on the corresponding Release notes.** Routing is a content-based heuristic, not a guarantee of user intent or recognition accuracy. [Rules, migration and verification limits](docs/AUTOMATIC_CAPTURE.md)
 
 <a id="download"></a>
 ## Download and install
 
-Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/releases/latest)**, expand **Assets**, and choose your platform. Use the application packages, not GitHub's automatically generated `Source code` archives.
+Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/releases/latest)** and expand **Assets**. Download an application package, not GitHub's generated `Source code` archive.
 
-**Starting with v0.6.0, Complete is the only supported edition; Standard is no longer built or released.** It includes offline OCR and Chinese-English translation, external model and cloud connections, llama.cpp CPU / Vulkan runtimes, and model download management. All application packages use the `PingYi-Complete-` prefix.
+Since v0.6.0, Complete is the only distributed edition, using the `PingYi-Complete-` prefix. Windows 10/11 x64 has an installer and portable ZIP; Ubuntu 22.04+ x64 has DEB and tar.gz. Four packages are accompanied by `SHA256SUMS.txt`. Installing missing Linux system libraries may require internet access.
 
-**Windows 10/11 x64:** choose the `*-win-x64-setup.exe` installer or a portable `*-win-x64.zip`. The installer creates Start Menu and desktop shortcuts.
+Packages include the application runtimes, lightweight Chinese/English OCR and translation models, and llama.cpp CPU / Vulkan runtimes; separate Python or .NET installation is unnecessary. **LLM weights are not bundled.** Basic and Lightweight are in-app processing modes, not separate installers, and do not change Complete's data directories. Legacy Standard data is neither migrated nor deleted automatically.
 
-**Ubuntu 22.04+ x64:** choose a `*-linux-x64.deb` or extract a `*-linux-x64.tar.gz`. Linux still needs system graphics libraries and other dependencies; DEB packages declare them, and installing missing dependencies may require internet access. X11 and Wayland use different capture paths, explained below.
-
-Complete **does not bundle LLM weights**: download a model before using its enhancement features. Offline essentials remain available. Each stable release provides four application packages, plus `SHA256SUMS.txt`. Existing Complete installations keep their installation and data directories. Legacy Standard data is not migrated or deleted; configure services and credentials again when switching to Complete.
-
-> Download only from this repository's Releases and verify SHA-256 checksums. Unsigned Windows builds may trigger SmartScreen. A checksum verifies file integrity; it is not a substitute for code signing.
+> Download only from this repository's Releases and verify SHA-256 checksums. Unsigned Windows builds may trigger SmartScreen; checksums verify file integrity, not code signing.
 
 <a id="quick-start"></a>
-## Start in three steps
+## First run
 
-1. **Open Screen Insight.** Keep local OCR and Chinese-English offline translation selected for your first run. No API key is needed.
-2. **Select a screen region.** Choose **Start capture**, or use the shortcut below. Wayland opens the system screenshot / permission dialog.
-3. **Read and copy.** Copy the source, translation or both from the result card. Retry or pin the card when needed; Escape cancels region selection.
+1. **Choose a mode.** The first-run guide offers an explicit one-click Basic model download, an existing local service, or **Skip download · use Lightweight**. Opening the app alone does not download a large model.
+2. **Capture a region.** Select Smart capture or use the capture shortcut. Text is routed to translation, decoded QR content can be shown locally, and mixed or uncertain content asks you to choose.
+3. **Read or override.** Switch to translation, description, QR decoding or manual prompt reconstruction using the same image. Switching cancels the previous operation and prevents its late result from replacing your choice. Closing the result ends that screenshot session.
 
-| Desktop | Default capture entry |
+| Mode | OCR and translation | Requirements |
+| --- | --- | --- |
+| **Basic — new-install default** | Local custom vision OCR → local custom model translation | A local image-capable model with vision components; one-click setup is available |
+| **Lightweight** | PaddleOCR → Argos Translate | Bundled Chinese/English baseline models; no LLM download or discrete GPU needed |
+| **Other combinations** | PaddleOCR with LLM translation, Baidu, or custom providers | Configure the chosen model or credentials; remote services are not labelled local Basic |
+
+The **PaddleOCR + model correction** provider and **Visual correction** mode are removed. **Basic transcribes the screenshot directly with a vision model; it does not send a PaddleOCR draft for correction.** Automatic task detection can still use local PaddleOCR to inspect text; that is routing, not a correction pass. Image description still requires a vision model when Lightweight is selected.
+
+The setup guide shows download size, license, source and hardware guidance. Only clicking Download fetches and verifies weights from ModelScope, starts the local runtime, and checks OCR / translation using a fixed synthetic image and short phrase. Settings are committed after success. Failed or cancelled setup is not marked complete; retry or choose Lightweight. Partial downloads are retained for resuming. These connection checks are not a real-world OCR accuracy or hardware benchmark.
+
+Upgrades preserve the selected providers, endpoint, model, language and shortcut. The removed correction OCR ID migrates to direct vision OCR; unrelated preferences are not overwritten. **Model setup** on the home screen reopens the guide.
+
+### Capture shortcuts
+
+| Desktop | Default entry |
 | --- | --- |
-| Windows | `Ctrl+Alt+D`, or the capture button |
-| Linux X11 | `Ctrl+Shift+D`, or the capture button |
-| Linux Wayland | The capture button; bind a global shortcut to the capture command in desktop settings |
+| Windows | `Ctrl+Alt+D` or the capture button |
+| Linux X11 | `Ctrl+Shift+D` or the capture button |
+| Linux Wayland | Capture button; bind the provided command in desktop keyboard settings |
 
-### Customize your shortcut
+Turn **Auto task** off to make the main button / default shortcut perform text translation. Manual Translate, Describe, Prompt and QR actions remain available.
 
-Open **Settings → Appearance & startup**. Type a combination, or choose **Record shortcut…**, press the combination, then use **Enter to confirm or Escape to cancel**. Select **Save and apply** to activate the change. **Restore default** also requires saving.
-
-Supported combinations contain at least one of `Ctrl`, `Alt` or `Shift`, plus one `A–Z` letter or top-row `0–9` digit. Super, function and keypad keys are not supported. Recording temporarily suspends Screen Insight's own native global binding, then restores the saved combination. Failed registration attempts to restore the previous binding and reports the error; button capture remains available.
-
-Global shortcuts can overlap with system, application or personal bindings. No combination is guaranteed conflict-free. See [Linux capture and shortcuts](docs/LINUX_CAPTURE.md) for conflicts and migration of custom combinations versus previous defaults.
+Under **Settings → Appearance & startup**, type a combination or choose **Record shortcut…**. Enter confirms, Escape cancels, and **Save and apply** activates the choice. Restore default also requires saving. Supported combinations contain Ctrl / Alt / Shift and one A–Z or top-row 0–9 key, not Super, function or keypad keys. Recording suspends the app's native binding and restores the saved combination afterwards. Registration conflicts are reported and attempt to restore the previous binding.
 
 ### Ubuntu Wayland
 
-Wayland capture uses the **XDG Screenshot portal**, not the XWayland root window. Ubuntu GNOME requires `xdg-desktop-portal` and a matching backend, typically `xdg-desktop-portal-gnome`.
-
-**Saving a shortcut in Screen Insight stores a preference, not a system binding.** Copy the capture command from Settings and bind the same combination under your desktop's **Keyboard → Custom Shortcuts**. Screen Insight does not rewrite system shortcuts. An existing system binding can intercept recording; enter the combination manually and adjust desktop settings instead. See [dependencies, troubleshooting and validation limits](docs/LINUX_CAPTURE.md).
+Wayland uses the public XDG Screenshot portal, not the XWayland root window. It requires `xdg-desktop-portal` and a matching backend, typically `xdg-desktop-portal-gnome` on Ubuntu GNOME. Saving a preferred key inside the app is not system registration. Copy the capture command into desktop **Keyboard → Custom Shortcuts**; Screen Insight does not overwrite desktop bindings. Other applications and personal settings can use the same combination. [Linux dependencies and troubleshooting](docs/LINUX_CAPTURE.md)
 
 <a id="features"></a>
-## Browser extension (development build)
+## Desktop capabilities
 
-The new Chrome / Edge extension reuses the running Screen Insight desktop app's translation and OCR providers. It supports automatic source-language detection, bilingual or translation-only pages, Alt-hover, selection/context-menu translation, region screenshot OCR, and text translation. Its blue theme and approved icon match the desktop app, with light/dark appearance following the system. Existing Complete settings and model directories remain compatible. See [build, registration and installation instructions](browser-extension/README.md).
+**Automatic tasks, manual correction.** One region can be translated, described or decoded. Multiple QR results are selectable. QR decoding needs neither OCR nor a model / API; URLs are opened only after an explicit click. [QR details](docs/DESKTOP_QR.md)
 
-Desktop v0.6.0 includes the bridge, but desktop installers do not install the extension or register its native host. Select Complete in an existing extension. Development of the extension remains frozen. Communication uses current-user named pipes, with no listening HTTP port or copied API keys. Content is not persisted. Remote text requires consent; remote OCR requires separate consent for each selected image. Ordinary web pages are supported; protected browser pages, built-in PDF viewers and cross-origin frame text are excluded. Each operation handles up to 200 loaded paragraphs; dynamic content requires another operation. Inline translations become part of the page DOM and can be read by the website.
+**Direct vision OCR and translation.** Connect llama.cpp, Ollama, LM Studio, vLLM or compatible Chat Completions services. Basic requires a loopback endpoint; remote endpoints remain custom combinations. Language coverage and recognition quality depend on the model. Lightweight retains the offline Chinese/English fallback.
 
-## What Screen Insight does
+**Image description and prompts.** An `image_url`-capable model is required; a text-only model cannot substitute. Prompt reconstruction is manual, creating a reference for a similar scene rather than recovering the original prompt, seed or generation settings. [Image analysis](docs/IMAGE_ANALYSIS.md)
 
-- **Extract and translate screen text.** Read text from images, video subtitles, application windows and non-selectable pages. Bundled PaddleOCR and Argos Translate provide offline Chinese-English essentials.
-- **Add models when you need them.** Connect llama.cpp, Ollama, LM Studio, vLLM or another compatible Chat Completions service. Choose direct vision OCR, PaddleOCR with visual correction, or LLM translation; quality and language coverage depend on the model.
-- **Understand images without text.** **Describe image** explains the content; **Reconstruct prompt** creates a reference description for a similar scene. These require an `image_url`-capable vision model and do not recover the original prompt or generation settings.
-- **Keep the desktop workflow simple.** One home screen, separate categorized settings, English / Chinese UI, light / dark themes, a tray icon and a reusable result card. Multi-monitor selection is supported; particular desktop and mixed-DPI configurations still need real-device validation.
+**Desktop controls.** English / Chinese UI, light / dark themes, separate categorized settings, tray controls and reusable result cards. Multi-monitor selection is supported, but specific mixed-DPI, input-method and desktop combinations require real-device validation.
 
 <details>
-<summary>Watch the early workflow demo</summary>
+<summary>Early workflow demo</summary>
 
-<p align="center">
-  <img src="docs/demo.gif" width="800" alt="Early PingYi workflow demo showing capture, OCR and translation">
-</p>
+<p align="center"><img src="docs/demo.gif" width="800" alt="An earlier screenshot OCR and translation workflow"></p>
 
-This recording illustrates the workflow using an earlier interface and shortcut configuration. It is not a preview of the current layout or Linux default key; follow the instructions above. UI regression snapshots are available in [CI artifacts](https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml).
+This older demo does not represent the current layout, processing modes or Linux default shortcut. Follow the instructions above.
 
 </details>
 
 <a id="models"></a>
-## Local models and cloud services
+## Models and cloud services
 
-**Manage models in Complete:** open **Settings → Local models**, select a catalog model and backend, then **Download and configure**. Downloads support resuming and integrity checks. Auto tries Vulkan first and falls back to CPU; explicitly selecting Vulkan reports failure rather than switching automatically. Memory requirements and speed depend on the model and device; consult the in-app catalog and test your configuration.
+**Managed local models:** use the first-run guide or **Settings → Local models**. Auto tries Vulkan and falls back to CPU; explicit Vulkan does not automatically switch. Consult the catalog's size and hardware guidance and test your own device; model speed and memory needs are not guaranteed.
 
-**Connect an existing local server:** use compatible endpoints under **Settings → Custom endpoint**. Enter the model name and any credentials required by the server. Image analysis needs a vision model with its vision components loaded; a text-only model cannot replace it. An applied managed model starts on demand rather than preloading when the home screen opens.
+**Existing services:** configure your compatible endpoint, model and credentials under **Settings → Custom endpoint**, and ensure the model can accept images. Configured managed models load on demand. Toggling automatic task selection does not itself start an LLM.
 
-**Use optional cloud providers:** add your own Google Cloud or Baidu credentials under **Settings → Cloud services**, then select providers under **Recognition & translation**. OCR and translation can use different providers. Service enablement, quotas and billing belong to your account. Custom endpoints may use HTTP only on loopback addresses; non-loopback endpoints must use HTTPS.
-
-See [image analysis](docs/IMAGE_ANALYSIS.md) for model requirements, upload confirmation and output limits, and [performance](docs/PERFORMANCE.md) for resource policies and measurement boundaries.
+**Optional cloud providers:** configure your Google Cloud or Baidu credentials under **Cloud services** and select OCR and translation providers independently. Fees, quotas and terms belong to your account. Non-loopback custom endpoints require HTTPS.
 
 <a id="privacy"></a>
-## Where your data goes
+## Data boundaries
 
-| Processing mode | Destination |
+| Operation | Where data goes |
 | --- | --- |
-| Default local OCR and Argos translation | Processed on the device; inference does not need the network |
-| Local model enhancement | Relevant text or the selected image goes to the configured local service; that service controls its own network and retention behavior |
-| Remote OCR / remote image analysis | The selected screenshot goes to the chosen service |
-| Remote text translation | Recognized text goes to the chosen service; this is not the same as uploading the screenshot |
+| Automatic probes, QR, Lightweight OCR / translation | On-device processing; probing neither contacts cloud providers nor downloads models |
+| Basic / local model | Relevant text or image goes to the configured local service; an independent server controls its own logging and network behavior |
+| Automatically selected remote OCR or translation | Explicit confirmation of this request's data destination before execution; refusal sends nothing |
+| Remote description / prompt reconstruction | Each request and retry confirms endpoint and model, independently of text-translation permission |
 
-Screen Insight does not create persistent screenshot, recognized-text, translation or image-analysis history by default. Logs exclude this content and secrets. Credentials use Windows DPAPI or Linux Secret Service rather than ordinary `settings.json` storage.
+Screenshots, OCR text, translations, analysis and QR payloads are not written to history or logs. Probe reuse is confined to the in-memory screenshot session. Credentials use Windows DPAPI or Linux Secret Service, not ordinary settings JSON. Automatic update checks default off; explicit model downloads, update checks and remote services use the network.
 
-Every remote image-analysis request, including retries, separately confirms the destination and model before sending. Text-translation permission does not authorize image uploads. Model downloads, manually checking for updates / enabling automatic update checks, and remote services use the network. Automatic update checks are off by default.
+The operating system and external services have their own retention boundaries. Wayland portals may create screenshot files; the app cleans temporary-directory copies but does not guarantee deletion of files saved elsewhere by the desktop. Independently configured local and remote servers may retain requests.
 
-**The operating system and external services have their own data boundaries.** Wayland portals may create screenshot files; Screen Insight cleans up portal copies in temporary directories, but does not guarantee deletion of files the desktop saves elsewhere. Remote providers and independently configured model servers have their own logging and retention settings.
+## Browser extension: development frozen
 
-<a id="limits"></a>
-## Compatibility and limits
-
-Official packages target **Windows 10/11 x64** and **Ubuntu 22.04+ x64**. X11 uses application selection overlays; Wayland uses the system screenshot portal and desktop-managed global shortcuts. macOS, ARM and other Linux distributions are outside the currently declared official support scope.
-
-Bundled baseline models target Simplified Chinese and English. Additional languages, visual OCR and image understanding depend on the selected service or model. OCR and model output can be wrong and should be checked. Live translation overlays, PDF / image batch processing, specialized table / formula recognition and persistent history are not currently included.
-
-CI covers Windows / Ubuntu builds, unit and UI tests, plus native Linux checks on isolated Xvfb / D-Bus sessions. **Passing automation does not certify every real GNOME / Wayland, multi-monitor, input-method or graphics configuration.**
+Existing Chrome / Edge functionality and the Native Messaging / current-user named-pipe bridge remain available, without new extension features, store submission work or a TCP listener. The extension and native host still need separate building / registration; the desktop installer does not install them. API keys are not copied to the browser and remote OCR requires per-image approval. Existing page, selection and hover translation features and webpage restrictions are documented in [the extension guide](browser-extension/README.md). This change does not alter its protocol.
 
 <a id="docs"></a>
-## Documentation
+## Documentation and development
 
-[Linux capture and shortcuts](docs/LINUX_CAPTURE.md) · [Image analysis](docs/IMAGE_ANALYSIS.md) · [Quality baseline](docs/QUALITY_BASELINE.md) · [Performance and resources](docs/PERFORMANCE.md)
+[Automatic capture and onboarding](docs/AUTOMATIC_CAPTURE.md) · [Linux capture](docs/LINUX_CAPTURE.md) · [QR decoding](docs/DESKTOP_QR.md) · [Image analysis](docs/IMAGE_ANALYSIS.md) · [Performance](docs/PERFORMANCE.md) · [Quality baseline](docs/QUALITY_BASELINE.md) · [Release notes](docs/releases)
 
-[UI design and validation](docs/UI_WORKSPACE.md) · [Reliability](docs/RELIABILITY_OPTIMIZATION.md) · [Release notes](docs/releases) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+Official platform scope is Windows 10/11 x64 and Ubuntu 22.04+ x64, not macOS, ARM or every Linux distribution. Live translation overlays, batch PDF / image processing, specialized table / formula recognition and persistent history are not included. Routing, OCR and model output can be wrong; use manual selection and check results.
 
-<a id="development"></a>
-### Run from source
-
-Development requires the **.NET 10 SDK**; working on or running the standalone Argos engine also requires **Python 3.13**. Run these commands from the repository root:
+Development requires .NET 10 SDK; the standalone Argos engine needs Python 3.13. Run from the repository root:
 
 ```sh
 dotnet restore PingYi.slnx
@@ -151,12 +122,12 @@ dotnet build PingYi.slnx
 dotnet run --project src/PingYi.App/PingYi.App.csproj
 ```
 
-Unlike release packages, a source build needs baseline models and the standalone translation engine prepared separately. `--settings` opens Settings; `--capture` starts capture on first launch or forwards the command to an existing instance.
+Source builds need models, the translation engine and llama.cpp prepared separately. Without bundled llama.cpp, the guide disables managed downloads while keeping existing-service and Lightweight choices. `--settings` opens Settings; `--capture` starts capture on first launch or forwards it to the running instance.
 
 <details>
-<summary>Engine setup, testing and packaging commands</summary>
+<summary>Tests and packaging</summary>
 
-Use `scripts/setup-engine.ps1` on Windows or `scripts/setup-engine.sh` on Linux to prepare the translation environment. Local OCR itself does not depend on Python, but needs usable OCR models.
+Prepare the translation environment with `scripts/setup-engine.ps1` on Windows or `scripts/setup-engine.sh` on Linux. PaddleOCR does not need Python but does need models.
 
 ```sh
 dotnet test PingYi.slnx
@@ -165,9 +136,7 @@ python -m unittest discover -s scripts -p "test_*.py"
 python scripts/download-offline-models.py --destination artifacts/model-source
 ```
 
-On Windows, use your configured `py -3` launcher when `python` is unavailable. Model preparation uses the network. Do not commit model weights or local settings.
-
-Windows packaging example in PowerShell, reading the repository's version marker:
+Model preparation uses the network. A configured Windows `py -3` launcher can replace `python`. Complete packaging example in PowerShell:
 
 ```powershell
 $version = (Get-Content .github/release-version.txt -Raw).Trim()
@@ -178,16 +147,14 @@ python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifact
   -LlamaRuntimeSource artifacts/llama-runtime/win-x64 -BuildInstaller
 ```
 
-Pass `-InnoCompiler` when Inno Setup is outside the default path. Run the offline quality check with `scripts/run-quality-baseline.ps1 -ModelDirectory <prepared-offline-model-directory>`. Distribution requires the quality baseline and license audit; see the [Release workflow](.github/workflows/release.yml) for the complete cross-platform process.
+Use `-InnoCompiler` for a non-default Inno Setup path. Quality checks use `scripts/run-quality-baseline.ps1 -ModelDirectory <model-directory>`. Optional signing parameters are `-SigningCertificateThumbprint` / `-TimestampUrl`; CI secret names are `PINGYI_SIGNING_CERTIFICATE_BASE64` / `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Never commit models, screenshots, credentials or certificates.
 
-Windows publishing accepts optional `-SigningCertificateThumbprint` and `-TimestampUrl`. CI can use repository secrets `PINGYI_SIGNING_CERTIFICATE_BASE64` and `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Never commit certificates or passwords.
-
-A `v*` tag, or a version change to `.github/release-version.txt` on `main`, triggers publishing with the corresponding `docs/releases/v<version>.md`. The workflow generates the Release and checksums after both platform builds, tests and all four Complete package validations succeed. It refuses to replace an existing tag pointing at another commit. An ordinary README edit does not change the version or trigger this release entry point.
+Publishing is triggered by a version tag or a main-branch change to `.github/release-version.txt`, after cross-platform builds, tests, four Complete package checks and license auditing. Existing tags pointing at another commit are not replaced. This feature work does not itself change the release version. [Release workflow](.github/workflows/release.yml)
 
 </details>
 
+Automation includes pure routing, migrations, synthetic model responses, UI and isolated Xvfb / D-Bus checks; **it is not real-model accuracy, physical GNOME / Wayland, multi-monitor or GPU certification**.
+
 ## Contributing and license
 
-Bug reports, OCR failure scenarios, translation feedback and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Do not upload private screenshots, text or credentials; report security issues according to [SECURITY.md](SECURITY.md).
-
-Screen Insight source is licensed under **[MIT](LICENSE)**. Models and third-party components retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). Each application package includes a `licenses/` directory with the applicable license texts and manifest.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before reporting issues or submitting changes. Do not upload private screenshots, text or credentials. Source is [MIT licensed](LICENSE); models and dependencies retain their own terms, documented in [third-party notices](THIRD_PARTY_NOTICES.md) and each package's `licenses/` manifest.

@@ -162,3 +162,11 @@ The approved blue, orange, white and black icon is derived from the project's ex
 ## Offline QR decoding (2026-09-28)
 
 Desktop QR decoding adds [ZXing.Net 0.16.11](https://www.nuget.org/packages/ZXing.Net/0.16.11), licensed under Apache-2.0 ([upstream project and license](https://github.com/micjahn/ZXing.Net)). Its managed decoder consumes pixels from the existing SkiaSharp image pipeline; no System.Drawing binding, camera framework, model, external service or new native runtime is added. The release license collector discovers the NuGet package and includes its license text. QR screenshots and decoded payloads stay in memory and are not logged or saved. Only an explicit click sends an HTTP/HTTPS URL to the operating system's default browser. Synthetic test QR codes contain example text or local loopback URLs. The frozen browser extension and its protocol are unchanged.
+
+## Automatic capture, Basic / Lightweight modes and first-run setup
+
+Automatic task routing reuses the bundled PaddleOCR and ZXing.Net components for local content probes. This is not the removed PaddleOCR-draft correction provider: direct vision OCR never receives probe text as a correction draft. Basic uses a user-configured local vision / translation model; Lightweight retains the existing PaddleOCR / Argos path. These are application modes, not new package variants. Existing offline models, dependencies, license texts and data directories remain in place.
+
+First-run setup downloads model weights only after an explicit user action, using the existing pinned ModelScope catalog and its verification / resumable-download implementation. Existing model terms above apply. Connection checks use project-authored synthetic text and images, not user screenshots, clipboard content or credentials in logs. No new production package, font, image asset, runtime or telemetry service is introduced.
+
+Automatic remote processing adds per-request confirmation and immutable provider configuration snapshots. Decoded QR links never open automatically. Screenshot and probe reuse is confined to in-memory sessions; no persistent content history or keyboard recording is added. The frozen browser extension and its wire protocol are not modified by this work. Synthetic UI and routing tests do not establish real-model accuracy or physical-desktop compatibility.
