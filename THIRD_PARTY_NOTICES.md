@@ -170,3 +170,9 @@ Automatic task routing reuses the bundled PaddleOCR and ZXing.Net components for
 First-run setup downloads model weights only after an explicit user action, using the existing pinned ModelScope catalog and its verification / resumable-download implementation. Existing model terms above apply. Connection checks use project-authored synthetic text and images, not user screenshots, clipboard content or credentials in logs. No new production package, font, image asset, runtime or telemetry service is introduced.
 
 Automatic remote processing adds per-request confirmation and immutable provider configuration snapshots. Decoded QR links never open automatically. Screenshot and probe reuse is confined to in-memory sessions; no persistent content history or keyboard recording is added. The frozen browser extension and its wire protocol are not modified by this work. Synthetic UI and routing tests do not establish real-model accuracy or physical-desktop compatibility.
+
+## Remotion documentation videos
+
+The two v0.7.0 documentation videos use Remotion 4.0.506 with React, TypeScript and FFmpeg as isolated development tools in `media/remotion/`. Remotion retains its own license (https://www.remotion.dev/license); this does not relicense Remotion under the repository MIT license. No Remotion dependency is included in the desktop app or its installer.
+
+The video layouts, synthesized instrumental score and illustrative text are project-authored. UI frames are rendered from actual Avalonia controls with synthetic inputs, never private screenshots, model outputs or credentials. Existing approved Screen Insight artwork is reused. Noto CJK font family names select runner-installed fonts; no font files are committed or distributed. Videos have burned-in Chinese subtitles plus SRT files, and no spoken voiceover. See `docs/videos/SOURCES.md` for provenance and limitations.
