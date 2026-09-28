@@ -5,18 +5,10 @@ namespace PingYi.Infrastructure;
 
 public sealed class JsonSettingsStore : ISettingsStore
 {
-    // Bound the lock registry while coordinating independent store instances.
-    // Hash collisions only serialize unrelated settings files; no files are mixed.
-    private static readonly SemaphoreSlim[] FileGates = Enumerable.Range(0, 32)
-        .Select(_ => new SemaphoreSlim(1, 1))
-        .ToArray();
+    private static readonly SemaphoreSlim[] FileGates = Enumerable.Range(0, 32).Select(_ => new SemaphoreSlim(1, 1)).ToArray();
     private readonly string _settingsFile;
     private readonly SemaphoreSlim _gate;
-
-    public JsonSettingsStore(AppDataPaths paths) : this(paths.SettingsFile)
-    {
-    }
-
+    public JsonSettingsStore(AppDataPaths paths) : this(paths.SettingsFile) { }
     public JsonSettingsStore(string settingsFile)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(settingsFile);
@@ -24,40 +16,37 @@ public sealed class JsonSettingsStore : ISettingsStore
         var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         _gate = FileGates[(int)((uint)comparer.GetHashCode(_settingsFile) % (uint)FileGates.Length)];
     }
-
     public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            // In-process stores for this path share a gate. Delete sharing also
-            // avoids holding an unnecessary replacement lock for external tools.
-            await using var stream = new FileStream(
-                _settingsFile,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete,
-                4096,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
-            var settings = await JsonSerializer.DeserializeAsync(
-                stream,
-                PingYiJsonContext.Default.AppSettings,
-                cancellationToken);
-            return (settings ?? new AppSettings()).Normalize();
+            await using var stream = new FileStream(_settingsFile, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Null) return new AppSettings();
+            var settings = root.Deserialize(PingYiJsonContext.Default.AppSettings) ?? new AppSettings();
+            // Existing JSON without a schema predates today's defaults. A missing file is
+            // different: it is a new install and should offer Basic setup, not migrate it.
+            var schema = root.TryGetProperty("schemaVersion", out var version) && version.TryGetInt32(out var value) ? value : 0;
+            if (schema < 11)
+            {
+                settings = settings with
+                {
+                    SchemaVersion = schema,
+                    OcrProviderId = root.TryGetProperty("ocrProviderId", out _) ? settings.OcrProviderId : "local-paddle",
+                    TranslationProviderId = root.TryGetProperty("translationProviderId", out _) ? settings.TranslationProviderId : "local-argos"
+                };
+            }
+            return settings.Normalize();
         }
-        catch (Exception exception) when (
-            exception is JsonException or FileNotFoundException or DirectoryNotFoundException)
+        catch (Exception error) when (error is JsonException or FileNotFoundException or DirectoryNotFoundException)
         {
-            // A missing or malformed file is recoverable; permission and other
-            // I/O failures must still be visible instead of silently resetting.
-            return new AppSettings();
+            return new AppSettings(); // Permission and other I/O failures remain visible.
         }
-        finally
-        {
-            _gate.Release();
-        }
+        finally { _gate.Release(); }
     }
-
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -67,25 +56,13 @@ public sealed class JsonSettingsStore : ISettingsStore
         {
             cancellationToken.ThrowIfCancellationRequested();
             Directory.CreateDirectory(Path.GetDirectoryName(_settingsFile)!);
-            // Keep the replacement on the same filesystem and avoid collisions
-            // even when independent store instances save concurrently.
             temporaryPath = _settingsFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            await using (var stream = new FileStream(
-                temporaryPath,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                4096,
-                FileOptions.Asynchronous))
+            await using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write,
+                FileShare.None, 4096, FileOptions.Asynchronous))
             {
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    settings.Normalize(),
-                    PingYiJsonContext.Default.AppSettings,
-                    cancellationToken);
+                await JsonSerializer.SerializeAsync(stream, settings.Normalize(), PingYiJsonContext.Default.AppSettings, cancellationToken);
                 await stream.FlushAsync(cancellationToken);
             }
-
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, _settingsFile, overwrite: true);
             temporaryPath = null;
@@ -94,16 +71,9 @@ public sealed class JsonSettingsStore : ISettingsStore
         {
             if (temporaryPath is not null)
             {
-                try
-                {
-                    File.Delete(temporaryPath);
-                }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-                {
-                    // Do not mask the original save/cancellation failure.
-                }
+                try { File.Delete(temporaryPath); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             }
-
             _gate.Release();
         }
     }
