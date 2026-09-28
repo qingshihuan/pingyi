@@ -58,6 +58,7 @@ public sealed partial class AppServices : IAsyncDisposable
             [CustomTranslationProvider, ArgosProvider, BaiduTranslationProvider, GoogleTranslationProvider]);
     }
 
+    public bool IsShuttingDown => Volatile.Read(ref _disposeState) != 0;
     public AppDataPaths Paths { get; }
     public ISettingsStore SettingsStore { get; }
     public ISecretStore SecretStore { get; }
@@ -240,25 +241,35 @@ public sealed partial class AppServices : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0) { await _disposeCompletion.Task; return; }
+        Exception? failure = null;
         try
         {
-            // Cancel transitions before waiting: a model download may otherwise hold a gate indefinitely.
-            _lifetime.Cancel();
-            if (_browserBridge is not null) await _browserBridge.DisposeAsync();
-            await _settingsTransitionGate.WaitAsync();
-            try
-            {
-                var previous = InvalidateManagedRuntimeStartup();
-                CancelAndRelease(previous.Cancellation, previous.Task);
-                await previous.Task;
-                await HotkeyService.DisposeAsync();
-                await ManagedModels.DisposeAsync();
-                await Engine.DisposeAsync();
-                await PaddleProvider.DisposeAsync();
-                _httpClient.Dispose(); _imageAnalysisClient.Dispose();
-            }
-            finally { _settingsTransitionGate.Release(); }
+            // Start owned runtime termination before waiting for browser/settings gates or UI teardown.
+            // Native ONNX disposal retains its own inference lock; it is not freed during Run().
+            await ShutdownWork.RunAllAsync(
+                () => _lifetime.CancelAsync(),
+                () => ManagedModels.DisposeAsync().AsTask(),
+                async () =>
+                {
+                    var previous = InvalidateManagedRuntimeStartup();
+                    CancelAndRelease(previous.Cancellation, previous.Task);
+                    await previous.Task;
+                },
+                () => _browserBridge?.DisposeAsync().AsTask() ?? Task.CompletedTask,
+                () => HotkeyService.DisposeAsync().AsTask(),
+                () => Engine.DisposeAsync().AsTask(),
+                () => PaddleProvider.DisposeAsync().AsTask(),
+                async () => { await _settingsTransitionGate.WaitAsync(); _settingsTransitionGate.Release(); },
+                async () => { await _initialModelGate.WaitAsync(); _initialModelGate.Release(); });
         }
-        finally { Volatile.Write(ref _disposeState, 2); _disposeCompletion.TrySetResult(); }
+        catch (Exception error) { failure = error; }
+        finally
+        {
+            _httpClient.Dispose(); _imageAnalysisClient.Dispose();
+            Volatile.Write(ref _disposeState, 2);
+            if (failure is null) _disposeCompletion.TrySetResult();
+            else _disposeCompletion.TrySetException(failure);
+        }
+        await _disposeCompletion.Task;
     }
 }

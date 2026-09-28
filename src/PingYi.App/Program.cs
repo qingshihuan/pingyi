@@ -44,6 +44,8 @@ class Program
         }
         finally
         {
+            // The dispatcher may already have stopped; this path never needs UI continuations.
+            PingYi.Infrastructure.OwnedProcessScope.TerminateAllAtExit(TimeSpan.FromSeconds(4));
             App.SingleInstance = null;
             if (diagnostic is not null) AppDomain.CurrentDomain.FirstChanceException -= diagnostic;
         }

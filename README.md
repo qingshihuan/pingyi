@@ -176,3 +176,10 @@ Inno Setup 非默认位置可传 `-InnoCompiler`；质量基线使用 `scripts/r
 ## 贡献与许可
 
 欢迎通过 Issue／PR 反馈，先阅读 [贡献指南](CONTRIBUTING.md) 与 [安全策略](SECURITY.md)，不要上传私人截图、识别正文或凭据。源码采用 [MIT License](LICENSE)，模型和第三方组件保留各自许可，见 [第三方声明](THIRD_PARTY_NOTICES.md) 及成品 `licenses/` 清单。
+
+## 退出与显存释放
+
+点击主窗口底部或托盘的 **“退出并释放资源”**，停止截屏释义及由它启动的模型后端，等待进程结束后退出。
+关闭主窗口到托盘仍会保留后台运行，不等于退出。外部自行运行的 Ollama／LM Studio 等服务不会被误关，
+模型文件与设置不会删除。显存由操作系统与驱动在后端退出后回收，不保证显卡总占用归零。
+[退出行为、后端所有权与验证范围](docs/RUNTIME_SHUTDOWN.md)。这部分为源码改动，安装包以对应 Release 为准。

@@ -27,6 +27,7 @@ public sealed partial class AppServices
     public async Task ConfigureInitialModelAsync(ManagedMultimodalModel model, string backend,
         IProgress<ManagedModelProgress> progress, CancellationToken token)
     {
+        ObjectDisposedException.ThrowIf(IsShuttingDown, this);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         var cancellation = lifetime.Token;
         await _initialModelGate.WaitAsync(cancellation);
@@ -86,7 +87,7 @@ public sealed partial class AppServices
         {
             // An uncommitted model must not remain running after Skip/Cancel. A previous
             // managed configuration is retained and can start again on its next request.
-            if (attemptedStart && Settings == before)
+            if (attemptedStart && Settings == before && !IsShuttingDown)
             {
                 try { await ManagedModels.StopAsync(_lifetime.Token); }
                 catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }

@@ -40,6 +40,7 @@ public sealed class ManagedModelService : IAsyncDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<string> _recentServerErrors = new();
     private Process? _ownedProcess;
+    private OwnedProcessScope? _ownedProcessScope;
     private Task[] _outputReaders = [];
     private string? _runningModelId;
     private string? _runningBackendId;
@@ -525,15 +526,9 @@ public sealed class ManagedModelService : IAsyncDisposable
         startInfo.ArgumentList.Add("--no-webui");
         startInfo.ArgumentList.Add("--log-disable");
 
-        var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-        if (!process.Start())
-        {
-            process.Dispose();
-            throw new InvalidOperationException("llama.cpp 进程未能启动。");
-        }
-
-        // Own the process before starting readers, so a reader setup failure is cleaned up.
-        _ownedProcess = process;
+        // No backend is allowed to outlive our ownership just because startup/teardown failed.
+        _ownedProcessScope = OwnedProcessScope.Start(startInfo);
+        var process = _ownedProcess = _ownedProcessScope.Process;
         _outputReaders = [
             ManagedServerDiagnostics.DrainAsync(process.StandardOutput, _recentServerErrors),
             ManagedServerDiagnostics.DrainAsync(process.StandardError, _recentServerErrors)
@@ -596,43 +591,14 @@ public sealed class ManagedModelService : IAsyncDisposable
 
     private async Task StopOwnedProcessCoreAsync()
     {
-        var process = _ownedProcess;
-        if (process is null) return;
-        var stopped = false;
-        try
-        {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                using var stopDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                try { await process.WaitForExitAsync(stopDeadline.Token); }
-                catch (OperationCanceledException) when (process.HasExited) { }
-                catch (OperationCanceledException)
-                {
-                    // Keep ownership and abort fallback rather than starting a second server.
-                    throw new TimeoutException("旧模型进程未能及时退出，请退出截屏释义后重试。");
-                }
-            }
-            stopped = true;
-        }
-        catch (InvalidOperationException)
-        {
-            // The process already ended between checks.
-            stopped = true;
-        }
-        finally
-        {
-            if (stopped)
-            {
-                _ownedProcess = null;
-                _runningModelId = null;
-                _runningBackendId = null;
-                process.Dispose();
-                try { await Task.WhenAll(_outputReaders).WaitAsync(TimeSpan.FromSeconds(2)); }
-                catch (TimeoutException) { }
-                _outputReaders = [];
-            }
-        }
+        if (_ownedProcessScope is null) return; // An externally connected service is never owned.
+        await _ownedProcessScope.StopAsync();
+        _ownedProcessScope = null;
+        _ownedProcess = null;
+        _runningModelId = _runningBackendId = null;
+        try { await Task.WhenAll(_outputReaders).WaitAsync(TimeSpan.FromSeconds(2)); }
+        catch (TimeoutException) { }
+        _outputReaders = [];
     }
 
     private string BuildServerErrorMessage(Exception? exception)
@@ -657,27 +623,23 @@ public sealed class ManagedModelService : IAsyncDisposable
             await _disposeCompletion.Task;
             return;
         }
-
+        Exception? failure = null;
         try
         {
-            _lifetime.Cancel();
+            await _lifetime.CancelAsync();
             await _operationGate.WaitAsync();
-            try
-            {
-                await StopOwnedProcessCoreAsync();
-                _downloadClient.Dispose();
-                _probeClient.Dispose();
-            }
-            finally
-            {
-                _operationGate.Release();
-            }
+            try { await StopOwnedProcessCoreAsync(); }
+            finally { _operationGate.Release(); }
         }
+        catch (Exception error) { failure = error; }
         finally
         {
+            _downloadClient.Dispose(); _probeClient.Dispose();
             Volatile.Write(ref _disposeState, 2);
-            _disposeCompletion.TrySetResult();
+            if (failure is null) _disposeCompletion.TrySetResult();
+            else _disposeCompletion.TrySetException(failure);
         }
+        await _disposeCompletion.Task;
     }
 
     private sealed record RuntimeCandidate(string ExecutablePath, bool IsGpu);

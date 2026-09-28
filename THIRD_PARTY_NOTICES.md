@@ -176,3 +176,11 @@ Automatic remote processing adds per-request confirmation and immutable provider
 The two v0.7.0 documentation videos use Remotion 4.0.506 with React, TypeScript and FFmpeg as isolated development tools in `media/remotion/`. Remotion retains its own license (https://www.remotion.dev/license); this does not relicense Remotion under the repository MIT license. No Remotion dependency is included in the desktop app or its installer.
 
 The video layouts, synthesized instrumental score and illustrative text are project-authored. UI frames are rendered from actual Avalonia controls with synthetic inputs, never private screenshots, model outputs or credentials. Existing approved Screen Insight artwork is reused. Noto CJK font family names select runner-installed fonts; no font files are committed or distributed. Videos have burned-in Chinese subtitles plus SRT files, and no spoken voiceover. See `docs/videos/SOURCES.md` for provenance and limitations.
+
+## Owned backend shutdown
+
+Backend lifecycle management reuses .NET process APIs and Windows Job Objects. It adds no runtime
+package, device driver, executable, font or telemetry dependency. It stops only processes started
+by this application, never scans other applications by process name or GPU. Lifecycle tests use
+synthetic child processes and the existing CI Python interpreter. No GPU reset or external-model
+service shutdown API is called; user data, model files and credentials remain untouched.

@@ -133,12 +133,14 @@
       </StackPanel>
     </ScrollViewer>
     <Border Grid.Row="2" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="32,12,32,16">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
         <Border x:Name="LiveStatusDot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
         <StackPanel Grid.Column="1" Spacing="2">
           <TextBlock x:Name="LiveStatusTitleText" Text="{DynamicResource Text.1bd1893c0900}" Classes="workspace-label" FontSize="12"/>
           <TextBlock x:Name="LiveStatusDetailText" Text="{DynamicResource Text.a27e6084e439}" Classes="workspace-help" FontSize="11" LineHeight="17" MaxHeight="51" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
         </StackPanel>
+        <Button Grid.Column="2" x:Name="ExitApplicationButton" Classes="toolbar-action"
+                MinHeight="32" Padding="12,6" VerticalAlignment="Center" Click="ExitApplication_OnClick"/>
       </Grid>
     </Border>
   </Grid>
