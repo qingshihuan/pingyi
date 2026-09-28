@@ -1,0 +1,24 @@
+{
+  "name": "screen-insight-videos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chinese product and first-run videos for Screen Insight v0.7.0",
+  "scripts": {
+    "studio": "remotion studio src/index.tsx --no-open",
+    "typecheck": "tsc --noEmit",
+    "render:promo": "remotion render src/index.tsx ProductIntro ../../docs/videos/screen-insight-intro-zh-CN.mp4 --codec=h264 --crf=21 --pixel-format=yuv420p --concurrency=2",
+    "render:setup": "remotion render src/index.tsx FirstRunGuide ../../docs/videos/screen-insight-setup-zh-CN.mp4 --codec=h264 --crf=21 --pixel-format=yuv420p --concurrency=2"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.506",
+    "@remotion/media": "4.0.506",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.506"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.9",
+    "@types/react-dom": "19.1.9",
+    "typescript": "5.9.2"
+  }
+}
