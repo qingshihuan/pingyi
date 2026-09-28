@@ -36,11 +36,10 @@ public class ImageAnalysisTests
             return Json("{\"choices\":[{\"message\":{\"content\":\"A blue circle on a plain background.\"}}]}");
         }));
         var result = await Provider(client).AnalyzeAsync(Image(2000, 1000), new(purpose, language));
-        Assert.Equal(1, requests); // No OCR, translation or automatic fallback call.
+        Assert.Equal(1, requests);
         Assert.Equal(purpose, result.Purpose);
         Assert.Equal("A blue circle on a plain background.", result.Text);
     }
-
     [Theory]
     [InlineData("[]", "image_analysis_schema")]
     [InlineData("{\"choices\":[]}", "image_analysis_schema")]
@@ -52,7 +51,6 @@ public class ImageAnalysisTests
         var error = await Assert.ThrowsAsync<ProviderException>(() => Provider(client).AnalyzeAsync(Image(), new(CapturePurpose.DescribeImage)));
         Assert.Equal(code, error.Code);
     }
-
     [Fact]
     public async Task Text_parts_and_length_limited_responses_are_handled_explicitly()
     {
@@ -62,7 +60,6 @@ public class ImageAnalysisTests
         Assert.StartsWith("First\nSecond", result.Text);
         Assert.Contains("may be incomplete", result.Text);
     }
-
     [Fact]
     public async Task Http_errors_do_not_echo_remote_sensitive_bodies_or_fall_back_to_ocr()
     {
@@ -78,7 +75,6 @@ public class ImageAnalysisTests
         Assert.DoesNotContain("test-key", error.ToString());
         Assert.Equal(1, requests);
     }
-
     [Fact]
     public async Task Oversized_response_is_rejected_without_reading_unbounded_content()
     {
@@ -86,7 +82,6 @@ public class ImageAnalysisTests
         var error = await Assert.ThrowsAsync<ProviderException>(() => Provider(client).AnalyzeAsync(Image(), new(CapturePurpose.DescribeImage)));
         Assert.Equal("image_analysis_response_large", error.Code);
     }
-
     [Theory]
     [InlineData("http://remote.example/v1/chat/completions", "custom_endpoint_insecure_transport")]
     [InlineData("not a URI", "image_analysis_configuration")]
@@ -96,7 +91,6 @@ public class ImageAnalysisTests
         var error = await Assert.ThrowsAsync<ProviderException>(() => Provider(client, endpoint).AnalyzeAsync(Image(), new(CapturePurpose.DescribeImage)));
         Assert.Equal(code, error.Code);
     }
-
     [Fact]
     public async Task Corrupted_png_is_rejected_before_the_request()
     {
@@ -104,7 +98,6 @@ public class ImageAnalysisTests
         var error = await Assert.ThrowsAsync<ProviderException>(() => Provider(client).AnalyzeAsync(new([1,2,3], 10, 10, default), new(CapturePurpose.DescribeImage)));
         Assert.Equal("image_analysis_image_invalid", error.Code);
     }
-
     [Fact]
     public async Task Caller_cancellation_is_preserved()
     {
@@ -117,18 +110,18 @@ public class ImageAnalysisTests
         }));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Provider(client).AnalyzeAsync(Image(), new(CapturePurpose.DescribeImage), cts.Token));
     }
-
     [Fact]
     public void Translation_task_cannot_be_misrouted_to_vision_and_managed_analysis_is_independent_of_ocr_choice()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ImageAnalysisPrompts.Build(new(CapturePurpose.TranslateText)));
-        var settings = new AppSettings { ManagedRuntimeEnabled = true, ManagedModelPackageId = ManagedMultimodalModels.Recommended.Id,
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageAnalysisPrompts.Build(new(CapturePurpose.Auto)));
+        var settings = new AppSettings { OcrProviderId = "local-paddle", TranslationProviderId = "local-argos",
+            ManagedRuntimeEnabled = true, ManagedModelPackageId = ManagedMultimodalModels.Recommended.Id,
             CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint };
         Assert.False(RuntimePolicy.UsesManagedRuntime(settings));
         Assert.True(RuntimePolicy.HasConfiguredManagedRuntime(settings));
         Assert.Contains("original prompt", ImageAnalysisPrompts.System);
     }
-
     private static ChatCompatibleImageAnalysisProvider Provider(HttpClient client, string endpoint = "http://127.0.0.1:8080/v1/chat/completions") =>
         new(client, new Secrets(), new AppSettings { CustomTranslationEndpoint = endpoint, CustomTranslationModel = "vision-test" });
     private static ImageFrame Image(int width = 96, int height = 64)

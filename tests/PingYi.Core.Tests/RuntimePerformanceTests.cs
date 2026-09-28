@@ -32,7 +32,7 @@ public class RuntimePerformanceTests
     {
         var data = new float[4 * 1024 * 1024];
         var tensor = new DenseTensor<float>(data, new[] { 1, data.Length });
-        _ = OcrMemory.ReadValues(tensor).Length; // Warm the helper before measuring.
+        _ = OcrMemory.ReadValues(tensor).Length;
         var before = GC.GetAllocatedBytesForCurrentThread();
         var values = OcrMemory.ReadValues(tensor);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -52,15 +52,17 @@ public class RuntimePerformanceTests
     [Fact]
     public void Remembered_managed_model_does_not_preload_in_local_only_mode()
     {
+        // Lightweight is now explicit; a fresh AppSettings selects Basic instead.
         var settings = new AppSettings
         {
+            OcrProviderId = "local-paddle", TranslationProviderId = "local-argos",
             ManagedRuntimeEnabled = true,
             ManagedModelPackageId = ManagedMultimodalModels.Recommended.Id,
             CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint
         };
         Assert.False(RuntimePolicy.UsesManagedRuntime(settings));
         Assert.True(RuntimePolicy.UsesManagedRuntime(settings with { TranslationProviderId = "custom-chat" }));
-        Assert.True(RuntimePolicy.UsesManagedRuntime(settings with { OcrProviderId = "local-vlm-corrected" }));
+        Assert.True(RuntimePolicy.UsesManagedRuntime(settings with { OcrProviderId = "local-vlm-ocr" }));
         Assert.False(RuntimePolicy.UsesManagedRuntime(settings with
         {
             TranslationProviderId = "custom-chat", CustomTranslationEndpoint = "https://example.com/v1/chat/completions"
@@ -103,13 +105,9 @@ public class RuntimePerformanceTests
         var gate = Field<SemaphoreSlim>(engine, "_gate");
         await gate.WaitAsync();
         var first = ProcessOf(engine);
-        try
-        {
-            await Task.Delay(500);
-            Assert.Same(first, ProcessOf(engine));
-        }
+        try { await Task.Delay(500); Assert.Same(first, ProcessOf(engine)); }
         finally { gate.Release(); }
-        await engine.CallAsync("health"); // Rearms idle timer as a real request would.
+        await engine.CallAsync("health");
         await WaitUntilAsync(() => ProcessOf(engine) is null);
     }
 
@@ -118,7 +116,6 @@ public class RuntimePerformanceTests
     {
         await using var engine = new EngineProcessClient(new AppDataPaths());
         await engine.CallAsync("health");
-        // Unsupported scope is intentionally a no-op: never delete real user models in tests.
         var result = await engine.CallAsync("delete_models", new System.Text.Json.Nodes.JsonObject { ["scope"] = "test-no-op" });
         Assert.Empty(result.GetProperty("deleted").EnumerateArray());
         Assert.Null(ProcessOf(engine));
@@ -139,7 +136,6 @@ public class RuntimePerformanceTests
         await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(5));
         await Assert.ThrowsAsync<ObjectDisposedException>(() => engine.CallAsync("health"));
     }
-
     private static T Field<T>(object owner, string name) =>
         (T)owner.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(owner)!;
     private static Process? ProcessOf(EngineProcessClient engine) => Field<Process?>(engine, "_process");
