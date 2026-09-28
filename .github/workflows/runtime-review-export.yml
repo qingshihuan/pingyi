@@ -21,8 +21,9 @@ jobs:
           git archive HEAD -o /tmp/runtime-review/source.zip
           gh api 'repos/ggml-org/llama.cpp/releases?per_page=12' > /tmp/runtime-review/llama-releases.json
           gh api repos/ggml-org/llama.cpp/releases/latest > /tmp/runtime-review/llama-latest.json
-          curl -fsSL --max-time 30 https://raw.githubusercontent.com/ggml-org/llama.cpp/master/.github/workflows/build.yml -o /tmp/runtime-review/llama-build.yml
+          gh api repos/ggml-org/llama.cpp/contents/.github/workflows > /tmp/runtime-review/llama-workflows.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: runtime-source-review
           path: /tmp/runtime-review/*
