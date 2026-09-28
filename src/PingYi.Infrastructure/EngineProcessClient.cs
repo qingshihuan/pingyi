@@ -306,8 +306,11 @@ public sealed class EngineProcessClient : IAsyncDisposable
                 {
                     try
                     {
-                        await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}");
-                        await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                        // Bound both pipe writes and exit waiting: an unresponsive child may not read stdin.
+                        await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}".AsMemory(), deadline.Token);
+                        await _process.StandardInput.FlushAsync(deadline.Token);
+                        await _process.WaitForExitAsync(deadline.Token);
                     }
                     catch
                     {
