@@ -1,5 +1,5 @@
-"""Normalize Remotion's full-range JPEG output to limited-range H.264 for playback.
-This converts pixel values (not just metadata), retains audio, and writes moov first.
+"""Normalize each fresh Remotion export for portable playback.
+Convert full-range pixels when needed, master the original score, and write moov first.
 """
 from pathlib import Path
 import json
@@ -22,7 +22,8 @@ if video.get('color_range') == 'pc' or video['pix_fmt'] == 'yuvj420p':
 else:
     assert video['pix_fmt'] == 'yuv420p', video
     args += ['-c:v', 'copy']
-args += ['-c:a', 'copy', '-movflags', '+faststart', str(output)]
+# Gentle instrumental level; normalization limits peaks and preserves the fades.
+args += ['-af', 'loudnorm=I=-22:TP=-2:LRA=9', '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-movflags', '+faststart', str(output)]
 subprocess.run(args, check=True)
 check = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_streams', '-of', 'json', str(output)], text=True))
 stream = next(s for s in check['streams'] if s['codec_type'] == 'video')
