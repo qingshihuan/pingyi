@@ -10,7 +10,8 @@ public sealed partial class CaptureCoordinator
         window.SetLoading(UiText.Get("String.QrLoading"), UiText.Get("String.QrPrivacy"));
         try
         {
-            var results = await services.QrCodeDecoder.DecodeAsync(image, operation.Token);
+            var results = _probeCache.TryGetValue(image, out var probe) && probe.Qr is { } cached
+                ? cached : await services.QrCodeDecoder.DecodeAsync(image, operation.Token);
             EnsureCurrent(operation);
             window.SetQrResults(results);
         }
@@ -18,8 +19,7 @@ public sealed partial class CaptureCoordinator
         catch (Exception)
         {
             EnsureCurrent(operation);
-            // Decoded payloads and codec exception details must never enter diagnostics.
-            window.SetQrFailure();
+            window.SetQrFailure(); // Payloads and decoder exception details never enter diagnostics.
         }
     }
 }

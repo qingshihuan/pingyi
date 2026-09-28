@@ -17,6 +17,7 @@ public partial class ResultWindow
         Purpose = purpose;
         var isText = purpose == CapturePurpose.TranslateText;
         var isQr = purpose == CapturePurpose.DecodeQrCode;
+        var isAuto = purpose == CapturePurpose.Auto;
         var key = purpose switch
         {
             CapturePurpose.DescribeImage => "String.DescribeImage",
@@ -29,7 +30,7 @@ public partial class ResultWindow
         CopyAllButton.Classes.Set("secondary", isQr);
         TranslateResultButton.IsVisible = !isText;
         SourceCard.IsVisible = isText;
-        AnalysisHint.IsVisible = !isText && !isQr;
+        AnalysisHint.IsVisible = !isText && !isQr && !isAuto;
         ResultContentGrid.RowDefinitions = new RowDefinitions(isText ? "*,*" : "0,*");
         ResultContentGrid.RowSpacing = isText ? 14 : 0;
         ThemeResources.Use(ResultHeading, TextBlock.TextProperty, isText ? "String.ResultTitle" : key);
@@ -37,8 +38,8 @@ public partial class ResultWindow
         ThemeResources.Use(TranslationTextBox, AutomationProperties.NameProperty, isText ? "Text.49e1e6be89fd" : key);
         ThemeResources.Use(CopyOutputButton, AutomationProperties.NameProperty,
             isText ? "Text.032eb48c7a43" : isQr ? "String.QrCopy" : "String.CopyAnalysis");
+        RefreshAutomaticPresentation();
     }
-
     public void SetAnalysisResult(ImageAnalysisResult result)
     {
         SetPurpose(result.Purpose);
@@ -47,41 +48,28 @@ public partial class ResultWindow
         SetStatusVisual(UiText.Get("String.AnalysisComplete"), "SuccessTextBrush", "SuccessBrush", false);
         RepairButton.IsVisible = false;
     }
-
     public void SetAnalysisCancelled(string message)
     {
         SetStatusVisual(message, "SecondaryTextBrush", "BrandBrush", false);
         RepairButton.IsVisible = false;
     }
-
-    public void UpdateLoadingStatus(string status) =>
-        SetStatusVisual(status, "SecondaryTextBrush", "BrandBrush", true);
-
+    public void UpdateLoadingStatus(string status) => SetStatusVisual(status, "SecondaryTextBrush", "BrandBrush", true);
     private void CancelProcessing_OnClick(object? sender, RoutedEventArgs e)
     {
         CancelRequested?.Invoke();
         SetStatusVisual(UiText.Get(Purpose == CapturePurpose.DecodeQrCode ? "String.QrCancelled" : "String.ProcessingCancelled"),
             "SecondaryTextBrush", "BrandBrush", false);
     }
-
     private async void TranslateResult_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.TranslateText);
-    }
-
+    { if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.TranslateText); }
     internal string BuildCopyText() => Purpose switch
     {
         CapturePurpose.TranslateText => $"{UiText.T("原文")}{Environment.NewLine}{SourceTextBox.Text}{Environment.NewLine}{Environment.NewLine}{UiText.T("译文")}{Environment.NewLine}{TranslationTextBox.Text}",
         CapturePurpose.DecodeQrCode => string.Join(Environment.NewLine + Environment.NewLine, _qrResults.Select(result => result.Text)),
         _ => TranslationTextBox.Text ?? string.Empty
     };
-
     private async void DescribeResult_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.DescribeImage);
-    }
+    { if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.DescribeImage); }
     private async void PromptResult_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.ReconstructPrompt);
-    }
+    { if (AnalyzeRequested is not null) await AnalyzeRequested(CapturePurpose.ReconstructPrompt); }
 }

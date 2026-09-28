@@ -41,7 +41,7 @@ public class UsabilityRegressionTests
             C<TextBox>(result, "SourceTextBox").Text = "开始截图";
             C<TextBox>(result, "TranslationTextBox").Text = "保存并应用";
             var input = C<TextBox>(settings, "CustomModelBox");
-            C<ComboBox>(settings, "UiLanguageCombo").SelectedIndex = 2; // Real SelectionChanged handler.
+            C<ComboBox>(settings, "UiLanguageCombo").SelectedIndex = 2;
             await settings.LanguageChangeTask;
             settings.UpdateLayout(); home.UpdateLayout(); help.UpdateLayout();
             Assert.Equal("en-US", (await store.LoadAsync()).UiLanguage);
@@ -72,7 +72,6 @@ public class UsabilityRegressionTests
             Directory.Delete(directory, true);
         }
     }
-
     [AvaloniaFact]
     public async Task Failed_language_save_restores_selection_and_keeps_the_previous_language()
     {
@@ -90,7 +89,6 @@ public class UsabilityRegressionTests
         }
         finally { settings.Close(); }
     }
-
     [AvaloniaTheory]
     [InlineData("zh-CN", false)]
     [InlineData("en-US", true)]
@@ -119,7 +117,6 @@ public class UsabilityRegressionTests
         }
         finally { home.Close(); settings.Close(); help.Close(); }
     }
-
     [AvaloniaTheory]
     [InlineData("zh-CN", false)]
     [InlineData("en-US", true)]
@@ -145,18 +142,20 @@ public class UsabilityRegressionTests
                     Assert.True(point.X >= 0 && point.X + t.Bounds.Width <= window.ClientSize.Width + 1);
                 });
             }
-            Assert.Contains(UiText.Get("String.RemoteVisionData"), ModePickerWindow.Requirements("vision", new AppSettings { CustomTranslationEndpoint = "https://example.com/v1" }));
+            Assert.DoesNotContain(choices.Children, control => control.Name == "Mode_vision");
+            Assert.Contains(UiText.Get("String.RemoteLlmData"), ModePickerWindow.Requirements("llm", new AppSettings { CustomTranslationEndpoint = "https://example.com/v1" }));
             var apply = C<Button>(window, "ApplyModeButton");
             Assert.DoesNotContain(apply.GetVisualAncestors(), p => p is ScrollViewer);
             var position = apply.TranslatePoint(default, window)!.Value;
             Assert.True(position.Y >= 0 && position.Y + apply.Bounds.Height <= window.ClientSize.Height + 1);
-            ((RadioButton)choices.Children[2]).IsChecked = true;
-            Assert.Equal("vision", window.SelectedModeId);
+            ((RadioButton)choices.Children[0]).IsChecked = true;
+            Assert.Equal("basic", window.SelectedModeId);
+            ((RadioButton)choices.Children[1]).IsChecked = true;
+            Assert.Equal("lite", window.SelectedModeId);
             Frame(window, $"fixed-modes-{language}");
         }
         finally { window.Close(); }
     }
-
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -193,7 +192,6 @@ public class UsabilityRegressionTests
         }
         finally { home.Close(); settings.Close(); pinned.ClosePermanently(); hidden.Close(); }
     }
-
     [AvaloniaFact]
     public async Task Cancellation_at_the_desktop_barrier_never_captures_or_leaves_windows_hidden()
     {
@@ -215,9 +213,7 @@ public class UsabilityRegressionTests
         }
         finally { home.Close(); }
     }
-
-    private static T C<T>(Window window, string name) where T : Control => window.FindControl<T>(name)
-        ?? throw new InvalidOperationException(name);
+    private static T C<T>(Window window, string name) where T : Control => window.FindControl<T>(name) ?? throw new InvalidOperationException(name);
     private static void Frame(Window window, string name)
     {
         window.UpdateLayout(); Dispatcher.UIThread.RunJobs();

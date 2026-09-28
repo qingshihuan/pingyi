@@ -6,7 +6,7 @@ root="$(mktemp -d)"
 export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data" XDG_SESSION_TYPE=x11
 export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/no-bundled-models"
 mkdir -p "$XDG_CONFIG_HOME/pingyi-complete" "$PWD/artifacts/ui"
-# Intentionally omit optional fields and retain the schema-9 default: exercise migration to Ctrl+Shift+D.
+# Omit the new automatic-task flag too: migrate the legacy default, retaining other preferences.
 cat > "$XDG_CONFIG_HOME/pingyi-complete/settings.json" <<'JSON'
 {"schemaVersion":9,"uiLanguage":"en-US","hotkey":"Ctrl+Alt+Shift+D","checkForUpdates":false}
 JSON
@@ -62,12 +62,12 @@ cancel_and_restore() {
 echo 'Testing cold-start --capture with partial settings'
 overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
-echo 'Testing the real Start capture button'
+echo 'Testing the real Smart capture primary button'
 xdotool windowactivate --sync "$main"
-# Fixed English 1040x720 test window: a point inside the primary capture button.
-# This is an actual pointer click, not a direct invocation of the coordinator.
+# Verified against native-linux-main.png at 1040x720: inside the blue primary button,
+# not the manual action row below it. This is an actual pointer click.
 scrot "$PWD/artifacts/ui/native-linux-main.png"
-xdotool mousemove --window "$main" 200 238 click 1
+xdotool mousemove --window "$main" 200 196 click 1
 overlay=$(wait_window 'Screen Insight Capture')
 sleep 0.2
 scrot "$PWD/artifacts/ui/native-linux-button-capture.png"
@@ -80,4 +80,4 @@ echo 'Testing registered X11 shortcut after schema-9 migration'
 xdotool key --clearmodifiers ctrl+shift+d
 overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
-echo 'Native desktop: partial settings, cold --capture, real button click, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
+echo 'Native desktop: partial settings, cold --capture, real primary button, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'

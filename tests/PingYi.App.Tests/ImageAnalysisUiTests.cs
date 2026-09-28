@@ -26,7 +26,8 @@ public class ImageAnalysisUiTests
             window.SetPurpose(CapturePurpose.DescribeImage);
             window.SetLoading(UiText.Get("String.AnalysisPreparing"), UiText.Get("String.VisionLocal"));
             Assert.True(C<Button>(window, "CancelProcessingButton").IsVisible);
-            Assert.False(C<Button>(window, "DescribeResultButton").IsEffectivelyEnabled);
+            // Task switches are now available while busy; the coordinator cancels old work.
+            Assert.True(C<Button>(window, "DescribeResultButton").IsEffectivelyEnabled);
             var text = UiText.IsEnglish ? "Synthetic preview: a blue circle on a white background." : "合成预览：白色背景上有一个蓝色圆形。";
             window.SetAnalysisResult(new(text, CapturePurpose.DescribeImage, "synthetic"));
             window.UpdateLayout();
@@ -48,7 +49,6 @@ public class ImageAnalysisUiTests
         }
         finally { window.ClosePermanently(); }
     }
-
     [AvaloniaTheory]
     [InlineData(800, 560, "zh-CN")]
     [InlineData(800, 560, "en-US")]
@@ -75,7 +75,6 @@ public class ImageAnalysisUiTests
         }
         finally { window.Close(); }
     }
-
     [AvaloniaFact]
     public void Result_buttons_route_the_selected_task_and_cancel_disables_busy_state()
     {
@@ -99,7 +98,6 @@ public class ImageAnalysisUiTests
         }
         finally { window.ClosePermanently(); }
     }
-
     [AvaloniaTheory]
     [InlineData(false, "zh-CN")]
     [InlineData(true, "en-US")]
@@ -122,7 +120,6 @@ public class ImageAnalysisUiTests
         }
         finally { dialog.Close(false); owner.ClosePermanently(); }
     }
-
     [AvaloniaFact]
     public async Task Cancelled_consent_does_not_open_a_window()
     {
@@ -135,7 +132,6 @@ public class ImageAnalysisUiTests
         }
         finally { owner.ClosePermanently(); }
     }
-
     private static T C<T>(Window window, string name) where T : Control => window.FindControl<T>(name)!;
     private static void Frame(Window window, string name)
     {
