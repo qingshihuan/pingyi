@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 11;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -13,8 +13,10 @@ public sealed record AppSettings
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string Hotkey { get; init; } = DefaultHotkey;
-    public string OcrProviderId { get; init; } = "local-paddle";
-    public string TranslationProviderId { get; init; } = "local-argos";
+    public string OcrProviderId { get; init; } = "local-vlm-ocr";
+    public string TranslationProviderId { get; init; } = "custom-chat";
+    public bool InitialSetupCompleted { get; init; }
+    public bool AutomaticCaptureEnabled { get; init; } = true;
     public string SourceLanguage { get; init; } = "auto";
     public string TargetLanguage { get; init; } = "auto-opposite";
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
@@ -33,12 +35,7 @@ public sealed record AppSettings
         var defaultHotkey = linux ? LinuxDefaultHotkey : WindowsDefaultHotkey;
         var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? defaultHotkey : Hotkey.Trim();
         if (SchemaVersion < 2 && string.Equals(hotkey, "Ctrl+Shift+X", StringComparison.OrdinalIgnoreCase))
-        {
             hotkey = defaultHotkey;
-        }
-
-        // Migrate only known historical Linux defaults. Other custom bindings and
-        // all Windows bindings survive upgrades; schema 10 can also opt back in.
         var compactHotkey = hotkey.Replace(" ", "", StringComparison.Ordinal);
         if (linux && ((SchemaVersion < 9 &&
                 string.Equals(compactHotkey, WindowsDefaultHotkey, StringComparison.OrdinalIgnoreCase)) ||
@@ -47,34 +44,32 @@ public sealed record AppSettings
             hotkey = LinuxDefaultHotkey;
 
         var endpoint = NormalizeChatCompletionsEndpoint(CustomTranslationEndpoint);
-        // Older or partially written JSON may omit this field or explicitly set it to null.
-        // Preserve an intentionally empty model name for servers that select their own model.
         var model = CustomTranslationModel?.Trim() ?? DefaultCustomTranslationModel;
-        if (SchemaVersion < 2 &&
-            string.Equals(model, "gemma4", StringComparison.OrdinalIgnoreCase) &&
+        if (SchemaVersion < 2 && string.Equals(model, "gemma4", StringComparison.OrdinalIgnoreCase) &&
             Uri.TryCreate(endpoint, UriKind.Absolute, out var migratedEndpoint) &&
             migratedEndpoint.IsLoopback && migratedEndpoint.Port == 8080)
-        {
             model = DefaultCustomTranslationModel;
-        }
 
         return this with
         {
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
-            OcrProviderId = string.IsNullOrWhiteSpace(OcrProviderId) ? "local-paddle" : OcrProviderId,
-            TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId) ? "local-argos" : TranslationProviderId,
+            // Existing preferences are preserved. Only the removed OCR ID migrates.
+            OcrProviderId = OcrProviderId == "local-vlm-corrected" ? "local-vlm-ocr"
+                : string.IsNullOrWhiteSpace(OcrProviderId) ? (SchemaVersion < 11 ? "local-paddle" : "local-vlm-ocr") : OcrProviderId,
+            TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId)
+                ? (SchemaVersion < 11 ? "local-argos" : "custom-chat") : TranslationProviderId,
+            InitialSetupCompleted = InitialSetupCompleted || SchemaVersion < 11,
             SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
             TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = model,
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
-                ? ManagedModelPackageId.Trim()
-                : string.Empty,
+                ? ManagedModelPackageId.Trim() : string.Empty,
             ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
-                                    ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
-                                    string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
+                ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
+                string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
             CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
             UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
@@ -82,11 +77,7 @@ public sealed record AppSettings
 
     public static string NormalizeChatCompletionsEndpoint(string? value)
     {
-        if (!TryParseChatCompletionsEndpoint(value, out var endpoint))
-        {
-            return DefaultCustomTranslationEndpoint;
-        }
-
+        if (!TryParseChatCompletionsEndpoint(value, out var endpoint)) return DefaultCustomTranslationEndpoint;
         return endpoint.AbsoluteUri.TrimEnd('/');
     }
 
@@ -94,28 +85,11 @@ public sealed record AppSettings
     {
         endpoint = null!;
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var parsedEndpoint) ||
-            parsedEndpoint.Scheme is not ("http" or "https"))
-        {
-            return false;
-        }
-
+            parsedEndpoint.Scheme is not ("http" or "https")) return false;
         var path = parsedEndpoint.AbsolutePath.TrimEnd('/');
-        if (string.IsNullOrEmpty(path))
-        {
+        if (string.IsNullOrEmpty(path) || string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
             path = "/v1/chat/completions";
-        }
-        else if (string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
-        {
-            path = "/v1/chat/completions";
-        }
-
-        var builder = new UriBuilder(parsedEndpoint)
-        {
-            Path = path,
-            Query = string.Empty,
-            Fragment = string.Empty
-        };
-        endpoint = builder.Uri;
+        endpoint = new UriBuilder(parsedEndpoint) { Path = path, Query = string.Empty, Fragment = string.Empty }.Uri;
         return true;
     }
 

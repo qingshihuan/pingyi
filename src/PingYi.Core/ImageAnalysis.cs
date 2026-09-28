@@ -1,6 +1,7 @@
 namespace PingYi.Core;
 
-public enum CapturePurpose { TranslateText, DescribeImage, ReconstructPrompt, DecodeQrCode }
+// Append new purposes: existing numeric values may be used by external callers.
+public enum CapturePurpose { TranslateText, DescribeImage, ReconstructPrompt, DecodeQrCode, Auto }
 
 public sealed record ImageAnalysisOptions(CapturePurpose Purpose, string OutputLanguage = "zh-CN");
 public sealed record ImageAnalysisResult(string Text, CapturePurpose Purpose, string Model);

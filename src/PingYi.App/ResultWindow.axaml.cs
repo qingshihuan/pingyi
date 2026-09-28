@@ -14,164 +14,91 @@ public partial class ResultWindow : Window
 {
     private CorePixelRect _anchor;
     private bool _allowClose;
-
     public ResultWindow()
     {
         InitializeComponent();
+        InitializeAutomaticControls();
         UiText.Attach(this);
-        KeyDown += (_, eventArgs) =>
+        KeyDown += (_, e) => { if (e.Key == Key.Escape && PinButton.IsChecked != true) Dismiss(); };
+        Closing += (_, e) =>
         {
-            if (eventArgs.Key == Key.Escape && PinButton.IsChecked != true)
-            {
-                Dismiss();
-            }
-        };
-        Closing += (_, eventArgs) =>
-        {
-            if (_allowClose)
-            {
-                return;
-            }
-
-            eventArgs.Cancel = true;
-            Hide();
-            Dismissed?.Invoke(this);
+            if (_allowClose) return;
+            e.Cancel = true; Hide(); Dismissed?.Invoke(this);
         };
         Opened += (_, _) => ClampToScreen();
     }
-
     public event Func<Task>? RetryRequested;
     public event Action? OpenSettingsRequested;
     public event Action<ResultWindow>? Dismissed;
     public bool IsPinned => PinButton.IsChecked == true;
-
     public void ShowAt(CorePixelRect anchor)
     {
         _anchor = anchor;
         Position = new PixelPoint(anchor.X, anchor.Y + anchor.Height + 10);
-        if (!IsVisible)
-        {
-            Show();
-        }
-        Activate();
-        Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
+        if (!IsVisible) Show();
+        Activate(); Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
     }
-
     public void ShowCurrent()
     {
-        if (!IsVisible)
-        {
-            Show();
-        }
-
-        Activate();
-        Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
+        if (!IsVisible) Show();
+        Activate(); Dispatcher.UIThread.Post(ClampToScreen, DispatcherPriority.Loaded);
     }
-
     public void HideTemporarily() => Hide();
-
-    public void ClosePermanently()
-    {
-        _allowClose = true;
-        Close();
-    }
-
+    public void ClosePermanently() { _allowClose = true; Close(); }
     public void SetLoading(string status, string privacy)
     {
         ClearQrResults();
-        SetStatusVisual(status, "SecondaryTextBrush", "BrandBrush", isProcessing: true);
-        PrivacyText.Text = privacy;
-        SourceTextBox.Text = string.Empty;
-        TranslationTextBox.Text = string.Empty;
+        SetStatusVisual(status, "SecondaryTextBrush", "BrandBrush", true);
+        PrivacyText.Text = privacy; SourceTextBox.Text = string.Empty; TranslationTextBox.Text = string.Empty;
         RepairButton.IsVisible = false;
     }
-
     public void SetSource(OcrResult result, string providerName)
     {
         SourceTextBox.Text = result.PlainText;
-        SetStatusVisual($"{providerName} 已识别 · 正在翻译…", "SecondaryTextBrush", "BrandBrush", isProcessing: true);
+        SetStatusVisual(UiText.IsEnglish ? $"{providerName} recognized the text · translating…" : $"{providerName} 已识别 · 正在翻译…",
+            "SecondaryTextBrush", "BrandBrush", true);
     }
-
     public void SetTranslation(TranslationResult result, string providerName)
     {
         TranslationTextBox.Text = result.Text;
-        SetStatusVisual($"处理完成 · {providerName}", "SuccessTextBrush", "SuccessBrush", isProcessing: false);
+        SetStatusVisual(UiText.IsEnglish ? $"Complete · {providerName}" : $"处理完成 · {providerName}", "SuccessTextBrush", "SuccessBrush", false);
     }
-
     public void SetError(string message, bool keepSource = false)
     {
-        SetStatusVisual(message, "DangerTextBrush", "DangerBrush", isProcessing: false);
-        if (!keepSource)
-        {
-            SourceTextBox.Text = string.Empty;
-        }
+        SetStatusVisual(message, "DangerTextBrush", "DangerBrush", false);
+        if (!keepSource) SourceTextBox.Text = string.Empty;
         TranslationTextBox.Text = keepSource ? UiText.T("翻译暂不可用，可复制上方原文或重新处理。") : string.Empty;
         RepairButton.IsVisible = true;
     }
-
     private async void CopySourceButton_OnClick(object? sender, RoutedEventArgs e) =>
         await CopyAsync(SourceTextBox.Text ?? string.Empty, "原文已复制");
-
     private async void CopyTranslationButton_OnClick(object? sender, RoutedEventArgs e) =>
-        await CopyAsync(TranslationTextBox.Text ?? string.Empty,
-            Purpose == CapturePurpose.TranslateText ? "译文已复制" : UiText.Get(
-                Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
-
-    private async void CopyAllButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        await CopyAsync(BuildCopyText(), Purpose == CapturePurpose.TranslateText
-            ? "原文与译文已复制" : UiText.Get(
-                Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
-    }
-
+        await CopyAsync(TranslationTextBox.Text ?? string.Empty, Purpose == CapturePurpose.TranslateText ? "译文已复制"
+            : UiText.Get(Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
+    private async void CopyAllButton_OnClick(object? sender, RoutedEventArgs e) =>
+        await CopyAsync(BuildCopyText(), Purpose == CapturePurpose.TranslateText ? "原文与译文已复制"
+            : UiText.Get(Purpose == CapturePurpose.DecodeQrCode ? "String.QrCopied" : "String.AnalysisCopied"));
     private async Task CopyAsync(string text, string status)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return;
-        }
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is not null)
+        if (string.IsNullOrWhiteSpace(text)) return;
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
         {
             await clipboard.SetTextAsync(text);
-            SetStatusVisual(status, "SuccessTextBrush", "SuccessBrush", isProcessing: false);
+            SetStatusVisual(status, "SuccessTextBrush", "SuccessBrush", false);
         }
     }
-
     private async void RetryButton_OnClick(object? sender, RoutedEventArgs e)
     {
         var button = sender as Button;
         if (button is not null) button.IsEnabled = false;
-        try
-        {
-            if (RetryRequested is not null)
-            {
-                await RetryRequested.Invoke();
-            }
-        }
-        finally
-        {
-            if (button is not null) button.IsEnabled = true;
-        }
+        try { if (RetryRequested is not null) await RetryRequested.Invoke(); }
+        finally { if (button is not null) button.IsEnabled = true; }
     }
-
     private void PinButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        Topmost = PinButton.IsChecked == true;
-        PinButtonLabel.Text = UiText.T(Topmost ? "已固定" : "固定");
-    }
-
+    { Topmost = PinButton.IsChecked == true; PinButtonLabel.Text = UiText.T(Topmost ? "已固定" : "固定"); }
     private void CloseButton_OnClick(object? sender, RoutedEventArgs e) => Dismiss();
-
     private void RepairButton_OnClick(object? sender, RoutedEventArgs e) => OpenSettingsRequested?.Invoke();
-
-    private void Dismiss()
-    {
-        Hide();
-        Dismissed?.Invoke(this);
-    }
-
+    private void Dismiss() { Hide(); Dismissed?.Invoke(this); }
     private void SetStatusVisual(string message, string foregroundKey, string indicatorKey, bool isProcessing)
     {
         StatusText.Text = UiText.T(message);
@@ -179,18 +106,14 @@ public partial class ResultWindow : Window
         ThemeResources.Use(ResultStatusIndicator, Border.BackgroundProperty, indicatorKey);
         ProcessingProgress.IsVisible = isProcessing;
         CancelProcessingButton.IsVisible = isProcessing;
-        ImageActionPanel.IsEnabled = !isProcessing;
+        // A manual task change cancels/supersedes the current operation on the same screenshot.
+        ImageActionPanel.IsEnabled = true;
         RetryButton.IsEnabled = !isProcessing;
     }
-
     private void ClampToScreen()
     {
         var screen = Screens.ScreenFromPoint(new PixelPoint(_anchor.X, _anchor.Y)) ?? Screens.Primary;
-        if (screen is null)
-        {
-            return;
-        }
-
+        if (screen is null) return;
         var area = screen.WorkingArea;
         var width = (int)Math.Ceiling(Bounds.Width * screen.Scaling);
         var height = (int)Math.Ceiling(Bounds.Height * screen.Scaling);
