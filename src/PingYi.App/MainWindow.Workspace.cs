@@ -14,7 +14,7 @@ public partial class MainWindow
         try
         {
             LoadSettings();
-            await RefreshDashboardAsync();
+            await RefreshDashboardAsync(force: true);
         }
         finally
         {

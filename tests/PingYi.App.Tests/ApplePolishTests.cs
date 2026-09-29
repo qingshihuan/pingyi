@@ -29,8 +29,7 @@ public class ApplePolishTests
         try
         {
             C<TextBlock>(home, "TopStatusText").Text = "UI Preview";
-            C<TextBlock>(home, "ModelStatusTitleText").Text = UiText.IsEnglish ? "Load on demand" : "按需加载";
-            C<TextBlock>(home, "ModelStatusDetailText").Text = UiText.IsEnglish ? "Sample local OCR and translation setup." : "本地识别与离线翻译方案示例";
+            home.RenderRuntimeStatus(RuntimeStatusUiTests.SyntheticSnapshot());
             C<TextBlock>(home, "LiveStatusTitleText").Text = "UI Preview";
             C<TextBlock>(home, "LiveStatusDetailText").Text = WorkspaceText.Preview;
             home.Show();

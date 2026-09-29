@@ -22,6 +22,7 @@
       <SolidColorBrush x:Key="SuccessTextBrush">#227547</SolidColorBrush>
       <SolidColorBrush x:Key="WarningTextBrush">#935311</SolidColorBrush>
       <SolidColorBrush x:Key="DangerTextBrush">#BA3038</SolidColorBrush>
+      <SolidColorBrush x:Key="StatusDangerBackgroundBrush">#FDECEF</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleSoftBrush">#F1EDFC</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleInkBrush">#7451B7</SolidColorBrush>
       <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
@@ -60,6 +61,7 @@
       <SolidColorBrush x:Key="SuccessTextBrush">#80D9A3</SolidColorBrush>
       <SolidColorBrush x:Key="WarningTextBrush">#F1BD7F</SolidColorBrush>
       <SolidColorBrush x:Key="DangerTextBrush">#FFA1A8</SolidColorBrush>
+      <SolidColorBrush x:Key="StatusDangerBackgroundBrush">#4A282F</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleSoftBrush">#38304A</SolidColorBrush>
       <SolidColorBrush x:Key="PurpleInkBrush">#C4A7F4</SolidColorBrush>
       <LinearGradientBrush x:Key="HeroBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">

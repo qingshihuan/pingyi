@@ -318,6 +318,17 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="RuntimeStatusSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavBlueBrush}">
+              <Path Classes="symbol" Width="16" Height="16" Stroke="White" Data="M2 12H7L10 4L14 20L17 12H22"/>
+            </Border>
+            <TextBlock Grid.Column="1" x:Name="RuntimeStatusNavText" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <local:RuntimeStatusView x:Name="RuntimeStatusPage"/>
+      </TabItem>
     </TabControl>
     <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource PageBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="28,14,28,18">
       <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8" ColumnSpacing="16">

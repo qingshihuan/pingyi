@@ -196,3 +196,9 @@ First-run setup and Settings → Local models expose hardware detection, backend
 Only an explicit download/configure action contacts upstream release metadata. An embedded trusted catalogue is used when GitHub metadata is unavailable, without calling it the latest. Optional third-party relays require opt-in; all executable archives must match official size and SHA-256. Drivers are not installed, and normal capture does not check runtime updates.
 
 Inference no longer inherits the generic 30-second HTTP timeout. Primary translation and offline fallback have independent deadlines; failed translation retries can reuse session-only OCR. Installed-package availability depends on Releases. See [runtime details and validation limits](docs/RUNTIME_ACCELERATION.md).
+
+## Mode runtime status
+
+Home now shows separate Lightweight, Basic and Cloud cards. Green means local readiness or configured on-demand loading; red means not configured/needs attention; gray means not checked/unverified. Text accompanies every indicator. View details opens the new Runtime status Settings category for mode, runtime, GPU and model information and configuration links.
+
+Refresh never downloads, starts a vision model, runs inference or changes the scheme. Only loopback services may be probed. Managed-model file presence/sizes are inspected; full integrity verification remains at startup. Saved cloud credentials are not proof of connectivity, quota or successful authentication. Cloud validation stays an explicit user action. Download connectivity and an active GPU are never fabricated.

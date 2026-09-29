@@ -231,19 +231,23 @@ public partial class App : Application
         }
     }
 
-    private Task OpenSettingsWindowAsync()
+    private Task OpenSettingsWindowAsync() => OpenSettingsWindowAsync(false);
+
+    private Task OpenSettingsWindowAsync(bool runtimeStatus)
     {
         if (_isExiting || _captureCoordinator?.IsCapturingScreen == true) return Task.CompletedTask;
         if (_services is null || _mainWindow is null) return Task.CompletedTask;
         ShowMainWindow();
         if (_settingsWindow is not null)
         {
+            if (runtimeStatus && _settingsWindow is SettingsWindow current) current.SelectRuntimeStatus();
             _settingsWindow.Show();
             _settingsWindow.WindowState = WindowState.Normal;
             _settingsWindow.Activate();
             return Task.CompletedTask;
         }
         var settingsWindow = new SettingsWindow(_services);
+        if (runtimeStatus) settingsWindow.SelectRuntimeStatus();
         _settingsWindow = settingsWindow;
         settingsWindow.Closed += (_, _) => _settingsWindow = null;
         settingsWindow.Show(_mainWindow);

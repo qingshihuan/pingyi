@@ -71,6 +71,7 @@ public partial class SettingsWindow
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         RefreshWindowTitle();
+        RefreshRuntimeStatusLanguage();
         var loading = _isLoadingSettings;
         _isLoadingSettings = true;
         try

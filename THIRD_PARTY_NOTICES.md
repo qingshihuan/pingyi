@@ -194,3 +194,7 @@ Hardware probes use system tools and backend device enumeration. Optional ghfast
 ## Vulkan default and manual runtime management (v0.8.1)
 
 This change reuses the existing Avalonia, .NET and llama.cpp integrations; no additional production dependency or SDK is bundled. Only application-downloaded runtime versions and their unshared verified archive caches are eligible for removal. Bundled Vulkan/CPU, model weights, system drivers and external model services are not uninstalled. Existing CUDA/ROCm redistribution and driver requirements remain applicable; backend switching is not hardware certification.
+
+## Mode status interface
+
+The three-mode overview and runtime-details page reuse Avalonia controls, theme resources and project-authored vector paths. No production dependencies, fonts, telemetry, remote status services or artwork are added. Status snapshots contain no credentials or captured content. New UI snapshots use explicitly synthetic state; they do not certify real models, cloud services or GPU hardware.

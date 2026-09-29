@@ -23,6 +23,7 @@ public partial class MainWindow : Window, IMainWindowShell
         InitializeComponent();
         InitializeSmartCaptureUi();
         InitializeExitControl();
+        InitializeModeStatusUi();
         UiText.Attach(this);
         UpdateProductTitle();
         UiText.LanguageChanged += OnLanguageChanged;
@@ -66,46 +67,27 @@ public partial class MainWindow : Window, IMainWindowShell
         LoadSettings();
         if (_passiveRefresh.ShouldRefresh(_services.Settings)) await RefreshDashboardAsync();
     }
-    private async Task RefreshDashboardAsync()
+    private async Task RefreshDashboardAsync(bool force = false)
     {
-        if (_services is null || _isRefreshing || _services.IsInitialSetupActive) return;
+        if (_services is null || _isRefreshing || _statusClosed || _services.IsInitialSetupActive) return;
         _isRefreshing = true;
-        TopStatusText.Text = "正在检查"; TopStatusDot.Background = FindBrush("OrangeBrush");
-        ModelStatusTitleText.Text = CaptureUiText.Pick("正在检查轻量模型", "Checking lightweight models");
-        ModelStatusDetailText.Text = CaptureUiText.Pick("本地意图探测及离线中英兜底", "Local content detection and offline Chinese/English fallback");
+        TopStatusText.Text = ModeStatusText.Pick("正在检查", "Checking");
+        TopStatusDot.Background = FindBrush("TertiaryTextBrush");
         try
         {
-            var settings = _services.Settings;
-            var managedOnDemand = RuntimePolicy.UsesManagedRuntime(settings);
-            var selectedOcr = _services.Providers.GetOcrProvider(settings.OcrProviderId);
-            var selectedTranslation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId);
-            var paddleTask = GetAvailabilityAsync(_services.PaddleProvider);
-            var argosTask = GetAvailabilityAsync(_services.ArgosProvider);
-            var ocrTask = ReferenceEquals(selectedOcr, _services.PaddleProvider) ? paddleTask
-                : managedOnDemand && settings.OcrProviderId == "local-vlm-ocr" ? Task.FromResult(ProviderAvailability.Available) : GetAvailabilityAsync(selectedOcr);
-            var translationTask = ReferenceEquals(selectedTranslation, _services.ArgosProvider) ? argosTask
-                : managedOnDemand && settings.TranslationProviderId == "custom-chat" ? Task.FromResult(ProviderAvailability.Available) : GetAvailabilityAsync(selectedTranslation);
-            await Task.WhenAll(paddleTask, argosTask, ocrTask, translationTask);
-            var paddle = await paddleTask; var argos = await argosTask; var ocr = await ocrTask; var translation = await translationTask;
-            var lightweightReady = paddle.IsAvailable && argos.IsAvailable;
-            ModelStatusDot.Background = FindBrush(lightweightReady ? "SuccessBrushV2" : "OrangeBrush");
-            ModelStatusTitleText.Text = lightweightReady ? CaptureUiText.Pick("轻量模式可用", "Lightweight mode available") : CaptureUiText.Pick("轻量模型需要处理", "Lightweight models need attention");
-            ModelStatusDetailText.Text = lightweightReady ? CaptureUiText.Pick("PaddleOCR 与 Argos 作为本地探测和离线兜底", "PaddleOCR and Argos provide local detection and offline fallback")
-                : $"OCR：{DescribeAvailability(paddle)}；翻译：{DescribeAvailability(argos)}";
-            OcrHealthText.Text = managedOnDemand && settings.OcrProviderId == "local-vlm-ocr" ? UiText.Get("String.OnDemand") : DescribeAvailability(ocr);
-            TranslationHealthText.Text = managedOnDemand && settings.TranslationProviderId == "custom-chat" ? UiText.Get("String.OnDemand") : DescribeAvailability(translation);
-            if (ocr.IsAvailable && translation.IsAvailable && managedOnDemand)
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                SetGlobalStatus(CaptureUiText.Pick("本机大模型将在需要时检查并按需启动。", "The local model will be checked and started when needed."), false);
-                TopStatusText.Text = UiText.IsEnglish ? "On demand" : "按需加载";
-                LiveStatusTitleText.Text = UiText.IsEnglish ? "Local model: on demand" : "本机大模型按需加载";
+                var snapshot = await _services.ReadRuntimeStatusAsync(_statusLifetime.Token, force);
+                if (_statusClosed) return;
+                if (snapshot.Settings != _services.Settings) continue;
+                RenderRuntimeStatus(snapshot);
+                RenderPipelineStatus(snapshot);
+                _passiveRefresh.RecordRefresh(snapshot.Settings);
+                return;
             }
-            else if (ocr.IsAvailable && translation.IsAvailable)
-                SetGlobalStatus(CaptureUiText.Pick("已就绪，点击“一键识别”或选择手动任务。", "Ready. Use Smart capture or choose a manual task."), false);
-            else SetGlobalStatus($"{UiText.T("文字识别")}: {DescribeAvailability(ocr)}; {UiText.T("翻译方式")}: {DescribeAvailability(translation)}", true);
-            _passiveRefresh.RecordRefresh(settings);
         }
-        catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
+        catch (OperationCanceledException) when (_statusClosed || _services.IsShuttingDown) { }
+        catch (Exception) { if (!_statusClosed) SetGlobalStatus(ModeStatusText.Pick("状态检查未完成，请重试。", "Status check did not complete; retry."), true); }
         finally { _isRefreshing = false; }
     }
     private async void CaptureButton_OnClick(object? sender, RoutedEventArgs e)
@@ -115,7 +97,7 @@ public partial class MainWindow : Window, IMainWindowShell
         try { await _captureCoordinator.StartCaptureAsync(this); }
         finally { CaptureButtonV2.IsEnabled = true; }
     }
-    private void OnLanguageChanged(object? sender, EventArgs e) { UpdateProductTitle(); LoadSettings(); }
+    private void OnLanguageChanged(object? sender, EventArgs e) { UpdateProductTitle(); LoadSettings(); RefreshModeStatusLanguage(); }
     private void UpdateProductTitle() => Title = UiText.IsEnglish ? "Screen Insight Complete" : AppEdition.ProductName;
     private async void ChooseMode_OnClick(object? sender, RoutedEventArgs e)
     {

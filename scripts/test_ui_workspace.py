@@ -16,7 +16,7 @@ class WorkspaceStructureTests(unittest.TestCase):
         self.home = ET.parse(APP / 'MainWindow.axaml').getroot()
 
     def test_settings_retains_backing_code_controls(self):
-        expected = '''RootWindow WindowHeadingText WindowSubtitleText 
+        expected = '''RootWindow WindowHeadingText WindowSubtitleText
         OcrProviderCombo TranslationProviderCombo TargetLanguageCombo TranslationLanguageHintText
         InstallOcrModelsButton OcrModelDownloadIcon OcrModelInstalledIcon OcrModelButtonText OcrModelStatusText
         InstallTranslationModelsButton TranslationModelDownloadIcon TranslationModelInstalledIcon
@@ -39,7 +39,8 @@ class WorkspaceStructureTests(unittest.TestCase):
     def test_home_retains_status_and_capture_controls(self):
         expected = '''TopStatusText TopStatusDot LiveStatusTitleText LiveStatusDetailText LiveStatusDot
         RecoveryBorder RecoveryDetailText ModeSummaryText OcrSummaryText TranslationSummaryText
-        CaptureHotkeyText ModelStatusDot ModelStatusTitleText ModelStatusDetailText CaptureButtonV2'''.split()
+        CaptureHotkeyText ModeStatusBorder ModeStatusTitleText ModeCards ModeDetailsButton
+        RefreshWorkspaceButton CaptureButtonV2'''.split()
         self.assertTrue(set(expected) <= {n.get(NAME) for n in self.home.iter()})
 
     def test_named_controls_are_unique(self):
@@ -47,11 +48,19 @@ class WorkspaceStructureTests(unittest.TestCase):
             names = [n.get(NAME) for n in root.iter() if n.get(NAME)]
             self.assertEqual(len(names), len(set(names)))
 
-    def test_five_native_categories_and_individual_scroll_regions(self):
+    def test_six_native_categories_and_individual_scroll_regions(self):
         tabs = self.settings.findall('.//a:TabItem', NS)
-        self.assertEqual(len(tabs), 5)
+        self.assertEqual(len(tabs), 6)
         for tab in tabs:
-            self.assertIsNotNone(tab.find('a:ScrollViewer', NS))
+            if tab.get(NAME) == 'RuntimeStatusSettingsTab':
+                # This native control owns a scroll surface, rather than nesting viewers.
+                page = tab.find('{using:PingYi.App}RuntimeStatusView')
+                self.assertIsNotNone(page)
+                self.assertEqual(page.get(NAME), 'RuntimeStatusPage')
+                source = (APP / 'RuntimeStatusView.cs').read_text(encoding='utf-8')
+                self.assertIn('Content = new ScrollViewer', source)
+            else:
+                self.assertIsNotNone(tab.find('a:ScrollViewer', NS))
             self.assertIsNone(tab.find('.//a:DataTemplate', NS))
 
     def test_save_and_live_feedback_do_not_scroll(self):

@@ -38,8 +38,7 @@ public sealed class VideoPreviewTests
             Text(home, "TranslationSummaryText", "本地自定义大模型翻译");
             Text(home, "OcrHealthText", "演示：按需启动");
             Text(home, "TranslationHealthText", "演示：按需启动");
-            Text(home, "ModelStatusTitleText", "本地探测与轻量兜底");
-            Text(home, "ModelStatusDetailText", "PaddleOCR / Argos · 演示状态，未运行模型");
+            home.RenderRuntimeStatus(RuntimeStatusUiTests.SyntheticSnapshot());
             Text(home, "TopStatusText", "界面演示");
             Text(home, "LiveStatusDetailText", "合成界面预览 · 无真实截图、凭据或模型推理");
             Text(home, "CaptureHotkeyText", "Ctrl Alt D");

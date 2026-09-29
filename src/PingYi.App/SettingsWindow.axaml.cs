@@ -27,6 +27,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         InitializeLinuxHelp();
+        InitializeRuntimeStatusPage();
         UiText.Attach(this);
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
@@ -44,6 +45,12 @@ public partial class SettingsWindow : Window
         InitializeRuntimeHardware();
         Opened += async (_, _) =>
         {
+            if (RuntimeStatusSettingsTab.IsSelected)
+            {
+                _statusOpenedWithoutProviders = true;
+                await RefreshRuntimeStatusAsync();
+                return;
+            }
             await RefreshCredentialStatusAsync();
             await RefreshLocalModelStatusAsync();
             await RefreshManagedModelStatusAsync(attemptConfiguredStart: false);
