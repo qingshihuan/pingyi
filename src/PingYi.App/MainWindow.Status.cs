@@ -16,6 +16,11 @@ public partial class MainWindow
 
     private void InitializeModeStatusUi()
     {
+        // Keep the full overview above the fixed footer at the original 1040x720 size.
+        // Details retain their more spacious layout; no text or controls are shrunk.
+        ModeStatusBorder.Padding = new Thickness(18, 8);
+        if (ModeStatusBorder.Child is Grid statusLayout) statusLayout.RowSpacing = 8;
+        foreach (var card in ModeCards.Cards) card.Padding = new Thickness(14, 8);
         var refreshIcon = new Avalonia.Controls.Shapes.Path
         {
             Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.8,
