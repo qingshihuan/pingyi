@@ -39,9 +39,15 @@ internal sealed class FirstRunSetupWindow : Window
             await services.SaveSettingsAsync(settings with { InitialSetupCompleted = true }, token);
         })
     {
+        _backends.SelectedItem = ManagedRuntimeBackends.Get(services.Settings.ManagedRuntimeBackend);
         _runtimeHardware = new RuntimeSetupPanel(services.ManagedModels.Runtimes, _backends, services.Settings,
-            () => services.ManagedModels.CurrentRuntimeDescription);
+            () => services.ManagedModels.CurrentRuntimeDescription, services);
         _runtimeHost.Children.Add(_runtimeHardware);
+        _runtimeHardware.ActivityChanged += busy =>
+        {
+            DownloadButton.IsEnabled = !busy && _hasRuntime;
+            LightweightButton.IsEnabled = ExistingButton.IsEnabled = !busy;
+        };
         _configure = (model, backend, progress, token) => services.ConfigureInitialModelAsync(model, backend,
             _runtimeHardware.SelectedDevice, _runtimeHardware.AllowMirrors, _runtimeHardware.MirrorPrefixes, progress, token);
         Opened += async (_, _) => await _runtimeHardware.RefreshAsync();
@@ -64,7 +70,7 @@ internal sealed class FirstRunSetupWindow : Window
         _models.ItemsSource = ManagedMultimodalModels.All;
         _models.SelectedItem = ManagedMultimodalModels.Recommended;
         _backends.ItemsSource = ManagedRuntimeBackends.All;
-        _backends.SelectedItem = ManagedRuntimeBackends.Auto;
+        _backends.SelectedItem = ManagedRuntimeBackends.Default;
         _models.SelectionChanged += (_, _) => UpdateDetails();
         DownloadButton.Content = CaptureUiText.Pick("一键下载并配置基础模式", "Download and configure Basic");
         LightweightButton.Content = CaptureUiText.Pick("暂不下载，使用轻量模式", "Skip download · use Lightweight");
@@ -143,7 +149,7 @@ internal sealed class FirstRunSetupWindow : Window
                 _progress.IsIndeterminate = value.IsIndeterminate; _progress.Value = value.Percentage;
                 _status.Text = UiText.T(value.Message);
             });
-            await _configure(model, (_backends.SelectedItem as ManagedRuntimeBackend)?.Id ?? "auto", progress, _operation.Token);
+            await _configure(model, (_backends.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Default.Id, progress, _operation.Token);
             ready = true;
         }
         catch (OperationCanceledException) { _status.Text = CaptureUiText.Pick("已取消，未完成配置；可以重试或使用轻量模式。", "Cancelled. Setup was not completed; retry or use Lightweight."); }

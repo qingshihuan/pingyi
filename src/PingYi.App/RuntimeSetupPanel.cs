@@ -9,7 +9,7 @@ using PingYi.Infrastructure;
 namespace PingYi.App;
 
 /// <summary>Local detection is separate from the explicit network installation action.</summary>
-internal sealed class RuntimeSetupPanel : StackPanel
+internal sealed partial class RuntimeSetupPanel : StackPanel
 {
     private readonly RuntimeManager? _manager;
     private readonly ComboBox _backend;
@@ -31,7 +31,7 @@ internal sealed class RuntimeSetupPanel : StackPanel
     public bool AllowMirrors => _mirrors.IsChecked == true;
     public string MirrorPrefixes => _customMirrors.Text?.Trim() ?? "";
 
-    public RuntimeSetupPanel(RuntimeManager? manager, ComboBox backend, AppSettings settings, Func<string>? running = null)
+    public RuntimeSetupPanel(RuntimeManager? manager, ComboBox backend, AppSettings settings, Func<string>? running = null, AppServices? services = null)
     {
         _manager = manager; _backend = backend; _running = running ?? (() => "");
         _selection = settings.ManagedRuntimeDevice;
@@ -51,12 +51,14 @@ internal sealed class RuntimeSetupPanel : StackPanel
         _inventory.Classes.Add("workspace-help"); _status.Classes.Add("workspace-help");
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         _inventory.Text = Pick("尚未检测显卡。检测只读取本机设备，不访问网络。", "GPUs have not been detected. Detection is local and offline.");
+        InitializeManagement(services);
         SetDeviceChoices([], null);
         Children.Add(new TextBlock { Text = Pick("显卡与运行后端", "GPU and inference runtime"), FontWeight = FontWeight.SemiBold });
         Children.Add(_inventory);
+        Children.Add(ManagementStatus);
         Children.Add(new TextBlock { Text = Pick("执行显卡（所选后端的实际设备）", "Execution GPU (actual backend devices)") });
         Children.Add(Devices);
-        Children.Add(new WrapPanel { Children = { DetectButton, InstallButton, _cancel } });
+        Children.Add(new WrapPanel { Children = { DetectButton, SwitchButton, InstallButton, UninstallButton, DefaultButton, _cancel } });
         Children.Add(_mirrors);
         Children.Add(new Expander { Header = Pick("自定义备用下载源（HTTPS 前缀，每行一个）", "Custom download relays (HTTPS prefixes, one per line)"), Content = _customMirrors });
         Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12,
@@ -73,7 +75,9 @@ internal sealed class RuntimeSetupPanel : StackPanel
     private async void BackendChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_closed || _parentBusy || _work is not null) return;
-        _selection = "auto";
+        _selection = "auto"; _removalConfirmation = null;
+        SetDeviceChoices([], null);
+        SetControls();
         await RefreshAsync();
     }
     public void SetParentBusy(bool busy) { _parentBusy = busy; SetControls(); }
@@ -81,6 +85,7 @@ internal sealed class RuntimeSetupPanel : StackPanel
     {
         var ready = !_closed && !_parentBusy && _work is null;
         DetectButton.IsEnabled = InstallButton.IsEnabled = Devices.IsEnabled = _mirrors.IsEnabled = _customMirrors.IsEnabled = ready;
+        SetManagementControls(ready);
         _cancel.IsVisible = _work is not null;
         _progress.IsVisible = _work is not null;
     }
@@ -90,10 +95,12 @@ internal sealed class RuntimeSetupPanel : StackPanel
         var version = ++_scanVersion;
         _work = new CancellationTokenSource();
         SetControls();
+        var backendEnabled = _backend.IsEnabled;
+        _backend.IsEnabled = false;
         try { await RefreshCoreAsync(_work.Token); }
         catch (OperationCanceledException) { if (!_closed) _status.Text = Pick("检测已取消。", "Detection cancelled."); }
-        catch (Exception error) { if (!_closed) _status.Text = Pick("设备检测未完成：", "Device detection did not complete: ") + UiText.Error(error); }
-        finally { _work.Dispose(); _work = null; if (version == _scanVersion) SetControls(); }
+        catch (Exception error) { if (!_closed) { SetDeviceChoices([], null); ManagementStatus.Text = _status.Text = Pick("设备检测未完成：", "Device detection did not complete: ") + UiText.Error(error); } }
+        finally { _work.Dispose(); _work = null; _backend.IsEnabled = backendEnabled; if (version == _scanVersion) SetControls(); }
     }
     private async Task RefreshCoreAsync(CancellationToken token)
     {
@@ -101,16 +108,19 @@ internal sealed class RuntimeSetupPanel : StackPanel
         var hardware = await _manager.DetectAsync(true, token);
         _inventory.Text = hardware.Count == 0 ? Pick("未能识别显卡；仍可手动选择 Vulkan 或 CPU。", "No GPU identified; Vulkan and CPU remain selectable.")
             : string.Join('\n', hardware.Select((gpu, i) => $"{i + 1}. {gpu}"));
-        var backend = (_backend.SelectedItem as ManagedRuntimeBackend)?.Id ?? "auto";
+        var backend = (_backend.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Default.Id;
         var runtime = await _manager.RecommendedInstalledAsync(backend, _selection, token);
         if (runtime is null)
         {
             SetDeviceChoices([], null);
-            _status.Text = Pick("该后端尚未安装。点击下载安装后可选择其实际设备；不会把系统显卡序号直接用作运行时序号。", "This backend is not installed. Install it to select its actual devices; OS display indices are not runtime indices.");
+            ManagementStatus.Text = _status.Text = Pick("该后端尚未安装。点击下载安装后可选择其实际设备；不会把系统显卡序号直接用作运行时序号。", "This backend is not installed. Install it to select its actual devices; OS display indices are not runtime indices.");
             return;
         }
         var devices = runtime.Backend == "cpu" ? [] : await GpuInventory.ListDevicesAsync(runtime.Executable, runtime.Backend, token);
         SetDeviceChoices(devices, runtime.Backend);
+        ManagementStatus.Text = runtime.Backend != "cpu" && !devices.Any(d => d.IsHardwareGpu)
+            ? Pick("后端已安装，但没有可用显卡。请检查依赖和驱动，或返回 Vulkan；没有把自动选项当作可运行证明。", "Installed, but no usable GPU. Check dependencies/drivers or return to Vulkan; the Auto choice is not proof of GPU support.")
+            : Pick("已保存：", "Saved: ") + ManagedRuntimeBackends.Get(_currentSettings?.Invoke().ManagedRuntimeBackend).LocalizedDisplayName + $" · {runtime.Backend} · {runtime.Tag} · " + Pick("仅选择不会切换；请点击安装并切换。内置 Vulkan／CPU 不卸载，模型保留。", "Selection alone does not switch; click Install and switch. Bundled Vulkan/CPU and model weights are retained.");
         _status.Text = $"{runtime.Backend} · {runtime.Tag}\n" + _running() + "\n" +
             Pick("显卡选择需保存并应用。检测到设备清单变化时要求重新选择。", "Save and apply the GPU choice. Detected inventory changes require re-selection.");
     }
@@ -139,7 +149,7 @@ internal sealed class RuntimeSetupPanel : StackPanel
                 _progress.IsIndeterminate = p.IsIndeterminate; _progress.Value = p.Percentage;
                 _status.Text = UiText.T(p.Message);
             });
-            var runtime = await _manager.InstallAsync((_backend.SelectedItem as ManagedRuntimeBackend)?.Id ?? "auto", SelectedDevice,
+            var runtime = await _manager.InstallAsync((_backend.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Default.Id, SelectedDevice,
                 AllowMirrors, MirrorPrefixes.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), progress, _work.Token);
             await RefreshCoreAsync(_work.Token);
             _status.Text = Pick("后端已安装并通过启动／设备检查。点击模型的下载并配置／应用按钮验证推理后生效。", "Runtime installed and launch/device checks passed. Apply the model to verify inference and use it.") + $"\n{runtime.Backend} · {runtime.Tag}";
@@ -163,8 +173,15 @@ public partial class SettingsWindow
     {
         if (_services is null || ManagedRuntimeBackendHintText.Parent is not Panel parent) return;
         _runtimeHardware = new RuntimeSetupPanel(_services.ManagedModels.Runtimes, ManagedRuntimeBackendCombo,
-            _services.Settings, () => _services.ManagedModels.CurrentRuntimeDescription);
+            _services.Settings, () => _services.ManagedModels.CurrentRuntimeDescription, _services);
         parent.Children.Insert(parent.Children.IndexOf(ManagedRuntimeBackendHintText) + 1, _runtimeHardware);
+        var controls = new Control[] { SaveSettingsButton, ManagedModelCombo, ManagedModelInstallButton, ManagedModelStartButton };
+        bool[]? enabled = null;
+        _runtimeHardware.ActivityChanged += busy =>
+        {
+            if (busy) { enabled = controls.Select(c => c.IsEnabled).ToArray(); foreach (var c in controls) c.IsEnabled = false; }
+            else if (enabled is not null) { for (var i = 0; i < controls.Length; i++) controls[i].IsEnabled = enabled[i]; enabled = null; }
+        };
         Opened += async (_, _) => await _runtimeHardware.RefreshAsync();
         Closed += (_, _) => _runtimeHardware.Cancel();
     }

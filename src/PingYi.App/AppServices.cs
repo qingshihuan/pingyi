@@ -114,6 +114,7 @@ public sealed partial class AppServices : IAsyncDisposable
     public async Task SaveSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         if (Volatile.Read(ref _disposeState) != 0) return;
+        if (IsRuntimeMaintenance) throw new ProviderException("runtime_maintenance", "正在切换／卸载后端，请完成后再保存设置。 / Finish runtime maintenance before saving settings.");
         if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint))
             throw new ProviderException("custom_endpoint_invalid", "OpenAI 兼容接口地址无效。");
         if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
@@ -142,6 +143,7 @@ public sealed partial class AppServices : IAsyncDisposable
     {
         while (true)
         {
+            if (IsRuntimeMaintenance) throw new ProviderException("runtime_maintenance", "正在切换运行后端，请稍后重试。 / Runtime maintenance in progress; retry shortly.");
             if (Volatile.Read(ref _disposeState) != 0) throw new ObjectDisposedException(nameof(AppServices));
             var settings = Settings;
             if (!(forImageAnalysis ? RuntimePolicy.HasConfiguredManagedRuntime(settings) : RuntimePolicy.UsesManagedRuntime(settings)))
@@ -181,7 +183,7 @@ public sealed partial class AppServices : IAsyncDisposable
 
     private void WarmManagedRuntimeIfConfigured(bool forImageAnalysis = false)
     {
-        if (Volatile.Read(ref _disposeState) != 0) return;
+        if (Volatile.Read(ref _disposeState) != 0 || IsRuntimeMaintenance) return;
         var settings = Settings;
         if (!(forImageAnalysis ? RuntimePolicy.HasConfiguredManagedRuntime(settings) : RuntimePolicy.UsesManagedRuntime(settings)) ||
             !ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out var model)) return;
