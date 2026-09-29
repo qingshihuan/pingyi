@@ -5,6 +5,7 @@ on:
     branches: [feat/hardware-aware-runtime]
     paths:
       - .github/workflows/runtime-package-smoke.yml
+      - src/PingYi.Infrastructure/Runtime/**
       - tests/PingYi.Core.Tests/RuntimePackageSmokeTests.cs
 permissions:
   contents: read

@@ -48,7 +48,9 @@ public sealed class RuntimeManager : IAsyncDisposable
             if (File.Exists(metadata) && new FileInfo(metadata).Length <= 32768)
             {
                 var entry = JsonSerializer.Deserialize(File.ReadAllText(metadata), RuntimeJsonContext.Default.RuntimeInstallation);
-                if (entry is not null && entry.Backend == backend && System.Text.RegularExpressions.Regex.IsMatch(entry.Tag, "^b[0-9]{4,9}-[a-f0-9]{12}$"))
+                if (entry is not null && entry.Backend == backend &&
+                    !string.IsNullOrWhiteSpace(entry.Tag) && !string.IsNullOrWhiteSpace(entry.RelativeExecutable) &&
+                    System.Text.RegularExpressions.Regex.IsMatch(entry.Tag, "^b[0-9]{4,9}-[a-f0-9]{12}$"))
                 {
                     var root = Path.Combine(_store, backend, entry.Tag);
                     var executable = SafeRuntimeArchive.ResolvePath(root, entry.RelativeExecutable);
@@ -56,7 +58,7 @@ public sealed class RuntimeManager : IAsyncDisposable
                 }
             }
         }
-        catch (Exception error) when (error is IOException or JsonException or ArgumentException or UnauthorizedAccessException) { }
+        catch (Exception error) when (error is IOException or InvalidDataException or JsonException or ArgumentException or UnauthorizedAccessException) { }
         if (backend is "cpu" or "vulkan")
         {
             var executable = Path.Combine(_bundled, backend, OperatingSystem.IsWindows() ? "llama-server.exe" : "llama-server");
