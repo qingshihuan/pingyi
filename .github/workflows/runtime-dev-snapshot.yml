@@ -1,0 +1,22 @@
+name: Runtime development source snapshot
+on:
+  push:
+    branches: [feat/hardware-aware-runtime]
+    paths: [.github/workflows/runtime-dev-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Archive tracked source only (no secrets, caches or installed models)
+        run: git archive --format=tar HEAD | gzip > runtime-source.tar.gz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: runtime-development-source
+          path: runtime-source.tar.gz
+          retention-days: 1
