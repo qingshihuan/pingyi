@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Threading;
 using PingYi.Core;
 using Xunit;
 
@@ -56,14 +57,25 @@ public sealed class RuntimeStatusInteractionTests
     [AvaloniaFact]
     public void Unverified_cloud_configuration_is_not_rendered_as_online_green()
     {
-        var cards = new ModeStatusCards();
-        cards.SetSnapshot(RuntimeStatusUiTests.SyntheticSnapshot() with
+        // Dynamic status brushes come from the host window's Light/Dark resources.
+        var home = new MainWindow();
+        try
         {
-            Cloud = new(ModeReadinessState.Unverified, "cloud-unverified"),
-            Basic = new(ModeReadinessState.OnDemand, "basic-on-demand")
-        });
-        Assert.False(cards.Cards[2].State.IsReady);
-        Assert.NotEqual(Color.Parse("#2C9A5E"), ((ISolidColorBrush)cards.Cards[2].Indicator.Background!).Color);
-        Assert.True(cards.Cards[1].State.IsReady);
+            home.Show();
+            home.RenderRuntimeStatus(RuntimeStatusUiTests.SyntheticSnapshot() with
+            {
+                Cloud = new(ModeReadinessState.Unverified, "cloud-unverified"),
+                Basic = new(ModeReadinessState.OnDemand, "basic-on-demand")
+            });
+            home.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+            var cards = home.FindControl<ModeStatusCards>("ModeCards")!;
+            Assert.False(cards.Cards[2].State.IsReady);
+            var cloudBrush = Assert.IsAssignableFrom<ISolidColorBrush>(cards.Cards[2].Indicator.Background);
+            Assert.NotEqual(Color.Parse("#2C9A5E"), cloudBrush.Color);
+            Assert.True(cards.Cards[1].State.IsReady);
+            var basicBrush = Assert.IsAssignableFrom<ISolidColorBrush>(cards.Cards[1].Indicator.Background);
+            Assert.Equal(Color.Parse("#2C9A5E"), basicBrush.Color);
+        }
+        finally { home.Close(); }
     }
 }
