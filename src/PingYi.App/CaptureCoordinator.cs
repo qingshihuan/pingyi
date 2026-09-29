@@ -30,7 +30,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     public async Task StartCaptureAsync(IMainWindowShell? mainWindow, CapturePurpose purpose = CapturePurpose.Auto)
     {
         if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
-        if (services.IsInitialSetupActive) return;
+        if (services.IsInitialSetupActive || services.IsShuttingDown) return;
         if (purpose == CapturePurpose.Auto && !services.Settings.AutomaticCaptureEnabled) purpose = CapturePurpose.TranslateText;
         var operation = BeginOperation();
         if (operation is null) return;
@@ -110,7 +110,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         OperationContext operation;
         lock (_operationSync)
         {
-            if (Volatile.Read(ref _disposeState) != 0 || services.IsInitialSetupActive) return null;
+            if (Volatile.Read(ref _disposeState) != 0 || services.IsInitialSetupActive || services.IsShuttingDown) return null;
             previous = _currentOperation;
             operation = new OperationContext(Interlocked.Increment(ref _nextOperationId), new CancellationTokenSource()) { TargetWindow = targetWindow };
             _currentOperation = operation; _operations.Add(operation);

@@ -11,11 +11,14 @@ public static class TranslationFallback
         ITranslationProvider primary,
         ITranslationProvider offlineFallback,
         TranslationRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        TimeSpan? primaryTimeout = null, TimeSpan? fallbackTimeout = null)
     {
         try
         {
-            var availability = await primary.GetAvailabilityAsync(cancellationToken);
+            using var primaryDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            primaryDeadline.CancelAfter(primaryTimeout ?? TimeSpan.FromMinutes(2));
+            var availability = await primary.GetAvailabilityAsync(primaryDeadline.Token);
             if (!availability.IsAvailable)
             {
                 throw new ProviderException(
@@ -23,14 +26,16 @@ public static class TranslationFallback
                     availability.Message ?? "翻译引擎不可用。");
             }
 
-            var result = await primary.TranslateAsync(request, cancellationToken);
+            var result = await primary.TranslateAsync(request, primaryDeadline.Token);
             return new TranslationExecution(result, primary.Metadata, UsedFallback: false);
         }
         catch (Exception primaryFailure) when (
-            primaryFailure is not OperationCanceledException &&
             !cancellationToken.IsCancellationRequested &&
             primary.Metadata.Id != offlineFallback.Metadata.Id)
         {
+            // An internal HTTP/phase timeout is not a user cancellation. Keep diagnostics authored.
+            var reportedFailure = primaryFailure is OperationCanceledException
+                ? new ProviderException("translation_primary_timeout", "主翻译引擎等待超时，尝试轻量回退。") : primaryFailure;
             var fallbackRequest = ResolveFallbackRequest(offlineFallback.Metadata, request);
             if (fallbackRequest is null)
             {
@@ -42,13 +47,15 @@ public static class TranslationFallback
                     : LanguageCatalog.GetDisplayName(request.TargetLanguage);
                 throw new ProviderException(
                     "translation_fallback_language_unsupported",
-                    $"{primaryFailure.Message}；{offlineFallback.Metadata.DisplayName} 不支持 {source} → {target}，无法离线回退。",
-                    primaryFailure);
+                    $"{reportedFailure.Message}；{offlineFallback.Metadata.DisplayName} 不支持 {source} → {target}，无法离线回退。",
+                    reportedFailure);
             }
 
             try
             {
-                var fallbackAvailability = await offlineFallback.GetAvailabilityAsync(cancellationToken);
+                using var fallbackDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                fallbackDeadline.CancelAfter(fallbackTimeout ?? TimeSpan.FromMinutes(2));
+                var fallbackAvailability = await offlineFallback.GetAvailabilityAsync(fallbackDeadline.Token);
                 if (!fallbackAvailability.IsAvailable)
                 {
                     throw new ProviderException(
@@ -56,16 +63,24 @@ public static class TranslationFallback
                         fallbackAvailability.Message ?? "本地离线翻译不可用。");
                 }
 
-                var result = await offlineFallback.TranslateAsync(fallbackRequest, cancellationToken);
+                var result = await offlineFallback.TranslateAsync(fallbackRequest, fallbackDeadline.Token);
                 return new TranslationExecution(result, offlineFallback.Metadata, UsedFallback: true);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new ProviderException("translation_fallback_timeout", "主翻译引擎与轻量回退均未及时完成，可复制原文后重试。", reportedFailure);
             }
             catch (Exception fallbackFailure) when (fallbackFailure is not OperationCanceledException)
             {
                 throw new ProviderException(
                     "translation_primary_and_fallback_failed",
-                    $"{primaryFailure.Message}；离线回退也不可用：{fallbackFailure.Message}",
-                    primaryFailure);
+                    $"{reportedFailure.Message}；离线回退也不可用：{fallbackFailure.Message}",
+                    reportedFailure);
             }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new ProviderException("translation_timeout", "翻译引擎等待超时，可复制原文后重试。");
         }
     }
 

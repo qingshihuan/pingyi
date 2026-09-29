@@ -1,0 +1,33 @@
+name: Verified runtime package smoke
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/hardware-aware-runtime]
+    paths:
+      - .github/workflows/runtime-package-smoke.yml
+      - src/PingYi.Infrastructure/Runtime/**
+      - tests/PingYi.Core.Tests/RuntimePackageSmokeTests.cs
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - name: Download, verify, install, launch and reuse official CPU runtime
+        env:
+          PINGYI_RUNTIME_PACKAGE_SMOKE: '1'
+        run: dotnet test tests/PingYi.Core.Tests/PingYi.Core.Tests.csproj -c Release --filter FullyQualifiedName~RuntimePackageSmokeTests --logger 'console;verbosity=normal'

@@ -35,6 +35,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            RegisterShutdown(desktop);
             InitializeDesktop(desktop);
         }
 
@@ -46,12 +47,14 @@ public partial class App : Application
         try
         {
             _services = await AppServices.CreateAsync();
+            if (_isExiting) { await _services.DisposeAsync(); return; }
             _services.StartBrowserBridge();
             UiText.Configure(_services.Settings.UiLanguage);
             _captureCoordinator = new CaptureCoordinator(_services);
             var openSettings = desktop.Args?.Contains("--settings", StringComparer.OrdinalIgnoreCase) == true;
             _mainWindow = new MainWindow(_services, _captureCoordinator, OpenSettingsWindowAsync);
             _mainShell = (IMainWindowShell)_mainWindow;
+            ((MainWindow)_mainWindow).ExitRequested = ExitAsync;
             _mainWindow.Closing += (_, eventArgs) =>
             {
                 if (_isExiting)
@@ -68,7 +71,7 @@ public partial class App : Application
                 await Dispatcher.UIThread.InvokeAsync(() => HandleExternalCommandAsync(command)));
 
             _services.HotkeyService.Pressed += (_, _) =>
-                Dispatcher.UIThread.Post(() => _ = _captureCoordinator.StartCaptureAsync(_mainShell));
+                Dispatcher.UIThread.Post(() => { if (!_isExiting) _ = _captureCoordinator.StartCaptureAsync(_mainShell); });
             _ = StartHotkeyAsync();
 
             if (_services.Settings.StartMinimized && !openSettings)
@@ -94,8 +97,10 @@ public partial class App : Application
         }
         catch (Exception exception)
         {
+            if (_isExiting) return;
             _mainWindow = new MainWindow();
             _mainShell = (IMainWindowShell)_mainWindow;
+            ((MainWindow)_mainWindow).ExitRequested = ExitAsync;
             _mainShell.SetGlobalStatus(
                 UiText.IsEnglish
                     ? $"Initialization failed: {UiText.Error(exception)}"
@@ -111,13 +116,16 @@ public partial class App : Application
     {
         try
         {
-            await _services!.HotkeyService.StartAsync(_services.Settings.Hotkey);
+            if (_isExiting || _services is null) return;
+            await _services.HotkeyService.StartAsync(_services.Settings.Hotkey);
+            if (_isExiting) { await _services.HotkeyService.StopAsync(); return; }
             _services.HotkeyRegistrationError = null;
             _mainShell?.SetGlobalStatus(_services.HotkeyService is DesktopManagedHotkeyService
                 ? LinuxDesktopUi.ExternalShortcutHelp : "快捷键已启用", isError: false);
         }
         catch (Exception exception)
         {
+            if (_isExiting) return;
             _services!.HotkeyRegistrationError = exception;
             _mainShell?.SetGlobalStatus(LinuxDesktopUi.DescribeError(exception), isError: true);
         }
@@ -128,12 +136,12 @@ public partial class App : Application
         var showItem = new NativeMenuItem(UiText.IsEnglish ? "Open Screen Insight" : $"打开 {AppEdition.ProductName}");
         showItem.Click += (_, _) => ShowMainWindow();
         var captureItem = new NativeMenuItem(UiText.T("截图翻译"));
-        captureItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell);
+        captureItem.Click += (_, _) => { if (!_isExiting) _ = _captureCoordinator!.StartCaptureAsync(_mainShell); };
         var qrItem = new NativeMenuItem(UiText.Get("String.DecodeQrCode"));
-        qrItem.Click += (_, _) => _ = _captureCoordinator!.StartCaptureAsync(_mainShell, CapturePurpose.DecodeQrCode);
+        qrItem.Click += (_, _) => { if (!_isExiting) _ = _captureCoordinator!.StartCaptureAsync(_mainShell, CapturePurpose.DecodeQrCode); };
         var updateItem = new NativeMenuItem(UiText.IsEnglish ? "Check for updates" : "检查更新");
         updateItem.Click += (_, _) => _ = CheckForUpdatesAsync(userInitiated: true);
-        var exitItem = new NativeMenuItem(UiText.T("退出"));
+        var exitItem = new NativeMenuItem(CaptureUiText.Pick("退出并释放资源", "Quit and release resources"));
         exitItem.Click += async (_, _) => await ExitAsync();
 
         var menu = new NativeMenu();
@@ -188,7 +196,7 @@ public partial class App : Application
 
     private void ShowMainWindow()
     {
-        if (_mainWindow is null || _captureCoordinator?.IsCapturingScreen == true)
+        if (_isExiting || _mainWindow is null || _captureCoordinator?.IsCapturingScreen == true)
         {
             return;
         }
@@ -200,6 +208,7 @@ public partial class App : Application
 
     private async Task HandleExternalCommandAsync(string command)
     {
+        if (_isExiting) return;
         try
         {
             switch (command)
@@ -224,7 +233,7 @@ public partial class App : Application
 
     private Task OpenSettingsWindowAsync()
     {
-        if (_captureCoordinator?.IsCapturingScreen == true) return Task.CompletedTask;
+        if (_isExiting || _captureCoordinator?.IsCapturingScreen == true) return Task.CompletedTask;
         if (_services is null || _mainWindow is null) return Task.CompletedTask;
         ShowMainWindow();
         if (_settingsWindow is not null)
@@ -294,23 +303,4 @@ public partial class App : Application
         }
     }
 
-    private async Task ExitAsync()
-    {
-        _isExiting = true;
-        UiText.LanguageChanged -= RefreshTrayLanguage;
-        _trayIcon?.Dispose();
-        if (_captureCoordinator is not null)
-        {
-            await _captureCoordinator.DisposeAsync();
-        }
-        if (_services is not null)
-        {
-            await _services.DisposeAsync();
-        }
-
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            desktop.Shutdown();
-        }
-    }
 }

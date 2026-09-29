@@ -22,6 +22,7 @@ public partial class MainWindow : Window, IMainWindowShell
     {
         InitializeComponent();
         InitializeSmartCaptureUi();
+        InitializeExitControl();
         UiText.Attach(this);
         UpdateProductTitle();
         UiText.LanguageChanged += OnLanguageChanged;

@@ -81,3 +81,31 @@ xdotool key --clearmodifiers ctrl+shift+d
 overlay=$(wait_window 'Screen Insight Capture')
 cancel_and_restore
 echo 'Native desktop: partial settings, cold --capture, real primary button, secondary --capture, registered hotkey, overlay visibility and Esc restoration passed.'
+
+
+echo 'Testing explicit Quit and release resources (not close-to-tray)'
+# Record only the synthetic application's existing direct children, never look up by executable name.
+children=$(pgrep -P "$app_pid" || true)
+xdotool windowactivate --sync "$main"
+scrot "$PWD/artifacts/ui/native-linux-before-quit.png"
+xdotool mousemove --window "$main" 900 683 click 1
+for i in $(seq 1 240); do
+  kill -0 "$app_pid" 2>/dev/null || break
+  sleep 0.1
+done
+if kill -0 "$app_pid" 2>/dev/null; then
+  diagnose 'application did not finish explicit exit'
+  exit 1
+fi
+wait "$app_pid"
+app_pid=''
+for child in $children; do
+  if test -e "/proc/$child/stat"; then
+    state=$(awk '{print $3}' "/proc/$child/stat")
+    if test "$state" != Z; then
+      diagnose 'an owned synthetic backend survived exit'
+      exit 1
+    fi
+  fi
+done
+echo 'Explicit exit completed and the synthetic application children are no longer running.'

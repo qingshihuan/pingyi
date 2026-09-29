@@ -71,14 +71,7 @@ public sealed class InfrastructureSmokeTests
     [Fact]
     public async Task EngineHost_CanceledInFlightRequestDoesNotPoisonNextRequest()
     {
-        await using var client = new EngineProcessClient(new AppDataPaths());
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => client.CallAsync("health", cancellationToken: cancellation.Token));
-
-        var result = await client.CallAsync("health");
-        Assert.True(result.TryGetProperty("paddleocr", out _));
+        await EngineCancellationFixture.AssertInFlightCancellationAndRecoveryAsync();
     }
 
     [Fact]

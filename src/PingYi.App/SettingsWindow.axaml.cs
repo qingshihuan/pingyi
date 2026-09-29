@@ -41,6 +41,7 @@ public partial class SettingsWindow : Window
         _services = services;
         _persistLanguage = services.SaveUiLanguageAsync;
         LoadSettings();
+        InitializeRuntimeHardware();
         Opened += async (_, _) =>
         {
             await RefreshCredentialStatusAsync();
@@ -311,6 +312,9 @@ public partial class SettingsWindow : Window
             CustomTranslationModel = modelName,
             ManagedRuntimeEnabled = keepManagedRuntime,
             ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
+            ManagedRuntimeDevice = _runtimeHardware?.SelectedDevice ?? current.ManagedRuntimeDevice,
+            RuntimeAllowMirrors = _runtimeHardware?.AllowMirrors ?? current.RuntimeAllowMirrors,
+            RuntimeMirrorPrefixes = _runtimeHardware?.MirrorPrefixes ?? current.RuntimeMirrorPrefixes,
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked == true,

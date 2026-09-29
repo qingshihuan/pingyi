@@ -174,3 +174,19 @@ Automation includes pure routing, migrations, synthetic model responses, UI and 
 ## Contributing and license
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before reporting issues or submitting changes. Do not upload private screenshots, text or credentials. Source is [MIT licensed](LICENSE); models and dependencies retain their own terms, documented in [third-party notices](THIRD_PARTY_NOTICES.md) and each package's `licenses/` manifest.
+
+## Quit and release resources
+
+Use **Quit and release resources** in the main-window footer or tray to stop the app and its owned
+model backends and wait for their exit. Closing the window still hides it to the tray. External
+Ollama / LM Studio services are not killed; models and settings are retained. Backend allocations
+are reclaimed by the OS/driver, not by resetting the entire GPU. See [shutdown and ownership](docs/RUNTIME_SHUTDOWN.md).
+These are source changes; installed behavior depends on the corresponding Release.
+
+## GPU and inference runtimes (current source)
+
+First-run setup and Settings → Local models expose hardware detection, backend-native GPU selection and explicit runtime installation/update. Auto considers NVIDIA architecture/driver for CUDA 12/13 and probes AMD ROCm/HIP; Vulkan/CPU remain available. Manual choices do not silently switch to another device or backend.
+
+Only an explicit download/configure action contacts upstream release metadata. An embedded trusted catalogue is used when GitHub metadata is unavailable, without calling it the latest. Optional third-party relays require opt-in; all executable archives must match official size and SHA-256. Drivers are not installed, and normal capture does not check runtime updates.
+
+Inference no longer inherits the generic 30-second HTTP timeout. Primary translation and offline fallback have independent deadlines; failed translation retries can reuse session-only OCR. Installed-package availability depends on Releases. See [runtime details and validation limits](docs/RUNTIME_ACCELERATION.md).

@@ -16,6 +16,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
     private readonly TaskCompletionSource _disposeCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _disposeState;
     private Process? _process;
+    private OwnedProcessScope? _processScope;
     private int _nextId;
     private bool IsDisposed => Volatile.Read(ref _disposeState) != 0;
 
@@ -181,8 +182,8 @@ public sealed class EngineProcessClient : IAsyncDisposable
         startInfo.Environment["PINGYI_BUNDLED_MODEL_DIR"] = _paths.BundledModelDirectory;
         startInfo.Environment["PYTHONUNBUFFERED"] = "1";
 
-        _process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("无法启动截屏释义本地引擎。");
+        _processScope = OwnedProcessScope.Start(startInfo);
+        _process = _processScope.Process;
         _ = DrainStandardErrorAsync(_process);
     }
 
@@ -255,19 +256,10 @@ public sealed class EngineProcessClient : IAsyncDisposable
 
     private void ResetProcess(bool terminate = false)
     {
-        if (terminate && _process is { HasExited: false } process)
-        {
-            try
-            {
-                process.Kill(entireProcessTree: true);
-            }
-            catch
-            {
-                // The process may have exited between the state check and Kill.
-            }
-        }
-
-        _process?.Dispose();
+        // The scope closes only this instance's child, including a Python launcher child on Windows.
+        // Do not drop ownership before confirmed exit, even on request failure or idle reclamation.
+        _processScope?.Dispose();
+        _processScope = null;
         _process = null;
     }
 
@@ -287,7 +279,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
             }
             ResetProcess(terminate: true);
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or TimeoutException)
         {
             // Shutdown races must not surface as unobserved timer exceptions.
         }
@@ -301,6 +293,7 @@ public sealed class EngineProcessClient : IAsyncDisposable
             await _disposeCompletion.Task.ConfigureAwait(false);
             return;
         }
+        Exception? failure = null;
         try
         {
             await _disposeCancellation.CancelAsync().ConfigureAwait(false);
@@ -313,8 +306,11 @@ public sealed class EngineProcessClient : IAsyncDisposable
                 {
                     try
                     {
-                        await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}");
-                        await _process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                        // Bound both pipe writes and exit waiting: an unresponsive child may not read stdin.
+                        await _process.StandardInput.WriteLineAsync("{\"id\":0,\"method\":\"shutdown\",\"params\":{}}".AsMemory(), deadline.Token);
+                        await _process.StandardInput.FlushAsync(deadline.Token);
+                        await _process.WaitForExitAsync(deadline.Token);
                     }
                     catch
                     {
@@ -325,10 +321,13 @@ public sealed class EngineProcessClient : IAsyncDisposable
             }
             finally { _gate.Release(); }
         }
+        catch (Exception error) { failure = error; }
         finally
         {
             Volatile.Write(ref _disposeState, 2);
-            _disposeCompletion.TrySetResult();
+            if (failure is null) _disposeCompletion.TrySetResult();
+            else _disposeCompletion.TrySetException(failure);
         }
+        await _disposeCompletion.Task.ConfigureAwait(false);
     }
 }

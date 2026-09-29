@@ -26,12 +26,13 @@ public sealed class TranslationFallbackTests
     {
         var external = new StubProvider("custom-chat", fail: false, "external", cancel: true);
         var offline = new StubProvider("local-argos", fail: false, "offline");
-
+        using var userCancellation = new CancellationTokenSource();
+        userCancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             TranslationFallback.ExecuteAsync(
                 external,
                 offline,
-                new TranslationRequest("Hello", "en", "zh")));
+                new TranslationRequest("Hello", "en", "zh"), userCancellation.Token));
 
         Assert.Equal(0, offline.TranslateCalls);
     }

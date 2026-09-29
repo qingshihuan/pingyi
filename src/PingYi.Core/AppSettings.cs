@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 12;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -23,6 +23,9 @@ public sealed record AppSettings
     public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
     public string ManagedModelPackageId { get; init; } = string.Empty;
     public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Auto.Id;
+    public string ManagedRuntimeDevice { get; init; } = RuntimeDeviceChoice.Automatic;
+    public bool RuntimeAllowMirrors { get; init; }
+    public string RuntimeMirrorPrefixes { get; init; } = string.Empty;
     public bool ManagedRuntimeEnabled { get; init; }
     public bool StartMinimized { get; init; }
     public bool CheckForUpdates { get; init; }
@@ -67,6 +70,8 @@ public sealed record AppSettings
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
                 ? ManagedModelPackageId.Trim() : string.Empty,
             ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
+            ManagedRuntimeDevice = RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice),
+            RuntimeMirrorPrefixes = RuntimeMirrorPrefixes?.Trim() ?? string.Empty,
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
                 ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
                 string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),

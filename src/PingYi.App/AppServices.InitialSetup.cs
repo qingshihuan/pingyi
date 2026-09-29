@@ -24,9 +24,15 @@ public sealed partial class AppServices
     }
 
     /// <summary>Explicit user action only; success means both request types were verified.</summary>
-    public async Task ConfigureInitialModelAsync(ManagedMultimodalModel model, string backend,
-        IProgress<ManagedModelProgress> progress, CancellationToken token)
+    public Task ConfigureInitialModelAsync(ManagedMultimodalModel model, string backend,
+        IProgress<ManagedModelProgress> progress, CancellationToken token) =>
+        ConfigureInitialModelAsync(model, backend, Settings.ManagedRuntimeDevice, Settings.RuntimeAllowMirrors,
+            Settings.RuntimeMirrorPrefixes, progress, token);
+
+    public async Task ConfigureInitialModelAsync(ManagedMultimodalModel model, string backend, string device,
+        bool allowMirrors, string mirrorPrefixes, IProgress<ManagedModelProgress> progress, CancellationToken token)
     {
+        ObjectDisposedException.ThrowIf(IsShuttingDown, this);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         var cancellation = lifetime.Token;
         await _initialModelGate.WaitAsync(cancellation);
@@ -36,16 +42,17 @@ public sealed partial class AppServices
         var attemptedStart = false;
         try
         {
-            if (!ManagedModels.HasBundledRuntime)
-                throw new ProviderException("managed_runtime_unavailable", "此安装目录缺少 llama.cpp 运行时，请安装完整软件包或使用已有本机服务／轻量模式。");
+            await ManagedModels.Runtimes.InstallAsync(backend, device, allowMirrors,
+                mirrorPrefixes.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), progress, cancellation);
             await ManagedModels.DownloadAsync(model, progress, cancellation);
             attemptedStart = true;
-            await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation);
+            await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation, device);
             var configured = before with
             {
                 OcrProviderId = "local-vlm-ocr", TranslationProviderId = "custom-chat",
                 CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint, CustomTranslationModel = model.ModelAlias,
                 ManagedModelPackageId = model.Id, ManagedRuntimeBackend = backend, ManagedRuntimeEnabled = true,
+                ManagedRuntimeDevice = device, RuntimeAllowMirrors = allowMirrors, RuntimeMirrorPrefixes = mirrorPrefixes,
                 InitialSetupCompleted = true
             };
             using var verification = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -86,7 +93,7 @@ public sealed partial class AppServices
         {
             // An uncommitted model must not remain running after Skip/Cancel. A previous
             // managed configuration is retained and can start again on its next request.
-            if (attemptedStart && Settings == before)
+            if (attemptedStart && Settings == before && !IsShuttingDown)
             {
                 try { await ManagedModels.StopAsync(_lifetime.Token); }
                 catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
