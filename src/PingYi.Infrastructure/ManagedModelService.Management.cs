@@ -4,7 +4,14 @@ namespace PingYi.Infrastructure;
 
 public sealed partial class ManagedModelService
 {
-    public bool HasRunningOwnedBackend => _ownedProcess is { HasExited: false };
+    public bool HasRunningOwnedBackend
+    {
+        get
+        {
+            try { return _ownedProcess is { HasExited: false }; }
+            catch (InvalidOperationException) { return false; }
+        }
+    }
 
     public async Task<RuntimeRemovalResult> RemoveDownloadedRuntimeAsync(string backend, CancellationToken token)
     {
@@ -15,7 +22,7 @@ public sealed partial class ManagedModelService
         {
             // Serialize with loading/stopping the owned server. Never unlink a running backend
             // and never kill an unrelated model server by process name.
-            if (HasRunningOwnedBackend && _runningBackendId == backend)
+            if (HasRunningOwnedBackend && (_runningBackendId is null || _runningBackendId == backend))
                 throw new ProviderException("runtime_in_use", "该后端正在运行，请先安装并切换到其他后端，再卸载旧后端。 / Switch to another backend before uninstalling the active one.");
             return await Runtimes.RemoveDownloadedAsync(backend, operation.Token);
         }

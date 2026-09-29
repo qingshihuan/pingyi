@@ -30,9 +30,7 @@ public sealed partial class AppServices
         InstalledRuntime? runtime = null;
         try
         {
-            var startup = InvalidateManagedRuntimeStartup();
-            CancelAndRelease(startup.Cancellation, startup.Task);
-            await startup.Task;
+            // Keep a currently loading/ready old server untouched during preparation.
             wasRunning = ManagedModels.HasRunningOwnedBackend;
             await RuntimeChangeTransaction.ApplyAsync(async cancellation =>
             {
@@ -46,6 +44,10 @@ public sealed partial class AppServices
             }, async cancellation =>
             {
                 activationStarted = true;
+                wasRunning |= ManagedModels.HasRunningOwnedBackend;
+                var startup = InvalidateManagedRuntimeStartup();
+                CancelAndRelease(startup.Cancellation, startup.Task);
+                await startup.Task;
                 if (model is not null)
                 {
                     await ManagedModels.EnsureStartedAsync(model, runtime!.Backend, progress, cancellation, device);
@@ -91,9 +93,8 @@ public sealed partial class AppServices
             if (backend == Settings.ManagedRuntimeBackend ||
                 (RuntimeDeviceChoice.TryParse(Settings.ManagedRuntimeDevice, out var selected, out _, out _) && selected == backend))
                 throw new ProviderException("runtime_in_use", "请先安装并切换到另一个后端，再卸载当前保存的后端。 / Switch to another backend before uninstalling the saved backend.");
-            var startup = InvalidateManagedRuntimeStartup();
-            CancelAndRelease(startup.Cancellation, startup.Task);
-            await startup.Task;
+            // Do not stop a loading server as a side effect of checking whether removal is safe.
+            await ManagedRuntimeStartupTask.WaitAsync(lifetime.Token);
             return await ManagedModels.RemoveDownloadedRuntimeAsync(backend, lifetime.Token);
         }
         finally { Volatile.Write(ref _runtimeMaintenance, 0); IsInitialSetupActive = priorSetup; _initialModelGate.Release(); }

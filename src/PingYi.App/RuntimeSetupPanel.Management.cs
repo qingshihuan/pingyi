@@ -74,9 +74,9 @@ internal sealed partial class RuntimeSetupPanel
                     _progress.IsIndeterminate = p.IsIndeterminate; _progress.Value = p.Percentage;
                     _status.Text = UiText.T(p.Message);
                 }), token);
-            if (_manager is not null) await RefreshCoreAsync(token);
+            var refreshWarning = await RefreshAfterCommittedOperationAsync(token);
             ManagementStatus.Text = Pick("所选后端已保存。已配置托管模型时，切换包含 OCR／翻译验证；未配置模型时请继续模型配置。旧后端文件保留，可选择并卸载已下载的旧后端。",
-                "Backend choice saved. Configured managed models pass OCR/translation verification; otherwise continue model setup. Previous downloaded backends may now be selected and uninstalled.");
+                "Backend choice saved. Configured managed models pass OCR/translation verification; otherwise continue model setup. Previous downloaded backends may now be selected and uninstalled.") + refreshWarning;
         });
     }
 
@@ -99,13 +99,28 @@ internal sealed partial class RuntimeSetupPanel
             var saved = _currentSettings?.Invoke();
             _selection = saved?.ManagedRuntimeDevice ?? "auto";
             if (saved is not null) _backend.SelectedItem = ManagedRuntimeBackends.Get(saved.ManagedRuntimeBackend);
-            if (_manager is not null) await RefreshCoreAsync(token);
+            var refreshWarning = await RefreshAfterCommittedOperationAsync(token);
             ManagementStatus.Text = result.CleanupPending
                 ? Pick("已停用下载后端，但部分文件被占用，尚未释放全部磁盘空间；退出占用程序后再次清理。内置后端和模型保留。",
                        "Downloaded backend disabled; some files are locked and disk cleanup is pending. Close their owner and retry. Bundled runtimes and models remain.")
                 : Pick("已清理所选已下载后端；内置 Vulkan／CPU、模型、配置和系统驱动保留。",
                        "Selected downloaded backend removed. Bundled Vulkan/CPU, models, settings and system drivers retained.");
+            ManagementStatus.Text += refreshWarning;
         });
+    }
+
+    private async Task<string> RefreshAfterCommittedOperationAsync(CancellationToken token)
+    {
+        if (_manager is null || _closed) return "";
+        try { await RefreshCoreAsync(token); return ""; }
+        catch (Exception)
+        {
+            // The mutation already succeeded. A failed/cancelled presentation refresh must
+            // not claim that old preferences were restored or that the operation was cancelled.
+            SetDeviceChoices([], null);
+            return Pick("\n操作已完成，但设备列表刷新未完成，请点击检测／刷新显卡。",
+                "\nOperation completed, but device refresh did not. Select Detect / refresh GPUs.");
+        }
     }
 
     private async Task RunManagementAsync(Func<CancellationToken, Task> action)
