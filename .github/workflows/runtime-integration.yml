@@ -2,7 +2,7 @@ name: Runtime integration verification
 on:
   push:
     branches: [feat/hardware-aware-runtime]
-    paths: [scripts/integrate-runtime.py, .github/workflows/runtime-integration.yml]
+    paths: [scripts/integrate-runtime.py, scripts/runtime-followup.py, .github/workflows/runtime-integration.yml]
 permissions:
   contents: read
 jobs:
@@ -26,7 +26,9 @@ jobs:
       - name: Integrate exact reviewed edits
         env:
           PYTHONUTF8: '1'
-        run: python scripts/integrate-runtime.py
+        run: |
+          python scripts/integrate-runtime.py
+          python scripts/runtime-followup.py
       - name: Chinese fonts for UI snapshots
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
@@ -57,9 +59,10 @@ jobs:
       - name: Commit the exact tested edits, removing one-use tools
         run: |
           python3 scripts/integrate-runtime.py
+          python3 scripts/runtime-followup.py
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src tests scripts .github
+          git add src tests scripts .github README.md README.en.md THIRD_PARTY_NOTICES.md docs
           git commit -m 'feat: integrate hardware-aware runtime manager, GPU choice and inference timeout fixes'
           git push origin HEAD:feat/hardware-aware-runtime
