@@ -4,6 +4,8 @@ on:
     branches: [fix/vulkan-default-switch-v081]
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
 concurrency:
   group: integrate-manual-runtime-v081
   cancel-in-progress: true
@@ -40,11 +42,20 @@ jobs:
           python -m unittest discover -s engine_host -p 'test_*.py'
           python -m unittest discover -s scripts -p 'test_*.py'
           git diff --check
+          python - <<'PY'
+          import pathlib, subprocess, tarfile
+          with tarfile.open('artifacts/v081-tested-source.tar.gz', 'w:gz') as archive:
+              for name in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+                  if name and pathlib.Path(name).is_file():
+                      archive.add(name, arcname=name)
+          PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: manual-runtime-ui-${{ matrix.os }}
-          path: artifacts/ui/*.png
+          path: |
+            artifacts/ui/*.png
+            artifacts/v081-tested-source.tar.gz
           retention-days: 3
   commit:
     needs: test
