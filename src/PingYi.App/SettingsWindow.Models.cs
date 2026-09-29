@@ -22,7 +22,7 @@ public partial class SettingsWindow
 
     private async Task RunManagedModelSetupAsync(Button button)
     {
-        if (_services is null || _managedModelOperation is not null || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model) return;
+        if (_services is null || _managedModelOperation is not null || _runtimeHardware?.IsBusy == true || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model) return;
         _managedModelOperation = new CancellationTokenSource();
         BeginButtonOperation(button, "正在下载并配置…");
         SetManagedModelBusy(true);
@@ -117,9 +117,9 @@ public partial class SettingsWindow
             : $"{model.Summary} 量化：{model.Quantization} · 许可：{model.License} · 发布：{model.ReleaseDate}";
         ManagedModelHardwareText.Text = model.LocalizedHardwareHint;
     }
-    private string SelectedManagedRuntimeBackendId => (ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Auto.Id;
+    private string SelectedManagedRuntimeBackendId => (ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend)?.Id ?? ManagedRuntimeBackends.Default.Id;
     private void UpdateManagedRuntimeBackendDescription() => ManagedRuntimeBackendHintText.Text =
-        (ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend ?? ManagedRuntimeBackends.Auto).LocalizedDescription;
+        (ManagedRuntimeBackendCombo.SelectedItem as ManagedRuntimeBackend ?? ManagedRuntimeBackends.Default).LocalizedDescription;
     private void UpdateManagedModelProgress(ManagedModelProgress progress)
     {
         if (_managedModelOperation is null) return;

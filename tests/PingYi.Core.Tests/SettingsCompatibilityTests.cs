@@ -30,7 +30,7 @@ public sealed class SettingsCompatibilityTests
             Assert.Equal("local-argos", settings.TranslationProviderId);
             Assert.Equal("auto", settings.SourceLanguage);
             Assert.Equal("auto-opposite", settings.TargetLanguage);
-            Assert.Equal("auto", settings.ManagedRuntimeBackend);
+            Assert.Equal("vulkan", settings.ManagedRuntimeBackend);
             Assert.Equal(string.Empty, settings.ManagedModelPackageId);
             Assert.False(settings.ManagedRuntimeEnabled);
             Assert.False(settings.CheckForUpdates);

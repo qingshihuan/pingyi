@@ -27,7 +27,7 @@ public sealed record ManagedModelStatus(
     string Message,
     string DirectoryPath);
 
-public sealed class ManagedModelService : IAsyncDisposable
+public sealed partial class ManagedModelService : IAsyncDisposable
 {
     private static readonly Uri ManagedModelsEndpoint = new("http://127.0.0.1:18080/v1/models");
     private static readonly Uri ManagedHealthEndpoint = new("http://127.0.0.1:18080/health");
@@ -163,7 +163,7 @@ public sealed class ManagedModelService : IAsyncDisposable
         CancellationToken cancellationToken = default) =>
         await EnsureStartedAsync(
             model,
-            ManagedRuntimeBackends.Auto.Id,
+            ManagedRuntimeBackends.Default.Id,
             progress,
             cancellationToken);
 
@@ -230,8 +230,8 @@ public sealed class ManagedModelService : IAsyncDisposable
             if (await EndpointServesModelAsync(model.ModelAlias, cancellationToken))
             {
                 await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(12), cancellationToken);
-                if (_ownedProcess is null && deviceSelection != "auto")
-                    throw new ProviderException("runtime_external_device", "端口由外部服务提供，无法为它更换执行显卡；请在该服务中设置或停止它后重试。");
+                if (_ownedProcess is null && (deviceSelection != "auto" || normalizedBackend != ManagedRuntimeBackends.Auto.Id))
+                    throw new ProviderException("runtime_external_device", "端口由外部服务提供，无法为它更换后端或执行显卡；请在该服务中设置或停止它后重试。");
                 var ownedProcessMatches = _ownedProcess is not null && _runningSelection == deviceSelection &&
                                           _runningInventory == runtimeInventory &&
                                           string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&

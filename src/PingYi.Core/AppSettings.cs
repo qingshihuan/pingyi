@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 12;
+    public const int CurrentSchemaVersion = 13;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -22,7 +22,7 @@ public sealed record AppSettings
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
     public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
     public string ManagedModelPackageId { get; init; } = string.Empty;
-    public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Auto.Id;
+    public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Default.Id;
     public string ManagedRuntimeDevice { get; init; } = RuntimeDeviceChoice.Automatic;
     public bool RuntimeAllowMirrors { get; init; }
     public string RuntimeMirrorPrefixes { get; init; } = string.Empty;
@@ -69,7 +69,12 @@ public sealed record AppSettings
             CustomTranslationModel = model,
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
                 ? ManagedModelPackageId.Trim() : string.Empty,
-            ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
+            // Migrate the former automatic default only without an explicit GPU choice.
+            // Explicit CPU/CUDA/ROCm/Vulkan selections and schema-13 Auto stay unchanged.
+            ManagedRuntimeBackend = SchemaVersion < 13 &&
+                ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend) == "auto" &&
+                RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice) == "auto"
+                    ? ManagedRuntimeBackends.Default.Id : ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
             ManagedRuntimeDevice = RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice),
             RuntimeMirrorPrefixes = RuntimeMirrorPrefixes?.Trim() ?? string.Empty,
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&

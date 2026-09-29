@@ -138,6 +138,9 @@ public partial class SettingsWindow : Window
         {
             var previousSettings = _services.Settings;
             var updatedSettings = BuildSettingsFromForm();
+            if (updatedSettings.ManagedRuntimeBackend != previousSettings.ManagedRuntimeBackend ||
+                updatedSettings.ManagedRuntimeDevice != previousSettings.ManagedRuntimeDevice)
+                throw new ProviderException("runtime_apply_required", "更换后端／显卡请先点击“安装并切换到所选后端”，成功后再保存其他设置。 / Use Install and switch for backend/GPU changes before saving other settings.");
             _ = GlobalHotkeyGesture.Parse(updatedSettings.Hotkey);
             await SaveAllEnteredSecretsAsync();
             var hotkeyChanged = !string.Equals(

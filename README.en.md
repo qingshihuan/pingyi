@@ -42,6 +42,12 @@ Packages include the application runtimes, lightweight Chinese/English OCR and t
 > Download only from this repository's Releases and verify SHA-256 checksums. Unsigned Windows builds may trigger SmartScreen; checksums verify file integrity, not code signing.
 
 <a id="quick-start"></a>
+## Switch and uninstall runtimes (v0.8.1)
+
+Vulkan is the default. In **Settings → Local models → GPU and inference runtime**, choose a backend/device and select **Install and switch to selected backend**. Installation and device checks precede activation; an already-configured model must pass OCR/translation verification before preferences are saved. Failures retain the previous settings and attempt to restore its server. Model weights are reused.
+
+After switching, select the old backend and confirm **Uninstall selected downloaded backend** with a second click. Active backends are protected; bundled Vulkan/CPU, models, settings, drivers and external services are retained. Only downloaded backend versions and unshared caches are removed. Bundled files do not consume VRAM when unused. See [runtime management](docs/RUNTIME_SWITCHING.md).
+
 ## First run
 
 1. **Choose a mode.** The first-run guide offers an explicit one-click Basic model download, an existing local service, or **Skip download · use Lightweight**. Opening the app alone does not download a large model.
@@ -99,7 +105,7 @@ This older demo does not represent the current layout, processing modes or Linux
 <a id="models"></a>
 ## Models and cloud services
 
-**Managed local models:** use the first-run guide or **Settings → Local models**. Auto tries Vulkan and falls back to CPU; explicit Vulkan does not automatically switch. Consult the catalog's size and hardware guidance and test your own device; model speed and memory needs are not guaranteed.
+**Managed local models:** use the first-run guide or **Settings → Local models**. Bundled Vulkan is the default; CUDA/ROCm or CPU can be selected manually. Explicit Vulkan does not automatically fall back. Consult the catalog's size and hardware guidance and test your own device; model speed and memory needs are not guaranteed.
 
 **Existing services:** configure your compatible endpoint, model and credentials under **Settings → Custom endpoint**, and ensure the model can accept images. Configured managed models load on demand. Toggling automatic task selection does not itself start an LLM.
 

@@ -11,7 +11,7 @@ internal sealed record RuntimeInstallation(string Backend, string Tag, string Re
 [JsonSerializable(typeof(RuntimeInstallation))]
 internal partial class RuntimeJsonContext : JsonSerializerContext { }
 
-public sealed class RuntimeManager : IAsyncDisposable
+public sealed partial class RuntimeManager : IAsyncDisposable
 {
     private readonly string _store;
     private readonly string _bundled;

@@ -42,8 +42,10 @@ public sealed partial class AppServices
         var attemptedStart = false;
         try
         {
-            await ManagedModels.Runtimes.InstallAsync(backend, device, allowMirrors,
-                mirrorPrefixes.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), progress, cancellation);
+            // Installed Vulkan/CPU do not require an online update just to configure a model.
+            if (await ManagedModels.Runtimes.RecommendedInstalledAsync(backend, device, cancellation) is null)
+                await ManagedModels.Runtimes.InstallAsync(backend, device, allowMirrors,
+                    mirrorPrefixes.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), progress, cancellation);
             await ManagedModels.DownloadAsync(model, progress, cancellation);
             attemptedStart = true;
             await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation, device);
@@ -55,28 +57,7 @@ public sealed partial class AppServices
                 ManagedRuntimeDevice = device, RuntimeAllowMirrors = allowMirrors, RuntimeMirrorPrefixes = mirrorPrefixes,
                 InitialSetupCompleted = true
             };
-            using var verification = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-            verification.CancelAfter(TimeSpan.FromMinutes(4));
-            var translator = new ChatCompatibleTranslationProvider(_imageAnalysisClient, SecretStore, () => configured);
-            var ocr = new ChatCompatibleOcrProvider(_imageAnalysisClient, SecretStore, () => configured, translator);
-            using var bitmap = new SKBitmap(360, 96);
-            using (var canvas = new SKCanvas(bitmap))
-            using (var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true })
-            using (var font = new SKFont(SKTypeface.Default, 28))
-            {
-                canvas.Clear(SKColors.White);
-                canvas.DrawText("PINGYI OCR 2026", 18, 58, SKTextAlign.Left, font, paint);
-            }
-            using var synthetic = SKImage.FromBitmap(bitmap);
-            using var png = synthetic.Encode(SKEncodedImageFormat.Png, 100);
-            var recognized = await ocr.RecognizeAsync(new ImageFrame(png.ToArray(), 360, 96, new PixelRect(0, 0, 360, 96)),
-                new OcrOptions("en"), verification.Token);
-            if (!recognized.PlainText.Contains("PINGYI", StringComparison.OrdinalIgnoreCase) ||
-                !recognized.PlainText.Contains("2026", StringComparison.Ordinal))
-                throw new ProviderException("custom_vision_mismatch", "模型未正确读出固定测试图片，请检查视觉组件或选择其他模型。");
-            var translated = await translator.TranslateAsync(new TranslationRequest("Hello", "en", "zh"), verification.Token);
-            if (string.IsNullOrWhiteSpace(translated.Text))
-                throw new ProviderException("custom_empty", "模型未返回测试译文，未应用本次配置。");
+            await VerifyConfiguredModelAsync(configured, cancellation);
             cancellation.ThrowIfCancellationRequested();
             // Serialize the compare-and-save with language, browser and settings transitions.
             await _settingsTransitionGate.WaitAsync(cancellation);
@@ -101,5 +82,31 @@ public sealed partial class AppServices
             throw;
         }
         finally { IsInitialSetupActive = previouslyActive; _initialModelGate.Release(); }
+    }
+
+    private async Task VerifyConfiguredModelAsync(AppSettings configured, CancellationToken cancellation)
+    {
+        using var verification = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        verification.CancelAfter(TimeSpan.FromMinutes(4));
+        var translator = new ChatCompatibleTranslationProvider(_imageAnalysisClient, SecretStore, () => configured);
+        var ocr = new ChatCompatibleOcrProvider(_imageAnalysisClient, SecretStore, () => configured, translator);
+        using var bitmap = new SKBitmap(360, 96);
+        using (var canvas = new SKCanvas(bitmap))
+        using (var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true })
+        using (var font = new SKFont(SKTypeface.Default, 28))
+        {
+            canvas.Clear(SKColors.White);
+            canvas.DrawText("PINGYI OCR 2026", 18, 58, SKTextAlign.Left, font, paint);
+        }
+        using var synthetic = SKImage.FromBitmap(bitmap);
+        using var png = synthetic.Encode(SKEncodedImageFormat.Png, 100);
+        var recognized = await ocr.RecognizeAsync(new ImageFrame(png.ToArray(), 360, 96, new PixelRect(0, 0, 360, 96)),
+            new OcrOptions("en"), verification.Token);
+        if (!recognized.PlainText.Contains("PINGYI", StringComparison.OrdinalIgnoreCase) ||
+            !recognized.PlainText.Contains("2026", StringComparison.Ordinal))
+            throw new ProviderException("custom_vision_mismatch", "模型未正确读出固定测试图片，请检查视觉组件或选择其他模型。");
+        var translated = await translator.TranslateAsync(new TranslationRequest("Hello", "en", "zh"), verification.Token);
+        if (string.IsNullOrWhiteSpace(translated.Text))
+            throw new ProviderException("custom_empty", "模型未返回测试译文，未应用本次配置。");
     }
 }
