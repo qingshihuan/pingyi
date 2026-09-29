@@ -44,11 +44,17 @@ public sealed class ManagedModelService : IAsyncDisposable
     private Task[] _outputReaders = [];
     private string? _runningModelId;
     private string? _runningBackendId;
+    private string _runningSelection = "auto";
+    private string? _runningExecutable;
+    private string? _runningInventory;
+    public RuntimeManager Runtimes { get; }
+    public string CurrentRuntimeDescription { get; private set; } = "未启动 / Not running";
     private int _disposeState;
 
     public ManagedModelService(AppDataPaths paths)
     {
         _paths = paths;
+        Runtimes = new RuntimeManager(paths);
         _downloadClient = new HttpClient
         {
             Timeout = Timeout.InfiniteTimeSpan
@@ -165,7 +171,8 @@ public sealed class ManagedModelService : IAsyncDisposable
         ManagedMultimodalModel model,
         string backendId,
         IProgress<ManagedModelProgress>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string deviceSelection = "auto")
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
         using var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(
@@ -178,9 +185,14 @@ public sealed class ManagedModelService : IAsyncDisposable
             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, this);
             EnsureCompleteRuntimeAvailable();
             var normalizedBackend = ManagedRuntimeBackends.Normalize(backendId);
+            if (deviceSelection != "auto" && !RuntimeDeviceChoice.TryParse(deviceSelection, out _, out _, out _))
+                throw new ProviderException("runtime_device_invalid", "执行显卡设置无效，请重新检测。");
+            var runtimeInventory = string.Join('|', ManagedRuntimeBackends.All.Where(b => b.Id != "auto")
+                .Select(b => Runtimes.Find(b.Id)?.Executable ?? ""));
             // A live owned process has already loaded verified weights. Reuse it
             // without re-reading GiB from disk. A restart still verifies every file.
-            if (_ownedProcess is { HasExited: false } &&
+            if (_ownedProcess is { HasExited: false } && _runningSelection == deviceSelection &&
+                _runningInventory == runtimeInventory &&
                 string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&
                 (normalizedBackend == ManagedRuntimeBackends.Auto.Id ||
                  string.Equals(_runningBackendId, normalizedBackend, StringComparison.OrdinalIgnoreCase)))
@@ -190,7 +202,7 @@ public sealed class ManagedModelService : IAsyncDisposable
                     // Do not kill a healthy loaded model because one status request was slow.
                     await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(12), cancellationToken);
                     progress?.Report(new ManagedModelProgress("ready", "本机模型服务已经运行", model.TotalSize, model.TotalSize));
-                    return $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
+                    return CurrentRuntimeDescription;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                 catch (TimeoutException)
@@ -218,7 +230,10 @@ public sealed class ManagedModelService : IAsyncDisposable
             if (await EndpointServesModelAsync(model.ModelAlias, cancellationToken))
             {
                 await WaitUntilReadyAsync(model, TimeSpan.FromSeconds(12), cancellationToken);
-                var ownedProcessMatches = _ownedProcess is not null &&
+                if (_ownedProcess is null && deviceSelection != "auto")
+                    throw new ProviderException("runtime_external_device", "端口由外部服务提供，无法为它更换执行显卡；请在该服务中设置或停止它后重试。");
+                var ownedProcessMatches = _ownedProcess is not null && _runningSelection == deviceSelection &&
+                                          _runningInventory == runtimeInventory &&
                                           string.Equals(_runningModelId, model.Id, StringComparison.OrdinalIgnoreCase) &&
                                           (normalizedBackend == ManagedRuntimeBackends.Auto.Id ||
                                            string.Equals(_runningBackendId, normalizedBackend, StringComparison.OrdinalIgnoreCase));
@@ -231,7 +246,7 @@ public sealed class ManagedModelService : IAsyncDisposable
                         model.TotalSize));
                     return _ownedProcess is null
                         ? "已连接正在运行的本机模型服务；其计算后端由该服务决定"
-                        : $"本机模型服务已通过 {DescribeBackend(_runningBackendId)} 运行";
+                        : CurrentRuntimeDescription;
                 }
 
                 await StopOwnedProcessCoreAsync();
@@ -247,10 +262,15 @@ public sealed class ManagedModelService : IAsyncDisposable
             }
 
             Exception? lastError = null;
-            foreach (var runtime in GetRuntimeCandidates(normalizedBackend))
+            var hardware = normalizedBackend == "auto" ? await Runtimes.DetectAsync(false, cancellationToken) : [];
+            var candidateIds = RuntimeHardwarePolicy.Candidates(normalizedBackend, deviceSelection, hardware, OperatingSystem.IsWindows());
+            foreach (var candidateId in candidateIds)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var backendName = runtime.IsGpu ? "Vulkan 通用显卡" : "CPU";
+                var installed = Runtimes.Find(candidateId);
+                if (installed is null) continue;
+                var runtime = new RuntimeCandidate(installed.Executable, candidateId, installed.Tag);
+                var backendName = DescribeBackend(candidateId);
                 progress?.Report(new ManagedModelProgress(
                     "starting",
                     $"正在使用 {backendName} 后端加载模型…",
@@ -259,6 +279,13 @@ public sealed class ManagedModelService : IAsyncDisposable
                     true));
                 try
                 {
+                    if (runtime.IsGpu)
+                    {
+                        var devices = await GpuInventory.ListDevicesAsync(runtime.ExecutablePath, runtime.BackendId, cancellationToken);
+                        var device = RuntimeDeviceChoice.Resolve(deviceSelection, runtime.BackendId, devices)
+                            ?? throw new ProviderException("runtime_no_gpu", "此后端未枚举到可用显卡。");
+                        runtime = runtime with { Device = device };
+                    }
                     StartProcess(runtime, model);
                     await WaitUntilReadyAsync(model,
                         runtime.IsGpu ? ManagedRuntimeReadiness.VulkanTimeout : ManagedRuntimeReadiness.CpuTimeout,
@@ -266,14 +293,14 @@ public sealed class ManagedModelService : IAsyncDisposable
                             "starting", $"正在使用 {backendName} 后端加载模型（{elapsed.TotalSeconds:0} 秒）…可取消，冷启动可能较慢。",
                             0, 0, true, elapsed.TotalSeconds)));
                     _runningModelId = model.Id;
-                    _runningBackendId = runtime.IsGpu
-                        ? ManagedRuntimeBackends.Vulkan.Id
-                        : ManagedRuntimeBackends.Cpu.Id;
-                    return runtime.IsGpu
-                        ? "模型已通过 Vulkan 显卡后端启动"
-                        : normalizedBackend == ManagedRuntimeBackends.Cpu.Id
-                            ? "模型已通过 CPU 后端启动"
-                            : "显卡后端不可用，已自动回退 CPU 并启动";
+                    _runningBackendId = runtime.BackendId;
+                    _runningSelection = deviceSelection;
+                    _runningExecutable = runtime.ExecutablePath;
+                    _runningInventory = runtimeInventory;
+                    CurrentRuntimeDescription = $"{backendName} · {runtime.Version}" +
+                        (runtime.Device is null ? "" : $" · {runtime.Device.Id} · {runtime.Device.Name}") +
+                        (lastError is null ? "" : " · 已回退 / fallback");
+                    return CurrentRuntimeDescription;
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -284,11 +311,11 @@ public sealed class ManagedModelService : IAsyncDisposable
                 {
                     lastError = exception;
                     await StopOwnedProcessCoreAsync();
-                    if (runtime.IsGpu && normalizedBackend == ManagedRuntimeBackends.Auto.Id)
+                    if (runtime.IsGpu && normalizedBackend == ManagedRuntimeBackends.Auto.Id && deviceSelection == "auto")
                     {
                         progress?.Report(new ManagedModelProgress(
                             "fallback",
-                            "Vulkan 启动失败，正在自动回退 CPU…",
+                            $"{backendName} 启动失败，正在尝试下一个兼容后端…",
                             model.TotalSize,
                             model.TotalSize,
                             true));
@@ -472,32 +499,10 @@ public sealed class ManagedModelService : IAsyncDisposable
         }
     }
 
-    private IReadOnlyList<RuntimeCandidate> GetRuntimeCandidates()
-        => GetRuntimeCandidates(ManagedRuntimeBackends.Auto.Id);
-
-    private IReadOnlyList<RuntimeCandidate> GetRuntimeCandidates(string backendId)
-    {
-        var executableName = OperatingSystem.IsWindows() ? "llama-server.exe" : "llama-server";
-        var candidates = new[]
-        {
-            new RuntimeCandidate(
-                Path.Combine(_paths.LlamaRuntimeDirectory, "vulkan", executableName),
-                true),
-            new RuntimeCandidate(
-                Path.Combine(_paths.LlamaRuntimeDirectory, "cpu", executableName),
-                false)
-        };
-        var normalized = ManagedRuntimeBackends.Normalize(backendId);
-        return candidates
-            .Where(candidate => File.Exists(candidate.ExecutablePath))
-            .Where(candidate => normalized switch
-            {
-                "vulkan" => candidate.IsGpu,
-                "cpu" => !candidate.IsGpu,
-                _ => true
-            })
-            .ToArray();
-    }
+    private IReadOnlyList<RuntimeCandidate> GetRuntimeCandidates() =>
+        ManagedRuntimeBackends.All.Where(backend => backend.Id != "auto")
+            .Select(backend => Runtimes.Find(backend.Id)).Where(runtime => runtime is not null)
+            .Select(runtime => new RuntimeCandidate(runtime!.Executable, runtime.Backend, runtime.Tag)).ToArray();
 
     private void StartProcess(RuntimeCandidate runtime, ManagedMultimodalModel model)
     {
@@ -512,6 +517,12 @@ public sealed class ManagedModelService : IAsyncDisposable
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        RuntimeProcessProbe.ConfigureEnvironment(startInfo);
+        if (runtime.Device is { } device)
+        {
+            AddArgument(startInfo, "--device", device.Id);
+            AddArgument(startInfo, "--split-mode", "none");
+        }
         AddArgument(startInfo, "-m", Path.Combine(directory, model.ModelFile.FileName));
         AddArgument(startInfo, "--mmproj", Path.Combine(directory, model.ProjectorFile.FileName));
         AddArgument(startInfo, "--alias", model.ModelAlias);
@@ -519,7 +530,7 @@ public sealed class ManagedModelService : IAsyncDisposable
         AddArgument(startInfo, "--port", "18080");
         AddArgument(startInfo, "--ctx-size", "8192");
         AddArgument(startInfo, "--parallel", "1");
-        AddArgument(startInfo, "--n-gpu-layers", runtime.IsGpu ? "99" : "0");
+        AddArgument(startInfo, "--n-gpu-layers", runtime.IsGpu ? (runtime.Version == "bundled" ? "99" : "auto") : "0");
         AddArgument(startInfo, "--flash-attn", "auto");
         AddArgument(startInfo, "--reasoning", "off");
         AddArgument(startInfo, "--image-max-tokens", "1120");
@@ -595,7 +606,9 @@ public sealed class ManagedModelService : IAsyncDisposable
         await _ownedProcessScope.StopAsync();
         _ownedProcessScope = null;
         _ownedProcess = null;
-        _runningModelId = _runningBackendId = null;
+        _runningModelId = _runningBackendId = _runningExecutable = _runningInventory = null;
+        _runningSelection = "auto";
+        CurrentRuntimeDescription = "已停止 / Stopped";
         try { await Task.WhenAll(_outputReaders).WaitAsync(TimeSpan.FromSeconds(2)); }
         catch (TimeoutException) { }
         _outputReaders = [];
@@ -611,10 +624,7 @@ public sealed class ManagedModelService : IAsyncDisposable
 
     private static string FormatBytes(long bytes) => $"{bytes / 1024d / 1024d / 1024d:0.00} GiB";
 
-    private static string DescribeBackend(string? backendId) =>
-        string.Equals(backendId, ManagedRuntimeBackends.Vulkan.Id, StringComparison.OrdinalIgnoreCase)
-            ? "Vulkan 通用显卡"
-            : "CPU";
+    private static string DescribeBackend(string? backendId) => ManagedRuntimeBackends.Get(backendId).LocalizedDisplayName;
 
     public async ValueTask DisposeAsync()
     {
@@ -627,9 +637,14 @@ public sealed class ManagedModelService : IAsyncDisposable
         try
         {
             await _lifetime.CancelAsync();
-            await _operationGate.WaitAsync();
-            try { await StopOwnedProcessCoreAsync(); }
-            finally { _operationGate.Release(); }
+            await ShutdownWork.RunAllAsync(
+                () => Runtimes.DisposeAsync().AsTask(),
+                async () =>
+                {
+                    await _operationGate.WaitAsync();
+                    try { await StopOwnedProcessCoreAsync(); }
+                    finally { _operationGate.Release(); }
+                });
         }
         catch (Exception error) { failure = error; }
         finally
@@ -642,5 +657,8 @@ public sealed class ManagedModelService : IAsyncDisposable
         await _disposeCompletion.Task;
     }
 
-    private sealed record RuntimeCandidate(string ExecutablePath, bool IsGpu);
+    private sealed record RuntimeCandidate(string ExecutablePath, string BackendId, string Version, RuntimeDevice? Device = null)
+    {
+        public bool IsGpu => BackendId != "cpu";
+    }
 }

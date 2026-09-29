@@ -85,7 +85,7 @@ public sealed class RuntimeDownloader(HttpClient client, TimeSpan? headerTimeout
                 return;
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception error) when (error is HttpRequestException or OperationCanceledException or IOException)
+            catch (Exception error) when (error is HttpRequestException or OperationCanceledException or IOException or InvalidDataException)
             {
                 progress?.Report(new ManagedModelProgress("runtime-mirror", $"{source.Host} 下载未完成，尝试下一来源；完整校验前不会执行。", 0, asset.Size, true));
             }

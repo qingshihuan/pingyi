@@ -69,7 +69,9 @@ public partial class SettingsWindow
         IProgress<ManagedModelProgress> progress, CancellationToken token)
     {
         if (_services is null) return;
-        await _services.ConfigureInitialModelAsync(model, SelectedManagedRuntimeBackendId, progress, token);
+        await _services.ConfigureInitialModelAsync(model, SelectedManagedRuntimeBackendId,
+            _runtimeHardware?.SelectedDevice ?? "auto", _runtimeHardware?.AllowMirrors ?? false,
+            _runtimeHardware?.MirrorPrefixes ?? "", progress, token);
         _isLoadingSettings = true;
         try
         {
@@ -101,7 +103,7 @@ public partial class SettingsWindow
                 string.Equals(_services.Settings.ManagedModelPackageId, selected.Id, StringComparison.OrdinalIgnoreCase))
             {
                 var result = await _services.ManagedModels.EnsureStartedAsync(selected, _services.Settings.ManagedRuntimeBackend,
-                    new Progress<ManagedModelProgress>(UpdateManagedModelProgress));
+                    new Progress<ManagedModelProgress>(UpdateManagedModelProgress), deviceSelection: _services.Settings.ManagedRuntimeDevice);
                 SetInlineStatus(ManagedModelStatusText, result, "SuccessTextBrush");
             }
         }
@@ -129,6 +131,7 @@ public partial class SettingsWindow
     }
     private void SetManagedModelBusy(bool busy)
     {
+        _runtimeHardware?.SetParentBusy(busy);
         ManagedModelCombo.IsEnabled = ManagedRuntimeBackendCombo.IsEnabled = ManagedModelSourceButton.IsEnabled =
             ManagedModelFolderButton.IsEnabled = ManagedModelInstallButton.IsEnabled = ManagedModelStartButton.IsEnabled = !busy;
         ManagedModelCancelButton.IsVisible = busy; ManagedModelCancelButton.IsEnabled = busy;

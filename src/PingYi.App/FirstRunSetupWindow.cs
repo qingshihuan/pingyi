@@ -16,6 +16,8 @@ internal sealed class FirstRunSetupWindow : Window
     private readonly Func<ManagedMultimodalModel, string, IProgress<ManagedModelProgress>, CancellationToken, Task> _configure;
     private readonly Func<InitialSetupChoice, CancellationToken, Task> _saveChoice;
     private readonly bool _hasRuntime;
+    private RuntimeSetupPanel? _runtimeHardware;
+    private readonly StackPanel _runtimeHost = new() { Spacing = 8 };
     private readonly ComboBox _models = new() { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
     private readonly ComboBox _backends = new() { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
     private readonly TextBlock _details = new() { TextWrapping = TextWrapping.Wrap };
@@ -35,7 +37,17 @@ internal sealed class FirstRunSetupWindow : Window
             var settings = choice == InitialSetupChoice.Ready
                 ? ProcessingModes.Apply(services.Settings, "lite") : services.Settings;
             await services.SaveSettingsAsync(settings with { InitialSetupCompleted = true }, token);
-        }) { }
+        })
+    {
+        _runtimeHardware = new RuntimeSetupPanel(services.ManagedModels.Runtimes, _backends, services.Settings,
+            () => services.ManagedModels.CurrentRuntimeDescription);
+        _runtimeHost.Children.Add(_runtimeHardware);
+        _configure = (model, backend, progress, token) => services.ConfigureInitialModelAsync(model, backend,
+            _runtimeHardware.SelectedDevice, _runtimeHardware.AllowMirrors, _runtimeHardware.MirrorPrefixes, progress, token);
+        Opened += async (_, _) => await _runtimeHardware.RefreshAsync();
+        Closed += (_, _) => _runtimeHardware.Cancel();
+        Height = 820;
+    }
 
     // Separate UI from download/persistence callbacks so confirmation and cancellation can
     // be tested with no network, model files, credentials or user settings.
@@ -80,7 +92,7 @@ internal sealed class FirstRunSetupWindow : Window
                 {
                     new TextBlock { Text = Title, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
                     new TextBlock { Text = CaptureUiText.Pick("基础模式：本机视觉 OCR ＋ 本机模型翻译。一次截图自动判断任务，也可手动选择翻译、描述或二维码。", "Basic: local vision OCR + local model translation. Smart capture chooses a task; you can always choose translation, description or QR manually."), TextWrapping = TextWrapping.Wrap },
-                    _models, _backends, _details,
+                    _models, _backends, _runtimeHost, _details,
                     new TextBlock { Text = CaptureUiText.Pick("点击后从魔搭下载并校验模型。模型不在安装包内，需要足够磁盘与内存；取消后保留已下载部分以便续传。不上传你的截图。", "Clicking Download fetches and verifies weights from ModelScope. They are not bundled; allow sufficient disk and memory. Cancelling preserves resumable downloads. Your screenshots are not uploaded."), TextWrapping = TextWrapping.Wrap },
                     DownloadButton, _progress, _status, CancelButton, ExistingButton, LightweightButton
                 }
@@ -111,6 +123,7 @@ internal sealed class FirstRunSetupWindow : Window
     }
     private void SetBusy(bool busy)
     {
+        _runtimeHardware?.SetParentBusy(busy);
         DownloadButton.IsEnabled = !busy && _hasRuntime;
         LightweightButton.IsEnabled = ExistingButton.IsEnabled = _models.IsEnabled = _backends.IsEnabled = !busy;
         CancelButton.IsVisible = _progress.IsVisible = busy;

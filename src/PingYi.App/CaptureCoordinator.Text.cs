@@ -4,6 +4,7 @@ namespace PingYi.App;
 
 public sealed partial class CaptureCoordinator
 {
+    private readonly OcrRetryCache _ocrRetryCache = new();
     private async Task ProcessTextAsync(OperationContext operation, ResultWindow window, ImageFrame image)
     {
         var settings = services.Settings;
@@ -37,6 +38,9 @@ public sealed partial class CaptureCoordinator
         }
         window.SetLoading(UiText.IsEnglish ? $"Recognizing with {label}…" : $"正在使用 {label} 识别…", privacy);
         OcrResult result;
+        var reused = _ocrRetryCache.TryGetForTranslationRetry(image, settings, out var retryOcr, out var retryLabel);
+        if (reused) { result = retryOcr; label = retryLabel; }
+        else
         try
         {
             var availability = await WithTimeoutAsync(token => ocr.GetAvailabilityAsync(token).AsTask(), AvailabilityTimeout,
@@ -79,14 +83,16 @@ public sealed partial class CaptureCoordinator
         catch (Exception error) { EnsureCurrent(operation); window.SetError(UiText.Error(error)); return; }
         EnsureCurrent(operation);
         window.SetSource(result, label);
+        _ocrRetryCache.Remember(image, settings, result, label);
         try
         {
             var route = TextProcessing.ResolveTranslationLanguages(settings.SourceLanguage, settings.TargetLanguage,
                 result.DetectedLanguage, result.PlainText, translator.Metadata.SupportedLanguages.Count > 2);
             var request = new TranslationRequest(result.PlainText, route.SourceLanguage, route.TargetLanguage);
-            var execution = await WithTimeoutAsync(token => TranslationFallback.ExecuteAsync(translator, services.ArgosProvider, request, token),
-                TranslationTimeout, operation.Token, "translation_timeout", "翻译超时，可复制原文或重试。");
+            var execution = await TranslationFallback.ExecuteAsync(translator, services.ArgosProvider, request,
+                operation.Token, primaryTimeout: TranslationTimeout, fallbackTimeout: TranslationTimeout);
             EnsureCurrent(operation);
+            _ocrRetryCache.MarkTranslationComplete(image);
             var name = UiText.ProviderName(execution.Provider.Id, execution.Provider.DisplayName);
             window.SetTranslation(execution.Result, execution.UsedFallback
                 ? UiText.IsEnglish ? $"{name} (lightweight fallback)" : $"{name}（轻量回退）" : name);

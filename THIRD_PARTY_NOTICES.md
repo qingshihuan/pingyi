@@ -184,3 +184,9 @@ package, device driver, executable, font or telemetry dependency. It stops only 
 by this application, never scans other applications by process name or GPU. Lifecycle tests use
 synthetic child processes and the existing CI Python interpreter. No GPU reset or external-model
 service shutdown API is called; user data, model files and credentials remain untouched.
+
+## Optional hardware-aware runtime downloads
+
+The runtime manager adds no production NuGet or Python dependency. The installer still bundles the existing Vulkan/CPU runtimes; CUDA/ROCm payloads are optional user-initiated downloads, not committed repository assets or installer payloads. llama.cpp is MIT; CUDA runtime libraries remain subject to NVIDIA redistribution/license terms and ROCm/HIP components to their upstream terms. Original archive files, including supplied licenses, are retained. Installation does not grant permission beyond those licenses and does not install drivers or the full development SDK.
+
+Hardware probes use system tools and backend device enumeration. Optional ghfast.top/ghproxy.net relays are unaffiliated transports, not trusted hash authorities, and require user opt-in. Only official release API or embedded published digests authorize executable archives. No screenshots, recognized text, translation text or credentials are included in these requests. Sources: https://github.com/ggml-org/llama.cpp/releases, https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/ and https://rocm.docs.amd.com/projects/ai-ecosystem/en/latest/inference/llamacpp.html .

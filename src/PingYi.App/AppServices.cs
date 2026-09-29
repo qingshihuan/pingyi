@@ -7,6 +7,8 @@ namespace PingYi.App;
 public sealed partial class AppServices : IAsyncDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly HttpClient _inferenceClient = new(new SocketsHttpHandler
+        { AllowAutoRedirect = false, ConnectTimeout = TimeSpan.FromSeconds(8) }) { Timeout = Timeout.InfiniteTimeSpan };
     private readonly HttpClient _imageAnalysisClient = new(new HttpClientHandler { AllowAutoRedirect = false })
         { Timeout = Timeout.InfiniteTimeSpan };
     private ManagedModelProgress? _managedProgress;
@@ -51,8 +53,8 @@ public sealed partial class AppServices : IAsyncDisposable
         BaiduTranslationProvider = new BaiduTranslationProvider(httpClient, secretStore);
         GoogleOcrProvider = new GoogleCloudVisionOcrProvider(httpClient, secretStore);
         GoogleTranslationProvider = new GoogleCloudTranslationProvider(httpClient, secretStore);
-        CustomTranslationProvider = new ChatCompatibleTranslationProvider(httpClient, secretStore, () => Settings);
-        LocalVlmOcrProvider = new ChatCompatibleOcrProvider(httpClient, secretStore, () => Settings, CustomTranslationProvider);
+        CustomTranslationProvider = new ChatCompatibleTranslationProvider(_inferenceClient, secretStore, () => Settings);
+        LocalVlmOcrProvider = new ChatCompatibleOcrProvider(_inferenceClient, secretStore, () => Settings, CustomTranslationProvider);
         Providers = new ProviderRegistry(
             [LocalVlmOcrProvider, PaddleProvider, BaiduOcrProvider, GoogleOcrProvider],
             [CustomTranslationProvider, ArgosProvider, BaiduTranslationProvider, GoogleTranslationProvider]);
@@ -86,11 +88,11 @@ public sealed partial class AppServices : IAsyncDisposable
 
     // Capture requests use immutable endpoint/model snapshots, including after upload consent.
     public ITranslationProvider CaptureTranslator(AppSettings snapshot) => snapshot.TranslationProviderId == "custom-chat"
-        ? new ChatCompatibleTranslationProvider(_httpClient, SecretStore, () => snapshot)
+        ? new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot)
         : Providers.GetTranslationProvider(snapshot.TranslationProviderId);
     public IOcrProvider CaptureOcr(AppSettings snapshot) => snapshot.OcrProviderId == "local-vlm-ocr"
-        ? new ChatCompatibleOcrProvider(_httpClient, SecretStore, () => snapshot,
-            new ChatCompatibleTranslationProvider(_httpClient, SecretStore, () => snapshot))
+        ? new ChatCompatibleOcrProvider(_inferenceClient, SecretStore, () => snapshot,
+            new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot))
         : Providers.GetOcrProvider(snapshot.OcrProviderId);
 
     public Task ClearDownloadedTranslationModelsAsync(CancellationToken cancellationToken = default) =>
@@ -194,13 +196,13 @@ public sealed partial class AppServices : IAsyncDisposable
             previousTask = _managedRuntimeStartupTask;
             _managedRuntimeStartupCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
             _managedRuntimeConfiguration = configuration;
-            _managedRuntimeStartupTask = StartManagedRuntimeCoreAsync(model, settings.ManagedRuntimeBackend, _managedRuntimeStartupCancellation.Token);
+            _managedRuntimeStartupTask = StartManagedRuntimeCoreAsync(model, settings.ManagedRuntimeBackend, settings.ManagedRuntimeDevice, _managedRuntimeStartupCancellation.Token);
         }
         CancelAndRelease(previousCancellation, previousTask);
     }
 
     private static string BuildManagedRuntimeConfiguration(ManagedMultimodalModel model, AppSettings settings) =>
-        $"{model.Id}|{ManagedRuntimeBackends.Normalize(settings.ManagedRuntimeBackend)}";
+        $"{model.Id}|{ManagedRuntimeBackends.Normalize(settings.ManagedRuntimeBackend)}|{settings.ManagedRuntimeDevice}";
     private (CancellationTokenSource? Cancellation, Task<ProviderAvailability> Task) InvalidateManagedRuntimeStartup()
     {
         lock (_managedRuntimeLock)
@@ -219,7 +221,7 @@ public sealed partial class AppServices : IAsyncDisposable
         _ = task.ContinueWith(static (_, state) => ((CancellationTokenSource)state!).Dispose(), cancellation,
             CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
-    private async Task<ProviderAvailability> StartManagedRuntimeCoreAsync(ManagedMultimodalModel model, string backend,
+    private async Task<ProviderAvailability> StartManagedRuntimeCoreAsync(ManagedMultimodalModel model, string backend, string device,
         CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -228,7 +230,7 @@ public sealed partial class AppServices : IAsyncDisposable
         {
             Volatile.Write(ref _managedProgress, null);
             await ManagedModels.EnsureStartedAsync(model, backend,
-                new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)), deadline.Token);
+                new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)), deadline.Token, device);
             return ProviderAvailability.Available;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -265,7 +267,7 @@ public sealed partial class AppServices : IAsyncDisposable
         catch (Exception error) { failure = error; }
         finally
         {
-            _httpClient.Dispose(); _imageAnalysisClient.Dispose();
+            _httpClient.Dispose(); _inferenceClient.Dispose(); _imageAnalysisClient.Dispose();
             Volatile.Write(ref _disposeState, 2);
             if (failure is null) _disposeCompletion.TrySetResult();
             else _disposeCompletion.TrySetException(failure);

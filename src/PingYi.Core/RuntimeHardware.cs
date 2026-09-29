@@ -18,6 +18,7 @@ public sealed record RuntimeDevice(string Backend, string Id, string Name, long 
 {
     public bool IsHardwareGpu => TotalMiB > 0 &&
         !Regex.IsMatch(Name, "llvmpipe|lavapipe|software|basic render", RegexOptions.IgnoreCase);
+    public bool LikelySharedMemory => Regex.IsMatch(Name, @"AMD Radeon (?:\(TM\) )?Graphics|Intel.*(?:UHD|Iris|HD Graphics)", RegexOptions.IgnoreCase);
     public override string ToString() => $"{Id} · {Name} · {TotalMiB / 1024d:0.#} GiB ({FreeMiB / 1024d:0.#} GiB free)";
 }
 
@@ -48,7 +49,7 @@ public sealed record RuntimeDeviceChoice(string Value, string Label)
     public static RuntimeDevice? Resolve(string selection, string backend, IReadOnlyList<RuntimeDevice> devices)
     {
         if (selection == Automatic)
-            return devices.Where(d => d.IsHardwareGpu).OrderByDescending(d => d.FreeMiB).ThenByDescending(d => d.TotalMiB).FirstOrDefault();
+            return devices.Where(d => d.IsHardwareGpu).OrderBy(d => d.LikelySharedMemory).ThenByDescending(d => d.FreeMiB).ThenByDescending(d => d.TotalMiB).FirstOrDefault();
         if (!TryParse(selection, out var selectedBackend, out var id, out var fingerprint) || selectedBackend != backend ||
             fingerprint != Fingerprint(devices))
             throw new ProviderException("runtime_device_changed", "显卡列表或运行后端已变化，请重新检测并选择执行显卡；没有改用其他显卡。");

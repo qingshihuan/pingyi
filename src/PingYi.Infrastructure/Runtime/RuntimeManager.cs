@@ -9,7 +9,7 @@ public sealed record InstalledRuntime(string Backend, string Tag, string Executa
 internal sealed record RuntimeInstallation(string Backend, string Tag, string RelativeExecutable, string[] SourceSha256);
 
 [JsonSerializable(typeof(RuntimeInstallation))]
-internal partial class RuntimeJsonContext : JsonSerializerContext;
+internal partial class RuntimeJsonContext : JsonSerializerContext { }
 
 public sealed class RuntimeManager : IAsyncDisposable
 {
@@ -104,7 +104,7 @@ public sealed class RuntimeManager : IAsyncDisposable
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                 catch (Exception error) when (requested == "auto" && selection == "auto" &&
-                    error is ProviderException or IOException or HttpRequestException or System.ComponentModel.Win32Exception or OperationCanceledException)
+                    error is ProviderException or IOException or InvalidDataException or HttpRequestException or System.ComponentModel.Win32Exception or OperationCanceledException)
                 {
                     progress?.Report(new ManagedModelProgress("runtime-fallback", $"{backend} 不可用，检查下一兼容后端；未修改系统驱动。", 0, 0, true));
                 }
@@ -114,7 +114,7 @@ public sealed class RuntimeManager : IAsyncDisposable
         finally { _installGate.Release(); }
     }
 
-    private async Task<InstalledRuntime> InstallBundleAsync(RuntimeBundle bundle, bool relays, string[] customRelays,
+    internal async Task<InstalledRuntime> InstallBundleAsync(RuntimeBundle bundle, bool relays, string[] customRelays,
         IProgress<ManagedModelProgress>? progress, CancellationToken token)
     {
         var baseDirectory = Path.Combine(_store, bundle.Backend);
@@ -150,7 +150,7 @@ public sealed class RuntimeManager : IAsyncDisposable
                     if (File.Exists(destination))
                     {
                         await using var a = File.OpenRead(library); await using var b = File.OpenRead(destination);
-                        if (!(await SHA256.HashDataAsync(a, token)).SequenceEqual(await SHA256.HashDataAsync(b, token)))
+                        if (!(await SHA256.HashDataAsync(a, token)).AsEnumerable().SequenceEqual(await SHA256.HashDataAsync(b, token)))
                             throw new InvalidDataException("Runtime dependency archives disagree; not overwriting a DLL.");
                     }
                     else File.Copy(library, destination);
@@ -166,13 +166,16 @@ public sealed class RuntimeManager : IAsyncDisposable
             if (Directory.Exists(target))
             {
                 // Never reuse an altered target merely because its directory has a trusted-looking name.
-                foreach (var file in Directory.GetFiles(stage, "*", SearchOption.AllDirectories))
+                var stagedFiles = Directory.GetFiles(stage, "*", SearchOption.AllDirectories);
+                if (stagedFiles.Length != Directory.GetFiles(target, "*", SearchOption.AllDirectories).Length)
+                    throw new InvalidDataException("Installed runtime has unexpected files.");
+                foreach (var file in stagedFiles)
                 {
                     var installed = Path.Combine(target, Path.GetRelativePath(stage, file));
                     if (!File.Exists(installed) || new FileInfo(installed).Length != new FileInfo(file).Length)
                         throw new InvalidDataException("Existing runtime differs from the verified package; not overwriting loaded files.");
                     await using var a = File.OpenRead(file); await using var b = File.OpenRead(installed);
-                    if (!(await SHA256.HashDataAsync(a, token)).SequenceEqual(await SHA256.HashDataAsync(b, token)))
+                    if (!(await SHA256.HashDataAsync(a, token)).AsEnumerable().SequenceEqual(await SHA256.HashDataAsync(b, token)))
                         throw new InvalidDataException("Existing runtime checksum differs; not replacing loaded files.");
                 }
             }
