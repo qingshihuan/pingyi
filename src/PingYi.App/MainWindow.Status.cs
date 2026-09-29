@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using PingYi.Core;
 
 namespace PingYi.App;
@@ -10,15 +12,31 @@ public partial class MainWindow
     private RuntimeStatusSnapshot _runtimeStatusSnapshot = RuntimeStatusSnapshot.Unknown;
     private readonly CancellationTokenSource _statusLifetime = new();
     private bool _statusClosed;
+    private readonly TextBlock _modeRefreshLabel = new() { VerticalAlignment = VerticalAlignment.Center };
 
     private void InitializeModeStatusUi()
     {
+        var refreshIcon = new Avalonia.Controls.Shapes.Path
+        {
+            Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.8,
+            Data = Geometry.Parse("M20 7A8 8 0 1 0 21 15 M20 2V7H15"),
+            StrokeLineCap = PenLineCap.Round, StrokeJoin = PenLineJoin.Round
+        };
+        ThemeResources.Use(refreshIcon, Avalonia.Controls.Shapes.Path.StrokeProperty, "SecondaryTextBrush");
+        RefreshWorkspaceButton.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 6,
+            Children = { refreshIcon, _modeRefreshLabel }
+        };
+        ModeDetailsButton.BorderThickness = new Thickness(0);
+        ModeDetailsButton.Background = Brushes.Transparent;
         RefreshModeStatusLanguage();
         Closed += (_, _) => { _statusClosed = true; _statusLifetime.Cancel(); };
     }
     private void RefreshModeStatusLanguage()
     {
         ModeStatusTitleText.Text = ModeStatusText.Pick("运行状态", "Runtime status");
+        _modeRefreshLabel.Text = WorkspaceText.Refresh;
         ModeDetailsButton.Content = ModeStatusText.Pick("查看详情  ›", "View details  ›");
         ModeCards.SetSnapshot(_runtimeStatusSnapshot);
     }
