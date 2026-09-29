@@ -67,7 +67,7 @@ public class WorkspaceTests
         try
         {
             window.Show();
-            Assert.Equal(5, tabs.Items.Count);
+            Assert.Equal(6, tabs.Items.Count);
             for (var index = 0; index < tabs.Items.Count; index++)
             {
                 tabs.SelectedIndex = index;

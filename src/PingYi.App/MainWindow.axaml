@@ -110,15 +110,16 @@
             </Grid>
           </Grid>
         </Border>
-        <Border Classes="workspace-card" Padding="18,12" CornerRadius="16">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-            <Border x:Name="ModelStatusDot" Width="7" Height="7" CornerRadius="4" Background="{DynamicResource TealBrush}" VerticalAlignment="Center"/>
-            <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock x:Name="ModelStatusTitleText" Text="{DynamicResource String.CheckPending}" Classes="workspace-section"/>
-              <TextBlock x:Name="ModelStatusDetailText" Text="{DynamicResource String.BaselineModels}" Classes="workspace-help" FontSize="12" LineHeight="18"/>
-            </StackPanel>
-            <Button Grid.Column="2" x:Name="RefreshWorkspaceButton" Classes="toolbar-action" Content="{DynamicResource Workspace.Refresh}"
-                    Click="RefreshWorkspaceButton_OnClick" ToolTip.Tip="F5" VerticalAlignment="Center"/>
+        <Border x:Name="ModeStatusBorder" Classes="workspace-card" Padding="18,12" CornerRadius="16">
+          <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
+              <TextBlock x:Name="ModeStatusTitleText" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <Button Grid.Column="1" x:Name="RefreshWorkspaceButton" Classes="toolbar-action" Content="{DynamicResource Workspace.Refresh}"
+                      Click="RefreshWorkspaceButton_OnClick" ToolTip.Tip="F5" VerticalAlignment="Center"/>
+              <Button Grid.Column="2" x:Name="ModeDetailsButton" Classes="toolbar-action" Foreground="{DynamicResource BrandBrush}"
+                      Click="OpenModeDetails_OnClick" VerticalAlignment="Center"/>
+            </Grid>
+            <local:ModeStatusCards x:Name="ModeCards" Grid.Row="1"/>
           </Grid>
         </Border>
         <Border x:Name="RecoveryBorder" IsVisible="False" Background="{DynamicResource WarningBackgroundBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="1" CornerRadius="14" Padding="16">
