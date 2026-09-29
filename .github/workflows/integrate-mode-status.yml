@@ -2,7 +2,7 @@ name: Validate mode status integration
 on:
   push:
     branches: [feat/three-mode-status-ui]
-    paths: [scripts/integrate-mode-status.py, .github/workflows/integrate-mode-status.yml, src/**, tests/**]
+    paths: [scripts/integrate-mode-status.py, scripts/test_ui_workspace.py, .github/workflows/integrate-mode-status.yml, src/**, tests/**]
 permissions:
   contents: read
 jobs:
