@@ -34,6 +34,7 @@ public partial class SettingsWindow : Window
         ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions);
         RefreshThirdPartyApiLanguage();
         RefreshCustomApiModeUi();
+        InitializeConfigurationCenter();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
@@ -137,6 +138,7 @@ public partial class SettingsWindow : Window
 
         RefreshCustomApiModeUi();
         RefreshChoiceTemplates();
+        RefreshConfigurationCenter();
         SetGlobalStatus(UiText.Get("String.SettingsReady"), isError: false);
     }
 
