@@ -143,6 +143,38 @@ public sealed class RuntimeStatusUiTests
     }
 
     [AvaloniaFact]
+    public void OpenAi_preset_defaults_to_responses_and_other_providers_keep_chat_completions()
+    {
+        UiText.Configure("zh-CN");
+        var settings = new SettingsWindow();
+        try
+        {
+            settings.Show();
+            settings.UpdateLayout();
+            var providers = settings.FindControl<ComboBox>("ThirdPartyApiPresetCombo")!;
+            var protocol = settings.FindControl<ComboBox>("ApiProtocolCombo")!;
+            var protocolStack = settings.FindControl<StackPanel>("ApiProtocolStack")!;
+
+            providers.SelectedItem = ThirdPartyApiPresets.All.Single(preset => preset.Id == "openai");
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(protocolStack.IsVisible);
+            Assert.Equal(ModelApiProtocols.Responses, Assert.IsType<ApiProtocolChoice>(protocol.SelectedItem).Id);
+
+            providers.SelectedItem = ThirdPartyApiPresets.All.Single(preset => preset.Id == "deepseek");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(ModelApiProtocols.ChatCompletions, Assert.IsType<ApiProtocolChoice>(protocol.SelectedItem).Id);
+
+            protocol.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.Responses);
+            Assert.Equal(ModelApiProtocols.Responses, Assert.IsType<ApiProtocolChoice>(protocol.SelectedItem).Id);
+            settings.FindControl<TextBox>("CustomEndpointBox")!.Text = "http://127.0.0.1:11434/v1/chat/completions";
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(protocolStack.IsVisible);
+            Assert.Equal(ModelApiProtocols.ChatCompletions, Assert.IsType<ApiProtocolChoice>(protocol.SelectedItem).Id);
+        }
+        finally { settings.Close(); }
+    }
+
+    [AvaloniaFact]
     public void New_windows_never_show_a_fake_green_status_before_a_probe()
     {
         var home = new MainWindow();
