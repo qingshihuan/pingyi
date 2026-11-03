@@ -32,6 +32,44 @@ public sealed class AppSettingsTests
         Assert.True(Uri.TryCreate(normalized.CustomTranslationEndpoint, UriKind.Absolute, out _));
     }
 
+    [Fact]
+    public void Normalize_MigratesExistingOfficialOpenAiEndpointToResponsesProtocol()
+    {
+        var settings = new AppSettings
+        {
+            SchemaVersion = 13,
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions
+        };
+
+        var normalized = settings.Normalize();
+
+        Assert.Equal(ModelApiProtocols.Responses, normalized.CustomTranslationApiProtocol);
+        Assert.Equal("https://api.openai.com/v1/chat/completions", normalized.CustomTranslationEndpoint);
+    }
+
+    [Fact]
+    public void Normalize_PreservesExplicitChatProtocolForCurrentSchema()
+    {
+        var settings = new AppSettings
+        {
+            SchemaVersion = AppSettings.CurrentSchemaVersion,
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions
+        };
+
+        Assert.Equal(ModelApiProtocols.ChatCompletions, settings.Normalize().CustomTranslationApiProtocol);
+    }
+
+    [Fact]
+    public void ThirdPartyPresets_DefaultOnlyOfficialOpenAiToResponses()
+    {
+        Assert.Equal(ModelApiProtocols.Responses,
+            ThirdPartyApiPresets.All.Single(preset => preset.Id == "openai").DefaultProtocol);
+        Assert.All(ThirdPartyApiPresets.All.Where(preset => preset.Id != "openai"),
+            preset => Assert.Equal(ModelApiProtocols.ChatCompletions, preset.DefaultProtocol));
+    }
+
     [Theory]
     [InlineData("ja", "ja")]
     [InlineData("ZH-hant", "zh-Hant")]
