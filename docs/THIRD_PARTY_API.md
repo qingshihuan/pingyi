@@ -13,6 +13,15 @@ PingYi 支持 **OpenAI Chat Completions 兼容接口**，可将文字翻译、�
 5. 点击“保存并应用”，再点击“测试翻译”。该测试会向服务商发送固定文本，可能计入服务商用量或费用。
 6. 如需远程模型执行截图 OCR、图片描述或提示词反推，在“文字识别”中选择“兼容多模态大模型 OCR”，并使用支持图片输入（OpenAI image_url 格式）的模型；点击“测试图片”可发送固定合成图片验证能力。
 
+## OpenAI Responses 与 Chat Completions 双协议
+
+- OpenAI 预设默认选择 **Responses API**，请求地址由已保存的 Chat Completions 基础地址映射到 `/v1/responses`。Responses 请求使用 `instructions` / `input`，从 `output_text` 或 `output` 消息项读取结果。
+- OpenAI 的 Responses API 同时支持文字翻译、视觉 OCR、图片描述和提示词反推。视觉请求使用 `input_image` 与 Base64 data URL。
+- Responses 请求显式设置 `store: false`，避免将这些截图和翻译请求作为 Responses 历史存储。
+- 在“API 协议”中可手动切换 **Responses API** 与 **Chat Completions**。若使用 OpenAI Chat Completions，选择 Chat Completions；切换到其他预设时会默认回到 Chat Completions。
+- DeepSeek、SiliconFlow、OpenRouter、百炼和智谱仍默认使用 OpenAI Chat Completions 兼容协议。不要仅因服务商支持 OpenAI 兼容就假定它也支持 Responses API。
+- 本机 llama.cpp、Ollama、LM Studio 回环服务保持 Chat Completions；切回本机地址时软件会自动切回该协议。
+
 ## 数据与安全
 
 - 远程 API 必须使用 HTTPS；仅本机回环地址允许 HTTP。URL 中禁止嵌入用户名、密码或 API Key。
