@@ -161,8 +161,8 @@ public partial class SettingsWindow
             ? "Use provider endpoint"
             : "填入服务商地址";
         ThirdPartyApiHintText.Text = UiText.IsEnglish
-            ? "Choose a provider, then enter the exact model ID and API Key below. Replace the key whenever you switch providers; the key field is shared. Save and test the text API. For screenshot OCR, image description or prompt reconstruction, also select Compatible multimodal LLM OCR and use a vision-capable model. Remote requests send recognized text or the selected image to that provider and may incur charges. Remote endpoints must use HTTPS; keys are stored in the OS secure store."
-            : "选择服务商后，在下方填写该平台的准确模型 ID 和 API Key。切换服务商时请替换 API Key；当前密钥输入框由这些兼容接口共用。保存后测试翻译接口。若要通过 API 进行截图 OCR、图片描述或提示词反推，还需在“文字识别”中选择“兼容多模态大模型 OCR”，并使用支持图片输入的模型。远程翻译会发送识别文字，视觉任务会发送所选截图给服务商，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
+            ? "Choose a provider and fill its endpoint. Save the API Key, then refresh the model list to choose an ID returned for your account; manual model IDs remain supported if the provider does not expose a list endpoint. Local service presets are disabled in API mode and re-enabled for loopback endpoints. Replace the shared key whenever you switch providers. For screenshot OCR, image description or prompt reconstruction, also select Compatible multimodal LLM OCR and use a vision-capable model. Remote requests send recognized text or the selected image to that provider and may incur charges. Remote endpoints must use HTTPS; keys are stored in the OS secure store."
+            : "选择服务商并填入接口地址后，保存 API Key，再刷新模型列表即可选择当前账号可用的模型；服务商不开放模型列表接口时仍可手动输入模型 ID。API 模式会关闭本地服务预设，切回本机回环地址后重新启用。切换服务商时请替换共用 API Key。若要通过 API 进行截图 OCR、图片描述或提示词反推，还需在“文字识别”中选择“兼容多模态大模型 OCR”，并使用支持图片输入的模型。远程翻译会发送识别文字，视觉任务会发送所选截图给服务商，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
     }
 
     private void RefreshChoiceTemplates()
