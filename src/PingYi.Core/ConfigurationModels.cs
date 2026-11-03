@@ -86,6 +86,16 @@ public sealed record TaskRoutingConfiguration
     };
 }
 
+public sealed record ModelCatalogEntry
+{
+    public string ServiceId { get; init; } = string.Empty;
+    public string ModelId { get; init; } = string.Empty;
+    public IReadOnlyList<string> Capabilities { get; init; } = [];
+    public string DiscoverySource { get; init; } = "manual";
+    public DateTimeOffset? LastDiscoveredUtc { get; init; }
+    public bool Available { get; init; } = true;
+}
+
 public sealed record RuntimeConfiguration
 {
     public string Backend { get; init; } = ManagedRuntimeBackends.Default.Id;
@@ -102,6 +112,7 @@ public sealed record AppConfiguration
     public int Version { get; init; } = CurrentVersion;
     public string Mode { get; init; } = ConfigurationModes.Hybrid;
     public IReadOnlyList<ModelServiceProfile> Services { get; init; } = [];
+    public IReadOnlyList<ModelCatalogEntry> Models { get; init; } = [];
     public TaskRoutingConfiguration Tasks { get; init; } = new();
     public RuntimeConfiguration Runtime { get; init; } = new();
 
@@ -199,6 +210,16 @@ public sealed record AppConfiguration
             Mode = Mode is ConfigurationModes.LocalFirst or ConfigurationModes.CloudFirst
                 ? Mode : ConfigurationModes.Hybrid,
             Services = services,
+            Models = (Models ?? []).Where(model => !string.IsNullOrWhiteSpace(model.ServiceId) &&
+                    !string.IsNullOrWhiteSpace(model.ModelId))
+                .GroupBy(model => (model.ServiceId.Trim(), model.ModelId.Trim()))
+                .Select(group => group.Last() with
+                {
+                    ServiceId = group.Key.Item1,
+                    ModelId = group.Key.Item2,
+                    Capabilities = (group.Last().Capabilities ?? []).Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+                }).ToArray(),
             Tasks = tasks,
             Runtime = runtime with
             {
