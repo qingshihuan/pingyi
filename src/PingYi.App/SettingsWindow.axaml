@@ -58,7 +58,7 @@
                   <TextBlock x:Name="ConfigServiceProtocolLabelText" Grid.Row="3" Classes="workspace-label" VerticalAlignment="Center"/>
                   <ComboBox x:Name="ConfigServiceProtocolCombo" Grid.Row="3" Grid.Column="1" Classes="workspace-field"/>
                   <TextBlock x:Name="ConfigServiceModelLabelText" Grid.Row="4" Classes="workspace-label" VerticalAlignment="Center"/>
-                  <TextBox x:Name="ConfigServiceModelBox" Grid.Row="4" Grid.Column="1" Classes="workspace-field"/>
+                  <ComboBox x:Name="ConfigServiceModelCombo" Grid.Row="4" Grid.Column="1" Classes="workspace-field" IsEditable="True"/>
                   <TextBlock x:Name="ConfigServiceKeyLabelText" Grid.Row="5" Classes="workspace-label" VerticalAlignment="Center"/>
                   <TextBox x:Name="ConfigServiceApiKeyBox" Grid.Row="5" Grid.Column="1" Classes="workspace-field" PasswordChar="●"/>
                 </Grid>
