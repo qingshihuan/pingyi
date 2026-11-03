@@ -191,7 +191,7 @@ public sealed class ChatCompatibleTranslationProviderTests
             Assert.Contains("专业翻译引擎", root.GetProperty("instructions").GetString());
             Assert.Equal("Hello world", root.GetProperty("input").GetString());
             Assert.False(root.TryGetProperty("messages", out _));
-            return Json("{\\"id\\":\\"resp_123\\",\\"output_text\\":\\"你好，世界。\\"}");
+            return Json("{\"id\":\"resp_123\",\"output_text\":\"你好，世界。\"}");
         });
         var settings = new AppSettings
         {
@@ -211,7 +211,7 @@ public sealed class ChatCompatibleTranslationProviderTests
     public async Task ResponsesProtocol_ParsesOutputItemsWhenOutputTextHelperIsAbsent()
     {
         var handler = new StubHandler(_ => Json(
-            "{\\"output\\":[{\\"type\\":\\"reasoning\\",\\"summary\\":[]},{\\"type\\":\\"message\\",\\"content\\":[{\\"type\\":\\"output_text\\",\\"text\\":\\"Part one\\"},{\\"type\\":\\"output_text\\",\\"text\\":\\"Part two\\"}]}]}"));
+            "{\"output\":[{\"type\":\"reasoning\",\"summary\":[]},{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"Part one\"},{\"type\":\"output_text\",\"text\":\"Part two\"}]}]}"));
         var settings = new AppSettings
         {
             CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
