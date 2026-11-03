@@ -90,12 +90,16 @@ public sealed class ChatCompatibleTranslationProvider(
             throw new ProviderException("custom_endpoint_invalid", "自定义翻译接口配置不完整。");
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        var useResponses = ModelApiProtocols.Normalize(settings.CustomTranslationApiProtocol) == ModelApiProtocols.Responses;
+        if (useResponses && endpoint.IsLoopback)
+            throw new ProviderException("custom_protocol_unsupported_local", "本机 llama.cpp / Ollama / LM Studio 预设使用 Chat Completions；Responses API 仅用于支持该协议的远程服务。");
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            OpenAiResponsesApi.ResolveEndpoint(endpoint, settings.CustomTranslationApiProtocol));
         var apiKey = await secretStore.GetAsync(SecretKeys.CustomTranslationApiKey, cancellationToken);
         if (!string.IsNullOrWhiteSpace(apiKey))
-        {
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
 
         if (!LanguageCatalog.IsKnown(request.TargetLanguage))
         {
@@ -108,23 +112,32 @@ public sealed class ChatCompatibleTranslationProvider(
             ? "自动识别输入语言"
             : $"识别输入为{LanguageCatalog.GetPromptName(request.SourceLanguage)}";
         var targetName = LanguageCatalog.GetPromptName(request.TargetLanguage);
-        var messages = new JsonArray();
-        messages.Add((JsonNode)new JsonObject
+        var instruction = $"你是专业翻译引擎。{sourceInstruction}，翻译为{targetName}。保留原意、专有名词、段落和换行，只输出译文，不解释。";
+        JsonObject payload;
+        if (useResponses)
         {
-            ["role"] = "system",
-            ["content"] = $"你是专业翻译引擎。{sourceInstruction}，翻译为{targetName}。保留原意、专有名词、段落和换行，只输出译文，不解释。"
-        });
-        messages.Add((JsonNode)new JsonObject
+            payload = new JsonObject
+            {
+                ["model"] = settings.CustomTranslationModel,
+                ["instructions"] = instruction,
+                ["input"] = request.Text,
+                ["store"] = false
+            };
+        }
+        else
         {
-            ["role"] = "user",
-            ["content"] = request.Text
-        });
-        var payload = new JsonObject
-        {
-            ["model"] = settings.CustomTranslationModel,
-            ["temperature"] = 0,
-            ["messages"] = messages
-        };
+            var messages = new JsonArray
+            {
+                new JsonObject { ["role"] = "system", ["content"] = instruction },
+                new JsonObject { ["role"] = "user", ["content"] = request.Text }
+            };
+            payload = new JsonObject
+            {
+                ["model"] = settings.CustomTranslationModel,
+                ["temperature"] = 0,
+                ["messages"] = messages
+            };
+        }
         message.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(message, cancellationToken);
@@ -138,20 +151,9 @@ public sealed class ChatCompatibleTranslationProvider(
         {
             using var document = JsonDocument.Parse(responsePayload);
             var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object ||
-                !root.TryGetProperty("choices", out var choices) ||
-                choices.ValueKind != JsonValueKind.Array ||
-                choices.GetArrayLength() == 0 ||
-                choices[0].ValueKind != JsonValueKind.Object ||
-                !choices[0].TryGetProperty("message", out var reply) ||
-                reply.ValueKind != JsonValueKind.Object ||
-                !reply.TryGetProperty("content", out var content) ||
-                content.ValueKind != JsonValueKind.String)
-            {
-                throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
-            }
-
-            var text = content.GetString()!.Trim();
+            var text = useResponses
+                ? OpenAiResponsesApi.ReadOutputText(root).Trim()
+                : ReadChatCompletionText(root).Trim();
             if (string.IsNullOrWhiteSpace(text))
             {
                 // An empty successful response must not bypass offline fallback.
@@ -165,6 +167,21 @@ public sealed class ChatCompatibleTranslationProvider(
             // Do not retain an untrusted response body in exception diagnostics.
             throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
         }
+    }
+
+    private static string ReadChatCompletionText(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("choices", out var choices) ||
+            choices.ValueKind != JsonValueKind.Array ||
+            choices.GetArrayLength() == 0 ||
+            choices[0].ValueKind != JsonValueKind.Object ||
+            !choices[0].TryGetProperty("message", out var reply) ||
+            reply.ValueKind != JsonValueKind.Object ||
+            !reply.TryGetProperty("content", out var content) ||
+            content.ValueKind != JsonValueKind.String)
+            throw new JsonException("Chat Completions response has no message content.");
+        return content.GetString()!;
     }
 
     private static Uri BuildModelsEndpoint(Uri chatEndpoint)
