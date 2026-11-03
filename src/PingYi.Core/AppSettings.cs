@@ -95,7 +95,8 @@ public sealed record AppSettings
     {
         endpoint = null!;
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var parsedEndpoint) ||
-            parsedEndpoint.Scheme is not ("http" or "https")) return false;
+            parsedEndpoint.Scheme is not ("http" or "https") ||
+            !string.IsNullOrEmpty(parsedEndpoint.UserInfo)) return false;
         var path = parsedEndpoint.AbsolutePath.TrimEnd('/');
         if (string.IsNullOrEmpty(path) || string.Equals(path, "/v1", StringComparison.OrdinalIgnoreCase))
             path = "/v1/chat/completions";

@@ -184,6 +184,39 @@ public sealed class AppSettingsTests
             LocalLlmPresets.All.Select(preset => preset.ChatCompletionsEndpoint).Distinct().Count());
     }
 
+    [Fact]
+    public void ThirdPartyApiPresets_UseUniqueSecureOpenAiCompatibleEndpoints()
+    {
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "openai");
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "deepseek");
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "siliconflow");
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "openrouter");
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "dashscope");
+        Assert.Contains(ThirdPartyApiPresets.All, preset => preset.Id == "zhipu");
+        Assert.Equal(ThirdPartyApiPresets.All.Count,
+            ThirdPartyApiPresets.All.Select(preset => preset.ChatCompletionsEndpoint).Distinct().Count());
+        Assert.All(ThirdPartyApiPresets.All, preset =>
+        {
+            Assert.True(AppSettings.TryParseChatCompletionsEndpoint(preset.ChatCompletionsEndpoint, out var endpoint));
+            Assert.Equal(Uri.UriSchemeHttps, endpoint.Scheme);
+            Assert.True(AppSettings.IsChatCompletionsTransportAllowed(endpoint));
+        });
+    }
+
+    [Fact]
+    public void ThirdPartyApiPresets_MatchNormalizedEndpoint()
+    {
+        var preset = ThirdPartyApiPresets.All.Single(item => item.Id == "deepseek");
+        Assert.Equal(preset, ThirdPartyApiPresets.MatchEndpoint("https://api.deepseek.com/chat/completions/"));
+    }
+
+    [Fact]
+    public void ChatEndpoint_RejectsCredentialsEmbeddedInUrl()
+    {
+        Assert.False(AppSettings.TryParseChatCompletionsEndpoint(
+            "https://user:secret@example.com/v1/chat/completions", out _));
+    }
+
     [Theory]
     [InlineData("http://127.0.0.1:8080/v1", true)]
     [InlineData("http://localhost:11434/v1", true)]

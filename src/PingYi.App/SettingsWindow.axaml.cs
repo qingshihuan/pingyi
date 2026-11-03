@@ -29,6 +29,8 @@ public partial class SettingsWindow : Window
         InitializeLinuxHelp();
         InitializeRuntimeStatusPage();
         UiText.Attach(this);
+        ThirdPartyApiPresetCombo.ItemsSource = ThirdPartyApiPresets.All;
+        RefreshThirdPartyApiLanguage();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
@@ -97,7 +99,8 @@ public partial class SettingsWindow : Window
             LoadTargetLanguageChoices(settings.TranslationProviderId, settings.TargetLanguage);
             LocalServicePresetCombo.ItemsSource = LocalLlmPresets.All;
             LocalServicePresetCombo.SelectedItem =
-                LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint) ?? LocalLlmPresets.Default;
+                LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
+            ThirdPartyApiPresetCombo.SelectedItem = ThirdPartyApiPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
             CustomEndpointBox.Text = settings.CustomTranslationEndpoint;
             CustomModelBox.Text = settings.CustomTranslationModel;
             var languageChoices = UiLanguageChoice.Create();

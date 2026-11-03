@@ -202,3 +202,11 @@ Inference no longer inherits the generic 30-second HTTP timeout. Primary transla
 Home now shows separate Lightweight, Basic and Cloud cards. Green means local readiness or configured on-demand loading; red means not configured/needs attention; gray means not checked/unverified. Text accompanies every indicator. View details opens the new Runtime status Settings category for mode, runtime, GPU and model information and configuration links.
 
 Refresh never downloads, starts a vision model, runs inference or changes the scheme. Only loopback services may be probed. Managed-model file presence/sizes are inspected; full integrity verification remains at startup. Saved cloud credentials are not proof of connectivity, quota or successful authentication. Cloud validation stays an explicit user action. Download connectivity and an active GPU are never fabricated.
+
+## Third-party model APIs
+
+Open **Settings → Custom endpoint** and choose OpenAI, DeepSeek, SiliconFlow, OpenRouter, Alibaba Cloud Model Studio (DashScope), or Zhipu BigModel to fill an OpenAI-compatible Chat Completions URL. Enter the exact model ID and API Key, save, then test text translation and image capability. Other compatible endpoints can be entered manually.
+
+Remote text translation is supported, as are vision-model OCR, image description and prompt reconstruction when the model accepts `image_url`. Remote services require HTTPS. API keys are stored in the OS secure store. Remote translation uploads recognized text; vision tasks upload the selected screenshot, and provider charges may apply. Replace the shared API key when switching providers. Native Anthropic Messages and proprietary signed APIs are not supported by this adapter.
+
+[Third-party API setup, endpoints, privacy and troubleshooting](docs/THIRD_PARTY_API.md).

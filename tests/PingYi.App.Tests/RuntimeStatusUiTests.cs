@@ -84,6 +84,22 @@ public sealed class RuntimeStatusUiTests
         finally { settings.Close(); }
     }
     [AvaloniaFact]
+    public void Settings_exposes_third_party_compatible_api_presets_and_privacy_guidance()
+    {
+        UiText.Configure("zh-CN");
+        var settings = new SettingsWindow();
+        try
+        {
+            var presets = Assert.IsAssignableFrom<IEnumerable<ThirdPartyApiPreset>>(
+                settings.FindControl<ComboBox>("ThirdPartyApiPresetCombo")!.ItemsSource);
+            Assert.Contains(presets, preset => preset.Id == "openai");
+            Assert.Contains(presets, preset => preset.Id == "deepseek");
+            Assert.Contains("截图", settings.FindControl<TextBlock>("ThirdPartyApiHintText")!.Text);
+        }
+        finally { settings.Close(); }
+    }
+
+    [AvaloniaFact]
     public void New_windows_never_show_a_fake_green_status_before_a_probe()
     {
         var home = new MainWindow();
