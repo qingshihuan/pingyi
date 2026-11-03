@@ -25,6 +25,15 @@ public partial class SettingsWindow
     private string? _editingConfigurationServiceId;
     private bool _isLoadingConfiguration;
 
+    private void RefreshShortcutSettingsLanguage()
+    {
+        ShortcutSettingsNavText.Text = UiText.IsEnglish ? "Shortcuts" : "快捷键";
+        ShortcutSettingsTitleText.Text = UiText.IsEnglish ? "Keyboard shortcuts" : "键盘快捷键";
+        ShortcutSettingsHintText.Text = UiText.IsEnglish
+            ? "Configure the global screenshot shortcut. On Linux, the desktop environment may reserve key combinations; use the displayed registration command if the shortcut is not captured."
+            : "配置全局截屏快捷键。Linux 桌面环境可能占用部分组合键；如果快捷键无法触发，请使用页面显示的注册命令。";
+    }
+
     private void RefreshPrivacySettingsLanguage()
     {
         var en = UiText.IsEnglish;
@@ -69,6 +78,7 @@ public partial class SettingsWindow
         ConfigServicePresetCombo.ItemsSource = ThirdPartyApiPresets.All;
         RefreshConfigurationCenterLanguage();
         RefreshPrivacySettingsLanguage();
+        RefreshShortcutSettingsLanguage();
     }
 
     private void RefreshConfigurationCenterLanguage()
