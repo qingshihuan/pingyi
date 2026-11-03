@@ -100,6 +100,42 @@ public sealed class RuntimeStatusUiTests
     }
 
     [AvaloniaFact]
+    public void Remote_api_mode_disables_local_service_presets_and_uses_editable_model_picker()
+    {
+        UiText.Configure("zh-CN");
+        var settings = new SettingsWindow();
+        try
+        {
+            var localPreset = settings.FindControl<ComboBox>("LocalServicePresetCombo")!;
+            var applyLocalPreset = settings.FindControl<Button>("UseLocalLlamaPresetButton")!;
+            var modeHint = settings.FindControl<TextBlock>("LocalServicePresetModeHintText")!;
+            var modelLabel = settings.FindControl<TextBlock>("CustomModelLabelText")!;
+            var modelPicker = settings.FindControl<ComboBox>("CustomModelCombo")!;
+            var endpoint = settings.FindControl<TextBox>("CustomEndpointBox")!;
+
+            Assert.True(modelPicker.IsEditable);
+            endpoint.Text = "https://api.deepseek.com/chat/completions";
+            Assert.False(localPreset.IsEnabled);
+            Assert.False(applyLocalPreset.IsEnabled);
+            Assert.True(modeHint.IsVisible);
+            Assert.Contains("API 模式", modeHint.Text);
+            Assert.Equal("模型名称（通过 API 获取）", modelLabel.Text);
+
+            endpoint.Text = "http://127.0.0.1:11434/v1/chat/completions";
+            Assert.True(localPreset.IsEnabled);
+            Assert.True(applyLocalPreset.IsEnabled);
+            Assert.False(modeHint.IsVisible);
+            Assert.Equal("模型名称", modelLabel.Text);
+
+            settings.FindControl<ComboBox>("ThirdPartyApiPresetCombo")!.SelectedItem =
+                ThirdPartyApiPresets.All.Single(preset => preset.Id == "openai");
+            Assert.False(localPreset.IsEnabled);
+            Assert.True(modeHint.IsVisible);
+        }
+        finally { settings.Close(); }
+    }
+
+    [AvaloniaFact]
     public void New_windows_never_show_a_fake_green_status_before_a_probe()
     {
         var home = new MainWindow();
