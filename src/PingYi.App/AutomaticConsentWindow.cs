@@ -11,7 +11,7 @@ internal sealed class AutomaticConsentWindow : Window
 {
     private AutomaticConsentWindow(string description)
     {
-        Title = CaptureUiText.Pick("确认自动任务的数据发送", "Confirm data transfer for the automatic task");
+        Title = CaptureUiText.Pick("确认远程任务的数据发送", "Confirm data transfer to the remote provider");
         Width = 510; Height = 290; MinWidth = 400; MinHeight = 260;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var confirm = new Button { Content = CaptureUiText.Pick("同意并继续", "Allow and continue") };
@@ -25,7 +25,7 @@ internal sealed class AutomaticConsentWindow : Window
             {
                 new TextBlock { Text = Title, FontSize = 18, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
                 new TextBlock { Text = description, TextWrapping = TextWrapping.Wrap },
-                new TextBlock { Text = CaptureUiText.Pick("仅授权本次任务；手动改选或重试需要重新确认。", "Applies to this request only. An automatic retry requires confirmation again."), TextWrapping = TextWrapping.Wrap },
+                new TextBlock { Text = CaptureUiText.Pick("仅授权本次任务；后续任务或重试需要重新确认。", "Applies to this request only. Future tasks and retries require confirmation again."), TextWrapping = TextWrapping.Wrap },
                 new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 12, Children = { cancel, confirm } }
             }
         };
