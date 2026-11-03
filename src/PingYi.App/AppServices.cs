@@ -70,12 +70,13 @@ public sealed partial class AppServices : IAsyncDisposable
     public async Task<IReadOnlyList<string>> TestServiceProfileAsync(
         string serviceId, CancellationToken cancellationToken = default)
     {
-        var profile = Settings.Configuration.Services.FirstOrDefault(service =>
+        var settingsSnapshot = Settings;
+        var profile = settingsSnapshot.Configuration.Services.FirstOrDefault(service =>
             string.Equals(service.Id, serviceId, StringComparison.Ordinal))
             ?? throw new ProviderException("configuration_service_missing", $"找不到服务“{serviceId}”。");
         if (!profile.Enabled)
             throw new ProviderException("configuration_service_disabled", $"服务“{profile.Name}”已停用。");
-        var snapshot = Settings with
+        var snapshot = settingsSnapshot with
         {
             CustomTranslationEndpoint = profile.Endpoint,
             CustomTranslationModel = profile.DefaultModelId,
@@ -86,7 +87,29 @@ public sealed partial class AppServices : IAsyncDisposable
             new ServiceScopedSecretStore(SecretStore, profile.CredentialRef),
             () => snapshot,
             CreateRoutedMetadata(profile, uploadsImage: false));
-        return await provider.GetAvailableModelsAsync(cancellationToken);
+        var modelIds = await provider.GetAvailableModelsAsync(cancellationToken);
+        if (Settings == settingsSnapshot)
+        {
+            var discovered = modelIds.Select(modelId => new ModelCatalogEntry
+            {
+                ServiceId = profile.Id,
+                ModelId = modelId,
+                Capabilities = profile.Capabilities,
+                DiscoverySource = "provider-models-endpoint",
+                LastDiscoveredUtc = DateTimeOffset.UtcNow,
+                Available = true
+            }).ToArray();
+            await SaveSettingsAsync(settingsSnapshot with
+            {
+                Configuration = settingsSnapshot.Configuration with
+                {
+                    Models = settingsSnapshot.Configuration.Models
+                        .Where(model => model.ServiceId != profile.Id)
+                        .Concat(discovered).ToArray()
+                }
+            }, cancellationToken);
+        }
+        return modelIds;
     }
 
     public async Task SaveServiceCredentialAsync(string serviceId, string apiKey, CancellationToken cancellationToken = default)
