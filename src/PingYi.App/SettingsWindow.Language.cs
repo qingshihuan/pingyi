@@ -73,6 +73,7 @@ public partial class SettingsWindow
         RefreshWindowTitle();
         RefreshRuntimeStatusLanguage();
         RefreshThirdPartyApiLanguage();
+        RefreshConfigurationCenterLanguage();
         var loading = _isLoadingSettings;
         _isLoadingSettings = true;
         try
