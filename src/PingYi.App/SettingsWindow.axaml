@@ -244,6 +244,11 @@
                   <TextBlock x:Name="ThirdPartyApiLabelText" Classes="workspace-label"/>
                   <ComboBox x:Name="ThirdPartyApiPresetCombo" Classes="workspace-field" AutomationProperties.Name="Third-party API provider" SelectionChanged="ThirdPartyApiPresetCombo_OnSelectionChanged"/>
                 </StackPanel>
+                <StackPanel x:Name="ApiProtocolStack" Spacing="6" IsVisible="False">
+                  <TextBlock x:Name="ApiProtocolLabelText" Classes="workspace-label"/>
+                  <ComboBox x:Name="ApiProtocolCombo" Classes="workspace-field" AutomationProperties.Name="API protocol"
+                            SelectionChanged="ApiProtocolCombo_OnSelectionChanged"/>
+                </StackPanel>
                 <Button x:Name="ApplyThirdPartyApiPresetButton" Classes="secondary" HorizontalAlignment="Left"
                         Click="ApplyThirdPartyApiPresetButton_OnClick"/>
                 <TextBlock x:Name="ThirdPartyApiHintText" Classes="workspace-help" TextWrapping="Wrap"/>
