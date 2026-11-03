@@ -219,6 +219,49 @@ internal sealed class FirstRunSetupWindow : Window
         if (ready) Close(InitialSetupChoice.Ready);
         else if (_closeRequested) Close(InitialSetupChoice.None);
     }
+    private async Task ConfigureCloudAsync()
+    {
+        if (_operation is not null) return;
+        if (_configureCloud is null)
+        {
+            _status.Text = CaptureUiText.Pick("当前窗口不支持云端 API 配置。", "Cloud API setup is unavailable in this window.");
+            return;
+        }
+        if (_cloudProviders.SelectedItem is not ThirdPartyApiPreset preset ||
+            string.IsNullOrWhiteSpace(_cloudModel.Text) || string.IsNullOrWhiteSpace(_cloudApiKey.Text))
+        {
+            _status.Text = CaptureUiText.Pick("请选择服务商，并填写模型 ID 和 API Key。", "Choose a provider and enter its model ID and API Key.");
+            return;
+        }
+
+        _operation = new CancellationTokenSource();
+        SetBusy(true);
+        _status.Text = CaptureUiText.Pick("正在安全保存 API Key 并配置混合模式…", "Securely saving the API key and configuring Hybrid mode…");
+        var saved = false;
+        try
+        {
+            await _configureCloud(preset, _cloudModel.Text.Trim(), _cloudApiKey.Text, _operation.Token);
+            saved = true;
+        }
+        catch (OperationCanceledException)
+        {
+            _status.Text = CaptureUiText.Pick("已取消，未完成云端配置。", "Cancelled. Cloud setup was not completed.");
+        }
+        catch (Exception error)
+        {
+            _status.Text = UiText.Error(error);
+        }
+        finally
+        {
+            _cloudApiKey.Text = string.Empty;
+            _operation.Dispose();
+            _operation = null;
+            SetBusy(false);
+        }
+        if (saved) Close(InitialSetupChoice.ConfigureCloud);
+        else if (_closeRequested) Close(InitialSetupChoice.None);
+    }
+
     private async Task ChooseAsync(InitialSetupChoice choice)
     {
         if (_operation is not null) return;
