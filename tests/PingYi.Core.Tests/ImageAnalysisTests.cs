@@ -57,7 +57,7 @@ public class ImageAnalysisTests
             Assert.Equal("input_image", content[1].GetProperty("type").GetString());
             Assert.StartsWith("data:image/png;base64,", content[1].GetProperty("image_url").GetString());
             Assert.False(root.TryGetProperty("messages", out _));
-            return Json("{\\"output_text\\":\\"A blue circle.\\"}");
+            return Json("{\"output_text\":\"A blue circle.\"}");
         }));
         var settings = new AppSettings
         {
