@@ -193,7 +193,7 @@ public sealed class RuntimeStatusUiTests
             Assert.NotNull(settings.FindControl<ComboBox>("ConfigImageDescriptionRouteCombo"));
             Assert.NotNull(settings.FindControl<ComboBox>("ConfigPromptReconstructionRouteCombo"));
             Assert.Contains("二维码", settings.FindControl<TextBlock>("ConfigQrRouteText")!.Text);
-            Assert.Contains("混合模式", settings.FindControl<ConfigurationChoiceProbe>("unused")?.ToString() ?? "混合模式");
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigurationModeCombo")!.ItemsSource);
         }
         finally { settings.Close(); }
     }
