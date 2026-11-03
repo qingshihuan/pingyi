@@ -12,7 +12,7 @@ public static class TranslationFallback
         ITranslationProvider offlineFallback,
         TranslationRequest request,
         CancellationToken cancellationToken = default,
-        TimeSpan? primaryTimeout = null, TimeSpan? fallbackTimeout = null)
+        TimeSpan? primaryTimeout = null, TimeSpan? fallbackTimeout = null, bool allowFallback = true)
     {
         try
         {
@@ -30,6 +30,7 @@ public static class TranslationFallback
             return new TranslationExecution(result, primary.Metadata, UsedFallback: false);
         }
         catch (Exception primaryFailure) when (
+            allowFallback &&
             !cancellationToken.IsCancellationRequested &&
             primary.Metadata.Id != offlineFallback.Metadata.Id)
         {
