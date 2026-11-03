@@ -83,8 +83,7 @@ public sealed class AppSettingsTests
             CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions,
             ManagedRuntimeBackend = "vulkan",
             ManagedRuntimeDevice = "auto",
-            ManagedModelPackageId = "qwen3-vl-4b",
-            ManagedRuntimeEnabled = true
+            ManagedRuntimeEnabled = false
         }.Normalize();
 
         var profile = Assert.Single(normalized.Configuration.Services);
@@ -97,7 +96,7 @@ public sealed class AppSettingsTests
         Assert.Equal("legacy-custom", normalized.Configuration.Tasks.Translation.ServiceId);
         Assert.Equal("builtin:qr", normalized.Configuration.Tasks.QrCode.ServiceId);
         Assert.Equal("vulkan", normalized.Configuration.Runtime.Backend);
-        Assert.True(normalized.Configuration.Runtime.Enabled);
+        Assert.False(normalized.Configuration.Runtime.Enabled);
         Assert.Equal(ConfigurationModes.Hybrid, normalized.Configuration.Mode);
     }
 
