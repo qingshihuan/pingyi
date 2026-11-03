@@ -110,6 +110,7 @@ public sealed record AppConfiguration
     public AppConfiguration Normalize(AppSettings legacy)
     {
         ArgumentNullException.ThrowIfNull(legacy);
+        var hasProfiles = Services.Count > 0;
         var services = Services
             .Where(service => !string.IsNullOrWhiteSpace(service.Id))
             .GroupBy(service => service.Id.Trim(), StringComparer.Ordinal)
@@ -136,8 +137,24 @@ public sealed record AppConfiguration
         if (services.Count == 0)
             services.Add(CreateLegacyService(legacy));
 
+        // Keep the compatibility profile synchronized with the legacy settings fields
+        // while new profiles remain independent.
+        services = services.Select(service => service.Id == "legacy-custom"
+            ? service with
+            {
+                Name = Uri.TryCreate(legacy.CustomTranslationEndpoint, UriKind.Absolute, out var legacyUri) &&
+                       legacyUri.IsLoopback ? "Existing local model service" : "Existing custom API",
+                Kind = Uri.TryCreate(legacy.CustomTranslationEndpoint, UriKind.Absolute, out legacyUri) &&
+                       legacyUri.IsLoopback ? ModelServiceKinds.Local : ModelServiceKinds.Remote,
+                Endpoint = AppSettings.NormalizeChatCompletionsEndpoint(legacy.CustomTranslationEndpoint),
+                Protocol = ModelApiProtocols.Normalize(legacy.CustomTranslationApiProtocol),
+                DefaultModelId = legacy.CustomTranslationModel?.Trim() ?? string.Empty,
+                CredentialRef = SecretKeys.CustomTranslationApiKey
+            }
+            : service).ToList();
+
         var fallbackTasks = CreateLegacyTasks(legacy);
-        var sourceTasks = Tasks ?? fallbackTasks;
+        var sourceTasks = !hasProfiles ? fallbackTasks : Tasks ?? fallbackTasks;
         static TaskModelRoute NormalizeRoute(TaskModelRoute? route, TaskModelRoute fallback)
         {
             var value = route ?? fallback;
@@ -151,12 +168,17 @@ public sealed record AppConfiguration
             };
         }
 
+        static TaskModelRoute NormalizeLegacyModelRoute(TaskModelRoute route, AppSettings settings) =>
+            route.ServiceId == "legacy-custom"
+                ? route with { ModelId = settings.CustomTranslationModel?.Trim() ?? string.Empty }
+                : route;
+
         var tasks = new TaskRoutingConfiguration
         {
-            Ocr = NormalizeRoute(sourceTasks.Ocr, fallbackTasks.Ocr),
-            Translation = NormalizeRoute(sourceTasks.Translation, fallbackTasks.Translation),
-            ImageDescription = NormalizeRoute(sourceTasks.ImageDescription, fallbackTasks.ImageDescription),
-            PromptReconstruction = NormalizeRoute(sourceTasks.PromptReconstruction, fallbackTasks.PromptReconstruction),
+            Ocr = NormalizeLegacyModelRoute(NormalizeRoute(sourceTasks.Ocr, fallbackTasks.Ocr), legacy),
+            Translation = NormalizeLegacyModelRoute(NormalizeRoute(sourceTasks.Translation, fallbackTasks.Translation), legacy),
+            ImageDescription = NormalizeLegacyModelRoute(NormalizeRoute(sourceTasks.ImageDescription, fallbackTasks.ImageDescription), legacy),
+            PromptReconstruction = NormalizeLegacyModelRoute(NormalizeRoute(sourceTasks.PromptReconstruction, fallbackTasks.PromptReconstruction), legacy),
             QrCode = NormalizeRoute(sourceTasks.QrCode, fallbackTasks.QrCode)
         };
 
