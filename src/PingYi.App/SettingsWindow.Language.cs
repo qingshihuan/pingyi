@@ -173,14 +173,6 @@ public partial class SettingsWindow
             ? "Use provider endpoint"
             : "填入服务商地址";
         ApiProtocolLabelText.Text = UiText.IsEnglish ? "API protocol" : "API 协议";
-        ApiProtocolCombo.ItemsSource = ApiProtocolChoices.All.Select(choice => choice with
-        {
-            DisplayName = choice.Id == ModelApiProtocols.Responses
-                ? (UiText.IsEnglish ? "OpenAI Responses API" : "OpenAI Responses API")
-                : (UiText.IsEnglish ? "Chat Completions" : "Chat Completions")
-        }).ToArray();
-        if (ApiProtocolCombo.SelectedItem is ApiProtocolChoice selectedProtocol)
-            ApiProtocolCombo.SelectedItem = ApiProtocolChoices.All.First(choice => choice.Id == selectedProtocol.Id);
         ThirdPartyApiHintText.Text = UiText.IsEnglish
             ? "OpenAI defaults to the Responses API; other provider presets use Chat Completions. You can change the protocol for compatible endpoints. Save the API Key, then refresh the model list. Local service presets are disabled in API mode and re-enabled for loopback endpoints. Replace the shared key whenever you switch providers. Remote translation sends recognized text; vision tasks send the selected screenshot and may incur charges. Remote endpoints require HTTPS; keys are stored in the OS secure store."
             : "OpenAI 预设默认使用 Responses API，其他服务商默认使用 Chat Completions。兼容的自定义端点可手动切换协议。保存 API Key 后刷新模型列表。本地 API 模式会关闭本地服务预设，切回回环地址后重新启用。切换服务商时请替换共用 API Key。远程翻译会发送识别文字，视觉任务会发送所选截图，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
