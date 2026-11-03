@@ -11,10 +11,11 @@ public sealed class ChatCompatibleOcrProvider(
     HttpClient httpClient,
     ISecretStore secretStore,
     Func<AppSettings> settingsAccessor,
-    ITranslationProvider serviceProbe) : IOcrProvider
+    ITranslationProvider serviceProbe,
+    ProviderMetadata? metadataOverride = null) : IOcrProvider
 {
-    public ProviderMetadata Metadata { get; } = new(
-        "local-vlm-ocr", "本地自定义大模型 OCR", ProviderExecutionLocation.Configurable,
+    public ProviderMetadata Metadata { get; } = metadataOverride ?? new(
+        "local-vlm-ocr", "兼容多模态大模型 OCR", ProviderExecutionLocation.Configurable,
         UploadsImage: true, RequiresSecret: false, LanguageCatalog.Codes);
 
     public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default) =>
