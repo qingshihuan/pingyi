@@ -193,17 +193,17 @@ public sealed record AppConfiguration
             QrCode = NormalizeRoute(sourceTasks.QrCode, fallbackTasks.QrCode)
         };
 
-        var runtime = !hasProfiles
-            ? new RuntimeConfiguration
-            {
-                Backend = legacy.ManagedRuntimeBackend,
-                Device = legacy.ManagedRuntimeDevice,
-                ModelPackageId = legacy.ManagedModelPackageId,
-                Enabled = legacy.ManagedRuntimeEnabled,
-                AllowMirrors = legacy.RuntimeAllowMirrors,
-                MirrorPrefixes = legacy.RuntimeMirrorPrefixes
-            }
-            : Runtime ?? new RuntimeConfiguration();
+        // Runtime UI and lifecycle still use the existing validated AppSettings fields;
+        // mirror them into the new configuration object until runtime profiles become selectable.
+        var runtime = new RuntimeConfiguration
+        {
+            Backend = legacy.ManagedRuntimeBackend,
+            Device = legacy.ManagedRuntimeDevice,
+            ModelPackageId = legacy.ManagedModelPackageId,
+            Enabled = legacy.ManagedRuntimeEnabled,
+            AllowMirrors = legacy.RuntimeAllowMirrors,
+            MirrorPrefixes = legacy.RuntimeMirrorPrefixes
+        };
         return this with
         {
             Version = CurrentVersion,
