@@ -106,6 +106,9 @@ public sealed class RuntimeStatusUiTests
         var settings = new SettingsWindow();
         try
         {
+            settings.Show();
+            settings.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
             var localPreset = settings.FindControl<ComboBox>("LocalServicePresetCombo")!;
             var applyLocalPreset = settings.FindControl<Button>("UseLocalLlamaPresetButton")!;
             var modeHint = settings.FindControl<TextBlock>("LocalServicePresetModeHintText")!;
@@ -115,6 +118,8 @@ public sealed class RuntimeStatusUiTests
 
             Assert.True(modelPicker.IsEditable);
             endpoint.Text = "https://api.deepseek.com/chat/completions";
+            Dispatcher.UIThread.RunJobs();
+            settings.UpdateLayout();
             Assert.False(localPreset.IsEnabled);
             Assert.False(applyLocalPreset.IsEnabled);
             Assert.True(modeHint.IsVisible);
@@ -122,6 +127,8 @@ public sealed class RuntimeStatusUiTests
             Assert.Equal("模型名称（通过 API 获取）", modelLabel.Text);
 
             endpoint.Text = "http://127.0.0.1:11434/v1/chat/completions";
+            Dispatcher.UIThread.RunJobs();
+            settings.UpdateLayout();
             Assert.True(localPreset.IsEnabled);
             Assert.True(applyLocalPreset.IsEnabled);
             Assert.False(modeHint.IsVisible);
