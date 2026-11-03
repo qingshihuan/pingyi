@@ -145,6 +145,13 @@ public partial class SettingsWindow
     private void RefreshCustomApiModeUi()
     {
         var apiMode = IsThirdPartyApiMode();
+        if (!apiMode && ApiProtocolCombo.SelectedItem is ApiProtocolChoice { Id: ModelApiProtocols.Responses })
+        {
+            var wasLoading = _isLoadingSettings;
+            _isLoadingSettings = true;
+            try { ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions); }
+            finally { _isLoadingSettings = wasLoading; }
+        }
         LocalServicePresetCombo.IsEnabled = !apiMode;
         UseLocalLlamaPresetButton.IsEnabled = !apiMode;
         LocalServicePresetModeHintText.IsVisible = apiMode;
