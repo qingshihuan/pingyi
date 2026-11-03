@@ -102,7 +102,8 @@ public partial class SettingsWindow : Window
                 LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
             ThirdPartyApiPresetCombo.SelectedItem = ThirdPartyApiPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
             CustomEndpointBox.Text = settings.CustomTranslationEndpoint;
-            CustomModelBox.Text = settings.CustomTranslationModel;
+            CustomModelCombo.ItemsSource = Array.Empty<string>();
+            CustomModelCombo.Text = settings.CustomTranslationModel;
             var languageChoices = UiLanguageChoice.Create();
             UiLanguageCombo.ItemsSource = languageChoices;
             UiLanguageCombo.SelectedItem = languageChoices
@@ -130,6 +131,7 @@ public partial class SettingsWindow : Window
             _isLoadingSettings = false;
         }
 
+        RefreshCustomApiModeUi();
         RefreshChoiceTemplates();
         SetGlobalStatus(UiText.Get("String.SettingsReady"), isError: false);
     }
@@ -311,7 +313,7 @@ public partial class SettingsWindow : Window
     {
         var current = _services?.Settings ?? new AppSettings();
         var endpoint = AppSettings.NormalizeChatCompletionsEndpoint(CustomEndpointBox.Text);
-        var modelName = CustomModelBox.Text?.Trim() ?? string.Empty;
+        var modelName = CustomModelCombo.Text?.Trim() ?? string.Empty;
         var keepManagedRuntime = current.ManagedRuntimeEnabled &&
                                  ManagedMultimodalModels.TryGet(current.ManagedModelPackageId, out var managedModel) &&
                                  string.Equals(endpoint, AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) &&
