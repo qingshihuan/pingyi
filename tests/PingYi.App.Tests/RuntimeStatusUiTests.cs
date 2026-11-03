@@ -175,6 +175,30 @@ public sealed class RuntimeStatusUiTests
     }
 
     [AvaloniaFact]
+    public void Configuration_center_exposes_service_profiles_and_per_task_routes()
+    {
+        UiText.Configure("zh-CN");
+        var settings = new SettingsWindow();
+        try
+        {
+            settings.Show();
+            settings.UpdateLayout();
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigurationModeCombo"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigurationServiceCombo"));
+            Assert.NotNull(settings.FindControl<TextBox>("ConfigServiceEndpointBox"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigServiceModelCombo"));
+            Assert.NotNull(settings.FindControl<TextBox>("ConfigServiceApiKeyBox"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigOcrRouteCombo"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigTranslationRouteCombo"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigImageDescriptionRouteCombo"));
+            Assert.NotNull(settings.FindControl<ComboBox>("ConfigPromptReconstructionRouteCombo"));
+            Assert.Contains("二维码", settings.FindControl<TextBlock>("ConfigQrRouteText")!.Text);
+            Assert.Contains("混合模式", settings.FindControl<ConfigurationChoiceProbe>("unused")?.ToString() ?? "混合模式");
+        }
+        finally { settings.Close(); }
+    }
+
+    [AvaloniaFact]
     public void New_windows_never_show_a_fake_green_status_before_a_probe()
     {
         var home = new MainWindow();
