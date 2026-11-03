@@ -67,6 +67,28 @@ public sealed partial class AppServices : IAsyncDisposable
             LanguageCatalog.Codes);
     }
 
+    public async Task<IReadOnlyList<string>> TestServiceProfileAsync(
+        string serviceId, CancellationToken cancellationToken = default)
+    {
+        var profile = Settings.Configuration.Services.FirstOrDefault(service =>
+            string.Equals(service.Id, serviceId, StringComparison.Ordinal))
+            ?? throw new ProviderException("configuration_service_missing", $"找不到服务“{serviceId}”。");
+        if (!profile.Enabled)
+            throw new ProviderException("configuration_service_disabled", $"服务“{profile.Name}”已停用。");
+        var snapshot = Settings with
+        {
+            CustomTranslationEndpoint = profile.Endpoint,
+            CustomTranslationModel = profile.DefaultModelId,
+            CustomTranslationApiProtocol = profile.Protocol
+        };
+        var provider = new ChatCompatibleTranslationProvider(
+            _inferenceClient,
+            new ServiceScopedSecretStore(SecretStore, profile.CredentialRef),
+            () => snapshot,
+            CreateRoutedMetadata(profile, uploadsImage: false));
+        return await provider.GetAvailableModelsAsync(cancellationToken);
+    }
+
     public async Task SaveServiceCredentialAsync(string serviceId, string apiKey, CancellationToken cancellationToken = default)
     {
         var profile = Settings.Configuration.Services.FirstOrDefault(service =>
