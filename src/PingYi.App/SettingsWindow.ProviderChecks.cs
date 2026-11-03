@@ -70,8 +70,27 @@ public partial class SettingsWindow
             return;
         }
 
-        await _services.SaveSettingsAsync(_services.Settings with
+        var current = _services.Settings;
+        var configuration = current.Configuration with
         {
+            Tasks = current.Configuration.Tasks with
+            {
+                Ocr = current.Configuration.Tasks.Ocr with
+                {
+                    ServiceId = ocr.Id == "local-vlm-ocr" ? "legacy-custom" : "provider:" + ocr.Id,
+                    ModelId = ocr.Id == "local-vlm-ocr" ? current.CustomTranslationModel : string.Empty,
+                    RequireImageInput = ocr.Id == "local-vlm-ocr"
+                },
+                Translation = current.Configuration.Tasks.Translation with
+                {
+                    ServiceId = translation.Id == "custom-chat" ? "legacy-custom" : "provider:" + translation.Id,
+                    ModelId = translation.Id == "custom-chat" ? current.CustomTranslationModel : string.Empty
+                }
+            }
+        };
+        await _services.SaveSettingsAsync(current with
+        {
+            Configuration = configuration,
             OcrProviderId = ocr.Id,
             TranslationProviderId = translation.Id,
             TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite
