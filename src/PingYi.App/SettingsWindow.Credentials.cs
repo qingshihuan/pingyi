@@ -152,6 +152,26 @@ public partial class SettingsWindow
         }
     }
 
+    private void ApplyThirdPartyApiPresetButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ThirdPartyApiPresetCombo.SelectedItem is not ThirdPartyApiPreset preset)
+        {
+            SetGlobalStatus(UiText.IsEnglish ? "Choose a third-party API provider first." : "请先选择第三方 API 服务商。", true);
+            return;
+        }
+
+        CustomEndpointBox.Text = preset.ChatCompletionsEndpoint;
+        SelectTranslationProvider("custom-chat");
+        SetInlineStatus(CustomTranslationStatusText,
+            UiText.IsEnglish
+                ? preset.DisplayName + " endpoint filled in. Enter the provider's model ID and API Key, save, then test."
+                : "已填入 " + preset.DisplayName + " 接口地址。请填写服务商提供的模型 ID 和 API Key，保存后再测试。",
+            "SecondaryTextBrush");
+        SetGlobalStatus(UiText.IsEnglish
+            ? "Provider endpoint applied to the form only; no request has been sent and no settings have been saved."
+            : "服务商地址仅填入表单，尚未发送请求或保存设置。", false);
+    }
+
     private async void UseLocalLlamaPresetButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_services is null)
