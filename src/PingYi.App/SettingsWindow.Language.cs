@@ -72,6 +72,7 @@ public partial class SettingsWindow
     {
         RefreshWindowTitle();
         RefreshRuntimeStatusLanguage();
+        RefreshThirdPartyApiLanguage();
         var loading = _isLoadingSettings;
         _isLoadingSettings = true;
         try
@@ -105,11 +106,24 @@ public partial class SettingsWindow
         finally { _isLoadingSettings = loading; }
     }
 
+    private void RefreshThirdPartyApiLanguage()
+    {
+        ThirdPartyApiLabelText.Text = UiText.IsEnglish
+            ? "Third-party API provider (OpenAI-compatible)"
+            : "第三方 API 服务商（OpenAI 兼容）";
+        ApplyThirdPartyApiPresetButton.Content = UiText.IsEnglish
+            ? "Use provider endpoint"
+            : "填入服务商地址";
+        ThirdPartyApiHintText.Text = UiText.IsEnglish
+            ? "Choose a provider, then enter the exact model ID and API Key below. Replace the key whenever you switch providers; the key field is shared. Save and test the text API. For screenshot OCR, image description or prompt reconstruction, also select Compatible multimodal LLM OCR and use a vision-capable model. Remote requests send recognized text or the selected image to that provider and may incur charges. Remote endpoints must use HTTPS; keys are stored in the OS secure store."
+            : "选择服务商后，在下方填写该平台的准确模型 ID 和 API Key。切换服务商时请替换 API Key；当前密钥输入框由这些兼容接口共用。保存后测试翻译接口。若要通过 API 进行截图 OCR、图片描述或提示词反推，还需在“文字识别”中选择“兼容多模态大模型 OCR”，并使用支持图片输入的模型。远程翻译会发送识别文字，视觉任务会发送所选截图给服务商，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
+    }
+
     private void RefreshChoiceTemplates()
     {
         // Core catalog records use CurrentUICulture. Freeze their display strings here
         // so a later UI dispatcher turn cannot inherit a stale async culture context.
-        foreach (var combo in new[] { LocalServicePresetCombo, ManagedModelCombo, ManagedRuntimeBackendCombo })
+        foreach (var combo in new[] { ThirdPartyApiPresetCombo, LocalServicePresetCombo, ManagedModelCombo, ManagedRuntimeBackendCombo })
         {
             var labels = combo.Items.Cast<object>().ToDictionary(item => item, item => UiText.T(item.ToString()));
             combo.ItemTemplate = new FuncDataTemplate<object>((item, _) => new TextBlock
