@@ -210,6 +210,6 @@ Inno Setup 非默认位置可传 `-InnoCompiler`；质量基线使用 `scripts/r
 
 在 **设置 → 自定义接口** 选择 OpenAI、DeepSeek、SiliconFlow、OpenRouter、阿里云百炼（DashScope）或智谱 BigModel，自动填入兼容 Chat Completions 地址；再填写服务商提供的模型 ID 和 API Key，保存后分别测试文字翻译与图片能力。也可手动输入其他 OpenAI 兼容端点。
 
-支持远程文字翻译，以及支持 `image_url` 的视觉模型 OCR、图片描述和提示词反推。远程服务必须使用 HTTPS；API Key 存入系统安全存储。远程翻译会上传识别文本，视觉任务会上传本次选中的截图，服务商可能计费。切换服务商时请替换共用 API Key。当前不支持原生 Anthropic Messages 协议或要求专有签名的接口。
+OpenAI 预设默认使用 Responses API，支持文字翻译及 `input_image` 视觉 OCR、图片描述和提示词反推，并显式设置 `store:false`；也可手动切换 Chat Completions。DeepSeek、SiliconFlow、OpenRouter、百炼、智谱和本机 llama.cpp/Ollama/LM Studio 仍默认使用 Chat Completions。远程服务必须使用 HTTPS；API Key 存入系统安全存储。远程翻译会发送识别文本，视觉任务会发送所选截图，服务商可能计费。切换服务商时请替换共用 API Key。当前不支持原生 Anthropic Messages 协议或要求专有签名的接口。
 
 [第三方 API 配置、服务商地址、隐私与排障说明](docs/THIRD_PARTY_API.md)。
