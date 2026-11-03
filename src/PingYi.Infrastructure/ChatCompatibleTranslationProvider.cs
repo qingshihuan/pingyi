@@ -9,11 +9,12 @@ namespace PingYi.Infrastructure;
 public sealed class ChatCompatibleTranslationProvider(
     HttpClient httpClient,
     ISecretStore secretStore,
-    Func<AppSettings> settingsAccessor) : ITranslationProvider
+    Func<AppSettings> settingsAccessor,
+    ProviderMetadata? metadataOverride = null) : ITranslationProvider
 {
-    public ProviderMetadata Metadata { get; } = new(
+    public ProviderMetadata Metadata { get; } = metadataOverride ?? new(
         "custom-chat",
-        "本地 / 自定义大模型",
+        "兼容大模型 API",
         ProviderExecutionLocation.Configurable,
         UploadsImage: false,
         RequiresSecret: false,
