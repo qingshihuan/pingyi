@@ -210,3 +210,9 @@ Open **Settings → Custom endpoint** and choose OpenAI, DeepSeek, SiliconFlow, 
 The OpenAI preset defaults to the Responses API for text translation and `input_image` vision OCR, image description and prompt reconstruction; requests explicitly set `store:false`. You can switch to Chat Completions manually. DeepSeek, SiliconFlow, OpenRouter, DashScope, Zhipu and local llama.cpp/Ollama/LM Studio continue to default to Chat Completions. Remote services require HTTPS. API keys are stored in the OS secure store. Remote translation sends recognized text; vision tasks send the selected screenshot, and provider charges may apply. Replace the shared API key when switching providers. Native Anthropic Messages and proprietary signed APIs are not supported by this adapter.
 
 [Third-party API setup, endpoints, privacy and troubleshooting](docs/THIRD_PARTY_API.md).
+
+## Configuration center and hybrid task routing
+
+The schema v15 configuration architecture supports multiple local/cloud service profiles with separate API keys. OCR, translation, image description and prompt reconstruction can use different models; QR decoding always remains local. Service tests discover and cache model IDs, and OCR/translation have explicit local fallback toggles. First-run setup supports local models or a third-party API Hybrid mode, with per-request remote consent enabled by default.
+
+[Configuration architecture, legacy migration and current scope](docs/CONFIGURATION_ARCHITECTURE.en.md).
