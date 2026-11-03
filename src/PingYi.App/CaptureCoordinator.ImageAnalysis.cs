@@ -55,7 +55,8 @@ public sealed partial class CaptureCoordinator
             var privacy = endpoint.IsLoopback ? UiText.Get("String.VisionLocal")
                 : string.Format(UiText.Get("String.VisionRemote"), endpoint.GetLeftPart(UriPartial.Authority));
             window.SetLoading(UiText.Get("String.AnalysisPreparing"), privacy);
-            if (!endpoint.IsLoopback && !await ImageAnalysisConsentWindow.ConfirmAsync(window, endpoint,
+            if (snapshot.ConfirmRemoteRequests && !endpoint.IsLoopback &&
+                !await ImageAnalysisConsentWindow.ConfirmAsync(window, endpoint,
                     snapshot.CustomTranslationModel, operation.Token))
             {
                 EnsureCurrent(operation);
