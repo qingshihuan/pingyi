@@ -182,7 +182,17 @@ public sealed record AppConfiguration
             QrCode = NormalizeRoute(sourceTasks.QrCode, fallbackTasks.QrCode)
         };
 
-        var runtime = Runtime ?? new RuntimeConfiguration();
+        var runtime = !hasProfiles
+            ? new RuntimeConfiguration
+            {
+                Backend = legacy.ManagedRuntimeBackend,
+                Device = legacy.ManagedRuntimeDevice,
+                ModelPackageId = legacy.ManagedModelPackageId,
+                Enabled = legacy.ManagedRuntimeEnabled,
+                AllowMirrors = legacy.RuntimeAllowMirrors,
+                MirrorPrefixes = legacy.RuntimeMirrorPrefixes
+            }
+            : Runtime ?? new RuntimeConfiguration();
         return this with
         {
             Version = CurrentVersion,
