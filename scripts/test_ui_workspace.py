@@ -56,9 +56,9 @@ class WorkspaceStructureTests(unittest.TestCase):
             names = [n.get(NAME) for n in root.iter() if n.get(NAME)]
             self.assertEqual(len(names), len(set(names)))
 
-    def test_six_native_categories_and_individual_scroll_regions(self):
+    def test_seven_native_categories_and_individual_scroll_regions(self):
         tabs = self.settings.findall('.//a:TabItem', NS)
-        self.assertEqual(len(tabs), 6)
+        self.assertEqual(len(tabs), 7)
         for tab in tabs:
             if tab.get(NAME) == 'RuntimeStatusSettingsTab':
                 # This native control owns a scroll surface, rather than nesting viewers.
