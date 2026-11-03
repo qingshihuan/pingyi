@@ -44,6 +44,11 @@
                 <TextBlock x:Name="ConfigurationServicesTitleText" Classes="workspace-section"/>
                 <ComboBox x:Name="ConfigurationServiceCombo" Classes="workspace-field"
                           SelectionChanged="ConfigurationServiceCombo_OnSelectionChanged"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <ComboBox x:Name="ConfigServicePresetCombo" Classes="workspace-field"/>
+                  <Button x:Name="ApplyConfigServicePresetButton" Grid.Column="1" Classes="secondary"
+                          Click="ApplyConfigServicePresetButton_OnClick"/>
+                </Grid>
                 <WrapPanel>
                   <Button x:Name="AddConfigurationServiceButton" Classes="secondary" Click="AddConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
                   <Button x:Name="DeleteConfigurationServiceButton" Classes="ghost" Click="DeleteConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
@@ -52,7 +57,7 @@
                   <TextBlock x:Name="ConfigServiceNameLabelText" Classes="workspace-label" VerticalAlignment="Center"/>
                   <TextBox x:Name="ConfigServiceNameBox" Grid.Column="1" Classes="workspace-field"/>
                   <TextBlock x:Name="ConfigServiceKindLabelText" Grid.Row="1" Classes="workspace-label" VerticalAlignment="Center"/>
-                  <ComboBox x:Name="ConfigServiceKindCombo" Grid.Row="1" Grid.Column="1" Classes="workspace-field"/>
+                  <ComboBox x:Name="ConfigServiceKindCombo" Grid.Row="1" Grid.Column="1" Classes="workspace-field" IsEnabled="False"/>
                   <TextBlock x:Name="ConfigServiceEndpointLabelText" Grid.Row="2" Classes="workspace-label" VerticalAlignment="Center"/>
                   <TextBox x:Name="ConfigServiceEndpointBox" Grid.Row="2" Grid.Column="1" Classes="workspace-field"/>
                   <TextBlock x:Name="ConfigServiceProtocolLabelText" Grid.Row="3" Classes="workspace-label" VerticalAlignment="Center"/>
