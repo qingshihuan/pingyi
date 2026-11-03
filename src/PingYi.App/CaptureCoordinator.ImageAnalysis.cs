@@ -42,11 +42,11 @@ public sealed partial class CaptureCoordinator
         var purpose = window.Purpose;
         var taskId = purpose == CapturePurpose.DescribeImage
             ? ModelTaskIds.ImageDescription : ModelTaskIds.PromptReconstruction;
-        var snapshot = services.ResolveTaskSettings(settingsSnapshot, taskId);
         var language = UiText.CurrentLanguage;
         try
         {
             EnsureCurrent(operation);
+            var snapshot = services.ResolveTaskSettings(settingsSnapshot, taskId);
             if (!AppSettings.TryParseChatCompletionsEndpoint(snapshot.CustomTranslationEndpoint, out var endpoint) ||
                 string.IsNullOrWhiteSpace(snapshot.CustomTranslationModel) || !string.IsNullOrEmpty(endpoint.UserInfo))
                 throw new ProviderException("image_analysis_configuration", UiText.Get("String.VisionConfiguration"));
