@@ -31,6 +31,7 @@ public partial class SettingsWindow : Window
         UiText.Attach(this);
         ThirdPartyApiPresetCombo.ItemsSource = ThirdPartyApiPresets.All;
         RefreshThirdPartyApiLanguage();
+        RefreshCustomApiModeUi();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
