@@ -75,6 +75,7 @@ public partial class SettingsWindow
         RefreshThirdPartyApiLanguage();
         RefreshConfigurationCenterLanguage();
         RefreshPrivacySettingsLanguage();
+        RefreshShortcutSettingsLanguage();
         var loading = _isLoadingSettings;
         _isLoadingSettings = true;
         try
