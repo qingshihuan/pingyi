@@ -17,6 +17,87 @@
       </StackPanel>
     </Grid>
     <TabControl Grid.Row="1" Grid.ColumnSpan="2" Margin="14,0,0,0" x:Name="SettingsTabs" TabStripPlacement="Left" SelectedIndex="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" AutomationProperties.Name="{DynamicResource Text.dfb699c54378}">
+      <TabItem Classes="workspace-tab" x:Name="ConfigurationCenterTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavPurpleBrush}">
+              <Path Classes="symbol" Data="M4 7H20 M4 12H20 M4 17H20 M8 4V10 M15 9V15 M11 14V20" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock x:Name="ConfigurationCenterNavText" Text="配置中心" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6" Margin="0,0,0,4">
+              <TextBlock x:Name="ConfigurationCenterTitleText" Text="配置中心" Classes="workspace-title"/>
+              <TextBlock x:Name="ConfigurationCenterHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+            </StackPanel>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock x:Name="ConfigurationModeLabelText" Classes="workspace-section"/>
+                <ComboBox x:Name="ConfigurationModeCombo" Classes="workspace-field"/>
+                <TextBlock x:Name="ConfigurationModeHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock x:Name="ConfigurationServicesTitleText" Classes="workspace-section"/>
+                <ComboBox x:Name="ConfigurationServiceCombo" Classes="workspace-field"
+                          SelectionChanged="ConfigurationServiceCombo_OnSelectionChanged"/>
+                <WrapPanel>
+                  <Button x:Name="AddConfigurationServiceButton" Classes="secondary" Click="AddConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
+                  <Button x:Name="DeleteConfigurationServiceButton" Classes="ghost" Click="DeleteConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
+                </WrapPanel>
+                <Grid ColumnDefinitions="130,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                  <TextBlock x:Name="ConfigServiceNameLabelText" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <TextBox x:Name="ConfigServiceNameBox" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigServiceKindLabelText" Grid.Row="1" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigServiceKindCombo" Grid.Row="1" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigServiceEndpointLabelText" Grid.Row="2" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <TextBox x:Name="ConfigServiceEndpointBox" Grid.Row="2" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigServiceProtocolLabelText" Grid.Row="3" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigServiceProtocolCombo" Grid.Row="3" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigServiceModelLabelText" Grid.Row="4" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <TextBox x:Name="ConfigServiceModelBox" Grid.Row="4" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigServiceKeyLabelText" Grid.Row="5" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <TextBox x:Name="ConfigServiceApiKeyBox" Grid.Row="5" Grid.Column="1" Classes="workspace-field" PasswordChar="●"/>
+                </Grid>
+                <WrapPanel>
+                  <CheckBox x:Name="ConfigServiceTextCapabilityCheckBox" Content="文字生成" IsChecked="True" Margin="0,0,16,8"/>
+                  <CheckBox x:Name="ConfigServiceImageCapabilityCheckBox" Content="图片输入" Margin="0,0,16,8"/>
+                  <CheckBox x:Name="ConfigServiceEnabledCheckBox" Content="启用服务" IsChecked="True" Margin="0,0,16,8"/>
+                </WrapPanel>
+                <TextBlock x:Name="ConfigServiceCredentialHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+                <WrapPanel>
+                  <Button x:Name="SaveConfigurationServiceButton" Classes="primary" Click="SaveConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
+                  <Button x:Name="TestConfigurationServiceButton" Classes="secondary" Click="TestConfigurationServiceButton_OnClick" Margin="0,0,8,8"/>
+                </WrapPanel>
+                <TextBlock x:Name="ConfigurationServiceStatusText" Classes="workspace-help" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock x:Name="ConfigurationTasksTitleText" Classes="workspace-section"/>
+                <TextBlock x:Name="ConfigurationTasksHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+                <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
+                  <TextBlock x:Name="ConfigOcrRouteLabelText" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigOcrRouteCombo" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigTranslationRouteLabelText" Grid.Row="1" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigTranslationRouteCombo" Grid.Row="1" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigImageDescriptionRouteLabelText" Grid.Row="2" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigImageDescriptionRouteCombo" Grid.Row="2" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigPromptReconstructionRouteLabelText" Grid.Row="3" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <ComboBox x:Name="ConfigPromptReconstructionRouteCombo" Grid.Row="3" Grid.Column="1" Classes="workspace-field"/>
+                  <TextBlock x:Name="ConfigQrRouteLabelText" Grid.Row="4" Classes="workspace-label" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="ConfigQrRouteText" Grid.Row="4" Grid.Column="1" Classes="workspace-help" VerticalAlignment="Center"/>
+                </Grid>
+                <Button x:Name="SaveTaskRoutesButton" Classes="primary" HorizontalAlignment="Left" Click="SaveTaskRoutesButton_OnClick"/>
+                <TextBlock x:Name="ConfigurationRoutesStatusText" Classes="workspace-help" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
       <TabItem Classes="workspace-tab" x:Name="GeneralSettingsTab">
         <TabItem.Header>
           <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
