@@ -188,13 +188,13 @@ public static partial class UiText
     {
         "local-paddle" => IsEnglish ? "Local PaddleOCR" : "本地 PaddleOCR",
         "local-vlm-corrected" => IsEnglish ? "PaddleOCR + local LLM correction" : "PaddleOCR + 本机大模型纠错",
-        "local-vlm-ocr" => IsEnglish ? "Local multimodal LLM OCR" : "本机多模态大模型 OCR",
+        "local-vlm-ocr" => IsEnglish ? "Compatible multimodal LLM OCR" : "兼容多模态大模型 OCR",
         "local-argos" => IsEnglish ? "Local Argos" : "本地 Argos",
         "baidu-ocr" => IsEnglish ? "Baidu Cloud OCR" : "百度云 OCR",
         "baidu-translate" => IsEnglish ? "Baidu Translation" : "百度翻译",
         "google-vision-ocr" => "Google Cloud Vision OCR",
         "google-translate" => "Google Cloud Translation",
-        "custom-chat" => IsEnglish ? "Local / custom LLM" : "本地 / 自定义大模型",
+        "custom-chat" => IsEnglish ? "Compatible LLM API" : "兼容大模型 API",
         _ => T(fallback)
     };
 
