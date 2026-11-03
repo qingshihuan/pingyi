@@ -70,6 +70,117 @@ public sealed class AppSettingsTests
             preset => Assert.Equal(ModelApiProtocols.ChatCompletions, preset.DefaultProtocol));
     }
 
+    [Fact]
+    public void Normalize_MigratesLegacyEndpointIntoIndependentServiceAndTaskRoutes()
+    {
+        var normalized = new AppSettings
+        {
+            SchemaVersion = 14,
+            OcrProviderId = "local-vlm-ocr",
+            TranslationProviderId = "custom-chat",
+            CustomTranslationEndpoint = "https://api.deepseek.com/chat/completions",
+            CustomTranslationModel = "deepseek-chat",
+            CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions,
+            ManagedRuntimeBackend = "vulkan",
+            ManagedRuntimeDevice = "auto",
+            ManagedModelPackageId = "qwen3-vl-4b",
+            ManagedRuntimeEnabled = true
+        }.Normalize();
+
+        var profile = Assert.Single(normalized.Configuration.Services);
+        Assert.Equal("legacy-custom", profile.Id);
+        Assert.Equal(ModelServiceKinds.Remote, profile.Kind);
+        Assert.Equal("https://api.deepseek.com/chat/completions", profile.Endpoint);
+        Assert.Equal("deepseek-chat", profile.DefaultModelId);
+        Assert.Equal(SecretKeys.CustomTranslationApiKey, profile.CredentialRef);
+        Assert.Equal("legacy-custom", normalized.Configuration.Tasks.Ocr.ServiceId);
+        Assert.Equal("legacy-custom", normalized.Configuration.Tasks.Translation.ServiceId);
+        Assert.Equal("builtin:qr", normalized.Configuration.Tasks.QrCode.ServiceId);
+        Assert.Equal("vulkan", normalized.Configuration.Runtime.Backend);
+        Assert.True(normalized.Configuration.Runtime.Enabled);
+        Assert.Equal(ConfigurationModes.Hybrid, normalized.Configuration.Mode);
+    }
+
+    [Fact]
+    public void Configuration_PreservesMultipleServicesIndependentCredentialsAndTaskAssignments()
+    {
+        var configuration = new AppConfiguration
+        {
+            Services =
+            [
+                new ModelServiceProfile
+                {
+                    Id = "local-vision",
+                    Name = "Local Vision",
+                    Kind = ModelServiceKinds.Local,
+                    Endpoint = "http://127.0.0.1:8080/v1/chat/completions",
+                    CredentialRef = ServiceCredentialRefs.ForService("local-vision"),
+                    DefaultModelId = "qwen-vl",
+                    Capabilities = ["text-generation", "image-input"]
+                },
+                new ModelServiceProfile
+                {
+                    Id = "openai-cloud",
+                    Name = "OpenAI",
+                    Kind = ModelServiceKinds.Remote,
+                    Protocol = ModelApiProtocols.Responses,
+                    Endpoint = "https://api.openai.com/v1/chat/completions",
+                    CredentialRef = ServiceCredentialRefs.ForService("openai-cloud"),
+                    DefaultModelId = "gpt-model",
+                    Capabilities = ["text-generation", "image-input"]
+                }
+            ],
+            Tasks = new TaskRoutingConfiguration
+            {
+                Ocr = new TaskModelRoute { ServiceId = "local-vision", ModelId = "qwen-vl", RequireImageInput = true },
+                Translation = new TaskModelRoute { ServiceId = "openai-cloud", ModelId = "gpt-model" },
+                ImageDescription = new TaskModelRoute { ServiceId = "openai-cloud", ModelId = "gpt-model", RequireImageInput = true },
+                PromptReconstruction = new TaskModelRoute { ServiceId = "local-vision", ModelId = "qwen-vl", RequireImageInput = true },
+                QrCode = new TaskModelRoute { ServiceId = "builtin:qr", ModelId = "zxing" }
+            }
+        };
+
+        var normalized = new AppSettings { Configuration = configuration }.Normalize();
+
+        Assert.Equal(2, normalized.Configuration.Services.Count);
+        Assert.NotEqual(
+            normalized.Configuration.Services[0].CredentialRef,
+            normalized.Configuration.Services[1].CredentialRef);
+        Assert.Equal("local-vision", normalized.Configuration.Tasks.Ocr.ServiceId);
+        Assert.Equal("openai-cloud", normalized.Configuration.Tasks.Translation.ServiceId);
+        Assert.Equal(ModelApiProtocols.Responses,
+            normalized.Configuration.Services.Single(service => service.Id == "openai-cloud").Protocol);
+        Assert.Equal("builtin:qr", normalized.Configuration.Tasks.QrCode.ServiceId);
+    }
+
+    [Fact]
+    public void SettingsJsonContainsCredentialReferencesButNeverSecretValues()
+    {
+        const string secret = "sk-test-never-serialize-this";
+        var settings = new AppSettings
+        {
+            Configuration = new AppConfiguration
+            {
+                Services =
+                [
+                    new ModelServiceProfile
+                    {
+                        Id = "openai-cloud",
+                        Name = "OpenAI",
+                        Endpoint = "https://api.openai.com/v1/chat/completions",
+                        CredentialRef = ServiceCredentialRefs.ForService("openai-cloud")
+                    }
+                ]
+            }
+        }.Normalize();
+
+        var json = System.Text.Json.JsonSerializer.Serialize(settings);
+
+        Assert.Contains(ServiceCredentialRefs.ForService("openai-cloud"), json);
+        Assert.DoesNotContain(secret, json);
+        Assert.DoesNotContain("sk-", json);
+    }
+
     [Theory]
     [InlineData("ja", "ja")]
     [InlineData("ZH-hant", "zh-Hant")]
