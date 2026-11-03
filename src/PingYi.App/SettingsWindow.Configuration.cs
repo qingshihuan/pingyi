@@ -359,9 +359,15 @@ public partial class SettingsWindow
                 QrCode = new TaskModelRoute { ServiceId = "builtin:qr", ModelId = "zxing" }
             };
             var mode = (ConfigurationModeCombo.SelectedItem as ConfigurationChoice)?.Id ?? ConfigurationModes.Hybrid;
+            var ocrLegacyId = updatedTasks.Ocr.ServiceId.StartsWith("provider:", StringComparison.Ordinal)
+                ? updatedTasks.Ocr.ServiceId["provider:".Length..] : "local-vlm-ocr";
+            var translationLegacyId = updatedTasks.Translation.ServiceId.StartsWith("provider:", StringComparison.Ordinal)
+                ? updatedTasks.Translation.ServiceId["provider:".Length..] : "custom-chat";
             await _services.SaveSettingsAsync(current with
             {
-                Configuration = current.Configuration with { Mode = mode, Tasks = updatedTasks }
+                Configuration = current.Configuration with { Mode = mode, Tasks = updatedTasks },
+                OcrProviderId = ocrLegacyId,
+                TranslationProviderId = translationLegacyId
             });
             RefreshConfigurationCenter();
             SetInlineStatus(ConfigurationRoutesStatusText,
