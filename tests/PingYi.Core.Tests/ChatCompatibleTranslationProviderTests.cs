@@ -176,6 +176,56 @@ public sealed class ChatCompatibleTranslationProviderTests
     }
 
     [Fact]
+    public async Task ResponsesProtocol_UsesResponsesEndpointStoreFalseAndOutputText()
+    {
+        var handler = new StubHandler(request =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("https://api.openai.com/v1/responses", request.RequestUri?.AbsoluteUri);
+            Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
+            Assert.Equal("test-api-key", request.Headers.Authorization?.Parameter);
+            using var document = JsonDocument.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            var root = document.RootElement;
+            Assert.Equal("gpt-test", root.GetProperty("model").GetString());
+            Assert.False(root.GetProperty("store").GetBoolean());
+            Assert.Contains("专业翻译引擎", root.GetProperty("instructions").GetString());
+            Assert.Equal("Hello world", root.GetProperty("input").GetString());
+            Assert.False(root.TryGetProperty("messages", out _));
+            return Json("{\\"id\\":\\"resp_123\\",\\"output_text\\":\\"你好，世界。\\"}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationModel = "gpt-test",
+            CustomTranslationApiProtocol = ModelApiProtocols.Responses
+        };
+        var provider = new ChatCompatibleTranslationProvider(
+            new HttpClient(handler), new StubSecretStore("test-api-key"), () => settings);
+
+        var result = await provider.TranslateAsync(new TranslationRequest("Hello world", "en", "zh"));
+
+        Assert.Equal("你好，世界。", result.Text);
+    }
+
+    [Fact]
+    public async Task ResponsesProtocol_ParsesOutputItemsWhenOutputTextHelperIsAbsent()
+    {
+        var handler = new StubHandler(_ => Json(
+            "{\\"output\\":[{\\"type\\":\\"reasoning\\",\\"summary\\":[]},{\\"type\\":\\"message\\",\\"content\\":[{\\"type\\":\\"output_text\\",\\"text\\":\\"Part one\\"},{\\"type\\":\\"output_text\\",\\"text\\":\\"Part two\\"}]}]}"));
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationModel = "gpt-test",
+            CustomTranslationApiProtocol = ModelApiProtocols.Responses
+        };
+        var provider = new ChatCompatibleTranslationProvider(new HttpClient(handler), new StubSecretStore(), () => settings);
+
+        var result = await provider.TranslateAsync(new TranslationRequest("Hello", "en", "zh"));
+
+        Assert.Equal("Part one\nPart two", result.Text);
+    }
+
+    [Fact]
     public async Task Translate_AllowsModelDetectedSourceAndMultilingualTarget()
     {
         var handler = new StubHandler(request =>
