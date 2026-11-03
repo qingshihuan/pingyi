@@ -143,6 +143,39 @@ public sealed class ChatCompatibleTranslationProviderTests
     }
 
     [Fact]
+    public async Task RemoteApiModelDiscovery_FollowsOpenAiStyleCursorPagination()
+    {
+        var calls = 0;
+        var handler = new StubHandler(request =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            calls++;
+            if (calls == 1)
+            {
+                Assert.Equal("https://api.openai.com/v1/models", request.RequestUri?.AbsoluteUri);
+                return Json("{\"data\":[{\"id\":\"model-a\"}],\"has_more\":true,\"last_id\":\"model-a\"}");
+            }
+
+            Assert.Equal("https://api.openai.com/v1/models?limit=100&after=model-a", request.RequestUri?.AbsoluteUri);
+            return Json("{\"data\":[{\"id\":\"model-b\"}],\"has_more\":false}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationModel = "model-a"
+        };
+        var provider = new ChatCompatibleTranslationProvider(
+            new HttpClient(handler),
+            new StubSecretStore("test-api-key"),
+            () => settings);
+
+        var models = await provider.GetAvailableModelsAsync();
+
+        Assert.Equal(2, calls);
+        Assert.Equal(["model-a", "model-b"], models);
+    }
+
+    [Fact]
     public async Task Translate_AllowsModelDetectedSourceAndMultilingualTarget()
     {
         var handler = new StubHandler(request =>
