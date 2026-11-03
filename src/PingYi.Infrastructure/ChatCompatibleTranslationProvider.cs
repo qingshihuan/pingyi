@@ -208,45 +208,82 @@ public sealed class ChatCompatibleTranslationProvider(
         Uri chatEndpoint,
         CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildModelsEndpoint(chatEndpoint));
+        var modelsEndpoint = BuildModelsEndpoint(chatEndpoint);
         var apiKey = await secretStore.GetAsync(SecretKeys.CustomTranslationApiKey, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(apiKey))
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"本地大模型服务返回 HTTP {(int)response.StatusCode}；请检查服务地址。",
-                null,
-                response.StatusCode);
-        }
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty("data", out var data) ||
-            data.ValueKind != JsonValueKind.Array)
-        {
-            throw new JsonException("本地模型列表响应格式不正确。");
-        }
-
         var modelIds = new List<string>();
-        foreach (var item in data.EnumerateArray())
+        string? after = null;
+
+        // OpenAI-style list endpoints may expose cursor pagination. Providers without
+        // pagination simply return one complete data array and omit has_more.
+        for (var page = 0; page < 20; page++)
         {
-            if (item.ValueKind != JsonValueKind.Object ||
-                !item.TryGetProperty("id", out var id) ||
-                id.ValueKind != JsonValueKind.String ||
-                string.IsNullOrWhiteSpace(id.GetString()))
+            var pageEndpoint = modelsEndpoint;
+            if (!string.IsNullOrWhiteSpace(after))
             {
-                throw new JsonException("本地模型列表响应格式不正确。");
+                var builder = new UriBuilder(modelsEndpoint)
+                {
+                    Query = $"limit=100&after={Uri.EscapeDataString(after)}"
+                };
+                pageEndpoint = builder.Uri;
             }
 
-            modelIds.Add(id.GetString()!);
+            using var request = new HttpRequestMessage(HttpMethod.Get, pageEndpoint);
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"模型列表接口返回 HTTP {(int)response.StatusCode}；请检查 API 地址、密钥及服务商模型列表权限。",
+                    null,
+                    response.StatusCode);
+            }
+
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (Encoding.UTF8.GetByteCount(payload) > 1_048_576)
+                throw new JsonException("模型列表响应超过 1 MiB 限制。");
+
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("data", out var data) ||
+                data.ValueKind != JsonValueKind.Array)
+                throw new JsonException("模型列表响应格式不正确；需要包含 data 数组的 OpenAI 兼容响应。");
+
+            var addedOnPage = 0;
+            string? lastId = null;
+            foreach (var item in data.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object ||
+                    !item.TryGetProperty("id", out var id) ||
+                    id.ValueKind != JsonValueKind.String ||
+                    string.IsNullOrWhiteSpace(id.GetString()))
+                    throw new JsonException("模型列表中包含无效的模型 ID。");
+
+                lastId = id.GetString()!;
+                if (!modelIds.Contains(lastId, StringComparer.Ordinal))
+                {
+                    modelIds.Add(lastId);
+                    addedOnPage++;
+                }
+
+                if (modelIds.Count > 5000)
+                    throw new JsonException("模型列表超过 5000 项安全上限。");
+            }
+
+            var hasMore = root.TryGetProperty("has_more", out var hasMoreElement) &&
+                          hasMoreElement.ValueKind == JsonValueKind.True;
+            if (!hasMore || string.IsNullOrWhiteSpace(lastId) || addedOnPage == 0)
+                break;
+
+            after = root.TryGetProperty("last_id", out var lastIdElement) &&
+                    lastIdElement.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(lastIdElement.GetString())
+                ? lastIdElement.GetString()
+                : lastId;
         }
 
-        return modelIds.Distinct(StringComparer.Ordinal).ToArray();
+        return modelIds.ToArray();
     }
 }
