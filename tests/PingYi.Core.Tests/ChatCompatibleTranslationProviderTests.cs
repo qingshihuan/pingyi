@@ -110,6 +110,38 @@ public sealed class ChatCompatibleTranslationProviderTests
         Assert.Equal(["qwen3:8b", "gemma3:4b"], models);
     }
 
+    [Theory]
+    [InlineData("https://api.openai.com/v1/chat/completions", "https://api.openai.com/v1/models")]
+    [InlineData("https://api.deepseek.com/chat/completions", "https://api.deepseek.com/models")]
+    [InlineData("https://openrouter.ai/api/v1/chat/completions", "https://openrouter.ai/api/v1/models")]
+    [InlineData("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "https://dashscope.aliyuncs.com/compatible-mode/v1/models")]
+    [InlineData("https://open.bigmodel.cn/api/paas/v4/chat/completions", "https://open.bigmodel.cn/api/paas/v4/models")]
+    public async Task RemoteApiModelDiscovery_UsesBearerKeyAndReturnsAllModels(
+        string chatEndpoint, string expectedModelsEndpoint)
+    {
+        var handler = new StubHandler(request =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            Assert.Equal(expectedModelsEndpoint, request.RequestUri?.AbsoluteUri);
+            Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
+            Assert.Equal("test-api-key", request.Headers.Authorization?.Parameter);
+            return Json("{\"object\":\"list\",\"data\":[{\"id\":\"model-a\"},{\"id\":\"model-b\"},{\"id\":\"vision-model\"}]}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = chatEndpoint,
+            CustomTranslationModel = "model-a"
+        };
+        var provider = new ChatCompatibleTranslationProvider(
+            new HttpClient(handler),
+            new StubSecretStore("test-api-key"),
+            () => settings);
+
+        var models = await provider.GetAvailableModelsAsync();
+
+        Assert.Equal(["model-a", "model-b", "vision-model"], models);
+    }
+
     [Fact]
     public async Task Translate_AllowsModelDetectedSourceAndMultilingualTarget()
     {
@@ -179,10 +211,10 @@ public sealed class ChatCompatibleTranslationProviderTests
             Task.FromResult(responseFactory(request));
     }
 
-    private sealed class StubSecretStore : ISecretStore
+    private sealed class StubSecretStore(string? apiKey = null) : ISecretStore
     {
         public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult<string?>(null);
+            Task.FromResult(apiKey);
 
         public Task SetAsync(string key, string value, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
