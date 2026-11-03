@@ -277,4 +277,59 @@ public partial class SettingsWindow
         }
         catch (Exception exception) { SetGlobalStatus(UiText.Error(exception), true); }
     }
+
+    private async void SaveTaskRoutesButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null) return;
+        try
+        {
+            var current = _services.Settings;
+            var tasks = current.Configuration.Tasks;
+            TaskModelRoute BuildRoute(ComboBox combo, TaskModelRoute previous, bool imageInput, string fallback)
+            {
+                if (combo.SelectedItem is not ConfigurationRouteChoice choice)
+                    throw new ProviderException("configuration_route_missing", "请为每项任务选择服务。");
+                var profile = current.Configuration.Services.FirstOrDefault(item => item.Id == choice.Id);
+                var builtIn = choice.Id.StartsWith("provider:", StringComparison.Ordinal);
+                if (!builtIn && profile is null)
+                    throw new ProviderException("configuration_route_missing", "所选服务已不存在。");
+                if (imageInput && !builtIn &&
+                    !profile!.Capabilities.Contains("image-input", StringComparer.OrdinalIgnoreCase))
+                    throw new ProviderException("configuration_route_capability", $"服务“{profile!.Name}”未声明支持图片输入，不能用于该视觉任务。");
+                return new TaskModelRoute
+                {
+                    ServiceId = choice.Id,
+                    ModelId = profile?.DefaultModelId ?? string.Empty,
+                    FallbackServiceId = previous.FallbackServiceId ?? fallback,
+                    FallbackModelId = previous.FallbackModelId,
+                    AllowFallback = previous.AllowFallback,
+                    RequireImageInput = imageInput
+                };
+            }
+
+            var updatedTasks = tasks with
+            {
+                Ocr = BuildRoute(ConfigOcrRouteCombo, tasks.Ocr, imageInput: true, "provider:local-paddle"),
+                Translation = BuildRoute(ConfigTranslationRouteCombo, tasks.Translation, imageInput: false, "provider:local-argos"),
+                ImageDescription = BuildRoute(ConfigImageDescriptionRouteCombo, tasks.ImageDescription, imageInput: true, string.Empty),
+                PromptReconstruction = BuildRoute(ConfigPromptReconstructionRouteCombo, tasks.PromptReconstruction, imageInput: true, string.Empty),
+                QrCode = new TaskModelRoute { ServiceId = "builtin:qr", ModelId = "zxing" }
+            };
+            var mode = ConfigurationModeCombo.SelectedItem as string ?? ConfigurationModes.Hybrid;
+            await _services.SaveSettingsAsync(current with
+            {
+                Configuration = current.Configuration with { Mode = mode, Tasks = updatedTasks }
+            });
+            RefreshConfigurationCenter();
+            SetInlineStatus(ConfigurationRoutesStatusText,
+                UiText.IsEnglish ? "Task routing saved. QR decoding remains local." : "任务路由已保存。二维码解析仍在本地执行。",
+                "SuccessTextBrush");
+            SetGlobalStatus(UiText.IsEnglish ? "Task routing saved." : "任务路由已保存。", false);
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(ConfigurationRoutesStatusText, UiText.Error(exception), "DangerTextBrush");
+            SetGlobalStatus(UiText.Error(exception), true);
+        }
+    }
 }
