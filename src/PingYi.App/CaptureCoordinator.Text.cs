@@ -56,7 +56,9 @@ public sealed partial class CaptureCoordinator
             if (string.IsNullOrWhiteSpace(result.PlainText)) throw new ProviderException("no_text", "所选区域中没有识别到文字。");
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception primary) when (!ReferenceEquals(ocr, services.PaddleProvider))
+        catch (Exception primary) when (
+            !ReferenceEquals(ocr, services.PaddleProvider) &&
+            settings.Configuration.Tasks.Ocr.AllowFallback)
         {
             try
             {
@@ -90,7 +92,8 @@ public sealed partial class CaptureCoordinator
                 result.DetectedLanguage, result.PlainText, translator.Metadata.SupportedLanguages.Count > 2);
             var request = new TranslationRequest(result.PlainText, route.SourceLanguage, route.TargetLanguage);
             var execution = await TranslationFallback.ExecuteAsync(translator, services.ArgosProvider, request,
-                operation.Token, primaryTimeout: TranslationTimeout, fallbackTimeout: TranslationTimeout);
+                operation.Token, primaryTimeout: TranslationTimeout, fallbackTimeout: TranslationTimeout,
+                allowFallback: settings.Configuration.Tasks.Translation.AllowFallback);
             EnsureCurrent(operation);
             _ocrRetryCache.MarkTranslationComplete(image);
             var name = UiText.ProviderName(execution.Provider.Id, execution.Provider.DisplayName);
