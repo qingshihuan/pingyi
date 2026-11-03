@@ -106,6 +106,52 @@ public partial class SettingsWindow
         finally { _isLoadingSettings = loading; }
     }
 
+    private void ThirdPartyApiPresetCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        RefreshCustomApiModeUi();
+
+    private void CustomEndpointBox_OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (AppSettings.TryParseChatCompletionsEndpoint(CustomEndpointBox.Text, out var endpoint) &&
+            endpoint.IsLoopback && ThirdPartyApiPresetCombo.SelectedItem is not null)
+        {
+            var loading = _isLoadingSettings;
+            _isLoadingSettings = true;
+            try { ThirdPartyApiPresetCombo.SelectedItem = null; }
+            finally { _isLoadingSettings = loading; }
+        }
+
+        RefreshCustomApiModeUi();
+    }
+
+    private bool IsThirdPartyApiMode()
+    {
+        if (ThirdPartyApiPresetCombo.SelectedItem is ThirdPartyApiPreset)
+            return true;
+        return AppSettings.TryParseChatCompletionsEndpoint(CustomEndpointBox.Text, out var endpoint) &&
+               !endpoint.IsLoopback;
+    }
+
+    private void RefreshCustomApiModeUi()
+    {
+        var apiMode = IsThirdPartyApiMode();
+        LocalServicePresetCombo.IsEnabled = !apiMode;
+        UseLocalLlamaPresetButton.IsEnabled = !apiMode;
+        LocalServicePresetModeHintText.IsVisible = apiMode;
+        LocalServicePresetModeHintText.Text = UiText.IsEnglish
+            ? "API mode is selected. Local service presets are disabled; switch back to a loopback endpoint to use llama.cpp, Ollama or LM Studio."
+            : "当前为 API 模式，本地服务预设已关闭。若要使用 llama.cpp、Ollama 或 LM Studio，请切换回本机回环地址。";
+        CustomModelLabelText.Text = UiText.IsEnglish
+            ? apiMode ? "Model name (load from API)" : "Model name"
+            : apiMode ? "模型名称（通过 API 获取）" : "模型名称";
+        RefreshCustomModelsButton.Content = UiText.IsEnglish ? "Refresh model list" : "刷新模型列表";
+        if (string.IsNullOrWhiteSpace(CustomModelStatusText.Text))
+        {
+            CustomModelStatusText.Text = UiText.IsEnglish
+                ? "Fetch the models available to this API key, or type a model ID manually."
+                : "可从 API 获取当前密钥可用的模型列表，也可以手动输入模型 ID。";
+        }
+    }
+
     private void RefreshThirdPartyApiLanguage()
     {
         ThirdPartyApiLabelText.Text = UiText.IsEnglish
