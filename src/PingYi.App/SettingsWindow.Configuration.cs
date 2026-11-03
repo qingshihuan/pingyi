@@ -139,7 +139,10 @@ public partial class SettingsWindow
         {
             ConfigServiceNameBox.Text = profile?.Name ?? string.Empty;
             ConfigServiceEndpointBox.Text = profile?.Endpoint ?? string.Empty;
-            ConfigServiceModelBox.Text = profile?.DefaultModelId ?? string.Empty;
+            var knownModels = _services?.Settings.Configuration.Models
+                .Where(model => model.ServiceId == profile?.Id).Select(model => model.ModelId).ToArray() ?? [];
+            ConfigServiceModelCombo.ItemsSource = knownModels;
+            ConfigServiceModelCombo.Text = profile?.DefaultModelId ?? string.Empty;
             ConfigServiceProtocolCombo.SelectedItem = ApiProtocolChoices.Get(profile?.Protocol);
             ConfigServiceKindCombo.SelectedItem = ConfigServiceKindCombo.ItemsSource is IEnumerable<ConfigurationChoice> kinds
                 ? kinds.FirstOrDefault(item => item.Id == (profile?.Kind ?? ModelServiceKinds.Remote)) : null;
@@ -205,12 +208,26 @@ public partial class SettingsWindow
                 Protocol = (ConfigServiceProtocolCombo.SelectedItem as ApiProtocolChoice)?.Id ?? ModelApiProtocols.ChatCompletions,
                 Endpoint = AppSettings.NormalizeChatCompletionsEndpoint(endpointText),
                 CredentialRef = credentialRef,
-                DefaultModelId = ConfigServiceModelBox.Text?.Trim() ?? string.Empty,
+                DefaultModelId = ConfigServiceModelCombo.Text?.Trim() ?? string.Empty,
                 Enabled = ConfigServiceEnabledCheckBox.IsChecked == true,
                 Capabilities = capabilities
             };
             var services = current.Configuration.Services.Where(item => item.Id != id).Append(profile).ToArray();
-            var updated = current with { Configuration = current.Configuration with { Services = services } };
+            var models = current.Configuration.Models
+                .Where(model => model.ServiceId != id || model.ModelId != profile.DefaultModelId)
+                .ToList();
+            if (!string.IsNullOrWhiteSpace(profile.DefaultModelId))
+                models.Add(new ModelCatalogEntry
+                {
+                    ServiceId = id,
+                    ModelId = profile.DefaultModelId,
+                    Capabilities = profile.Capabilities,
+                    DiscoverySource = "manual"
+                });
+            var updated = current with
+            {
+                Configuration = current.Configuration with { Services = services, Models = models }
+            };
             if (id == "legacy-custom")
                 updated = updated with
                 {
@@ -254,6 +271,9 @@ public partial class SettingsWindow
             }
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
             var models = await _services.TestServiceProfileAsync(_editingConfigurationServiceId, timeout.Token);
+            ConfigServiceModelCombo.ItemsSource = models;
+            if (string.IsNullOrWhiteSpace(ConfigServiceModelCombo.Text) && models.Count > 0)
+                ConfigServiceModelCombo.SelectedItem = models[0];
             SetInlineStatus(ConfigurationServiceStatusText,
                 UiText.IsEnglish ? $"Connected. {models.Count} models returned." : $"连接成功，服务返回 {models.Count} 个模型。",
                 "SuccessTextBrush");
