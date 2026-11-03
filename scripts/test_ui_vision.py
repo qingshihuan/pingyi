@@ -26,7 +26,7 @@ class VisionContracts(unittest.TestCase):
 
     def test_image_destination_is_frozen_and_confirmed_before_send(self):
         code = (APP / 'CaptureCoordinator.ImageAnalysis.cs').read_text(encoding='utf8')
-        self.assertLess(code.index('ConfirmAsync'), code.index('CreateImageAnalyzer(snapshot)'))
+        self.assertLess(code.index('ConfirmAsync'), code.index('CreateImageAnalyzer(settingsSnapshot, taskId)'))
         self.assertLess(code.index('VisionConfigurationChanged'), code.index('CreateImageAnalyzer(snapshot)'))
         self.assertIn('!endpoint.IsLoopback', code)
 
