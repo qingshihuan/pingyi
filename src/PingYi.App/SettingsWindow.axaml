@@ -96,6 +96,10 @@
                   <TextBlock x:Name="ConfigQrRouteLabelText" Grid.Row="4" Classes="workspace-label" VerticalAlignment="Center"/>
                   <TextBlock x:Name="ConfigQrRouteText" Grid.Row="4" Grid.Column="1" Classes="workspace-help" VerticalAlignment="Center"/>
                 </Grid>
+                <WrapPanel>
+                  <CheckBox x:Name="ConfigOcrFallbackCheckBox" Content="OCR 不可用时回退本地 PaddleOCR" Margin="0,0,16,8"/>
+                  <CheckBox x:Name="ConfigTranslationFallbackCheckBox" Content="翻译不可用时回退本地 Argos" Margin="0,0,16,8"/>
+                </WrapPanel>
                 <Button x:Name="SaveTaskRoutesButton" Classes="primary" HorizontalAlignment="Left" Click="SaveTaskRoutesButton_OnClick"/>
                 <TextBlock x:Name="ConfigurationRoutesStatusText" Classes="workspace-help" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
               </StackPanel>
