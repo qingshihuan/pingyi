@@ -22,6 +22,23 @@ public sealed class TranslationFallbackTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_RespectsDisabledTaskFallback()
+    {
+        var external = new StubProvider("custom-chat", fail: true, "external");
+        var offline = new StubProvider("local-argos", fail: false, "offline");
+
+        var exception = await Assert.ThrowsAsync<ProviderException>(() =>
+            TranslationFallback.ExecuteAsync(
+                external,
+                offline,
+                new TranslationRequest("Hello", "en", "zh"),
+                allowFallback: false));
+
+        Assert.Equal("failed", exception.Code);
+        Assert.Equal(0, offline.TranslateCalls);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_DoesNotFallbackAfterCancellation()
     {
         var external = new StubProvider("custom-chat", fail: false, "external", cancel: true);
