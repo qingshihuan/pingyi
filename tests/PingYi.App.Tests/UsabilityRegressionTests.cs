@@ -35,12 +35,12 @@ public class UsabilityRegressionTests
         {
             home.Show(); settings.Show(); result.Show(); help.Show();
             C<TabControl>(settings, "SettingsTabs").SelectedIndex = 4;
-            C<TextBox>(settings, "CustomModelBox").Text = "unsaved-model-模型";
+            C<ComboBox>(settings, "CustomModelCombo").Text = "unsaved-model-模型";
             C<TextBox>(settings, "HotkeyBox").Text = "Ctrl+Alt+G";
             C<TextBox>(settings, "CustomApiKeyBox").Text = "unsaved-test-key";
             C<TextBox>(result, "SourceTextBox").Text = "开始截图";
             C<TextBox>(result, "TranslationTextBox").Text = "保存并应用";
-            var input = C<TextBox>(settings, "CustomModelBox");
+            var input = C<ComboBox>(settings, "CustomModelCombo");
             C<ComboBox>(settings, "UiLanguageCombo").SelectedIndex = 2;
             await settings.LanguageChangeTask;
             settings.UpdateLayout(); home.UpdateLayout(); help.UpdateLayout();
@@ -50,7 +50,7 @@ public class UsabilityRegressionTests
             Assert.Equal("Help & About", C<Button>(home, "HelpButton").Content);
             Assert.Contains(settings.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Appearance & startup");
             Assert.Equal(4, C<TabControl>(settings, "SettingsTabs").SelectedIndex);
-            Assert.Same(input, C<TextBox>(settings, "CustomModelBox"));
+            Assert.Same(input, C<ComboBox>(settings, "CustomModelCombo"));
             Assert.Equal("unsaved-model-模型", input.Text);
             Assert.Equal("unsaved-test-key", C<TextBox>(settings, "CustomApiKeyBox").Text);
             Assert.Equal("Ctrl+Alt+G", C<TextBox>(settings, "HotkeyBox").Text);
