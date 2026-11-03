@@ -30,19 +30,38 @@ public sealed class ChatCompatibleImageAnalysisProvider(
         try
         {
             var png = await Task.Run(() => PrepareImage(image, deadline.Token), deadline.Token);
-            using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            var useResponses = ModelApiProtocols.Normalize(settings.CustomTranslationApiProtocol) == ModelApiProtocols.Responses;
+            if (useResponses && endpoint.IsLoopback)
+                throw new ProviderException("custom_protocol_unsupported_local", "本机模型服务使用 Chat Completions；Responses API 仅用于支持该协议的远程服务。");
+            using var message = new HttpRequestMessage(
+                HttpMethod.Post, OpenAiResponsesApi.ResolveEndpoint(endpoint, settings.CustomTranslationApiProtocol));
             var key = await secretStore.GetAsync(SecretKeys.CustomTranslationApiKey, deadline.Token);
             if (!string.IsNullOrWhiteSpace(key)) message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-            var payload = new JsonObject
+            JsonObject payload;
+            if (useResponses)
             {
-                ["model"] = settings.CustomTranslationModel, ["temperature"] = 0.2, ["max_tokens"] = 1536, ["stream"] = false,
-                ["messages"] = new JsonArray(
-                    new JsonObject { ["role"] = "system", ["content"] = ImageAnalysisPrompts.System },
-                    new JsonObject { ["role"] = "user", ["content"] = new JsonArray(
-                        new JsonObject { ["type"] = "text", ["text"] = prompt },
-                        new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject
-                            { ["url"] = "data:image/png;base64," + Convert.ToBase64String(png), ["detail"] = "high" } }) })
-            };
+                payload = new JsonObject
+                {
+                    ["model"] = settings.CustomTranslationModel,
+                    ["instructions"] = ImageAnalysisPrompts.System,
+                    ["input"] = new JsonArray(OpenAiResponsesApi.CreateImageInput(prompt, png)),
+                    ["max_output_tokens"] = 1536,
+                    ["store"] = false
+                };
+            }
+            else
+            {
+                payload = new JsonObject
+                {
+                    ["model"] = settings.CustomTranslationModel, ["temperature"] = 0.2, ["max_tokens"] = 1536, ["stream"] = false,
+                    ["messages"] = new JsonArray(
+                        new JsonObject { ["role"] = "system", ["content"] = ImageAnalysisPrompts.System },
+                        new JsonObject { ["role"] = "user", ["content"] = new JsonArray(
+                            new JsonObject { ["type"] = "text", ["text"] = prompt },
+                            new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject
+                                { ["url"] = "data:image/png;base64," + Convert.ToBase64String(png), ["detail"] = "high" } }) })
+                };
+            }
             message.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
             using var response = await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
             if (!response.IsSuccessStatusCode)
@@ -52,16 +71,31 @@ public sealed class ChatCompatibleImageAnalysisProvider(
             {
                 using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;
-                if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("choices", out var choices) ||
-                    choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0 ||
-                    choices[0].ValueKind != JsonValueKind.Object || !choices[0].TryGetProperty("message", out var reply) ||
-                    reply.ValueKind != JsonValueKind.Object || !reply.TryGetProperty("content", out var content))
-                    throw new JsonException();
-                var text = ReadText(content).Trim();
+                string text;
+                var reachedOutputLimit = false;
+                if (useResponses)
+                {
+                    text = OpenAiResponsesApi.ReadOutputText(root).Trim();
+                    reachedOutputLimit = root.TryGetProperty("incomplete_details", out var details) &&
+                        details.ValueKind == JsonValueKind.Object &&
+                        details.TryGetProperty("reason", out var reason) &&
+                        reason.ValueKind == JsonValueKind.String &&
+                        reason.GetString() == "max_output_tokens";
+                }
+                else
+                {
+                    if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("choices", out var choices) ||
+                        choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0 ||
+                        choices[0].ValueKind != JsonValueKind.Object || !choices[0].TryGetProperty("message", out var reply) ||
+                        reply.ValueKind != JsonValueKind.Object || !reply.TryGetProperty("content", out var content))
+                        throw new JsonException();
+                    text = ReadText(content).Trim();
+                    reachedOutputLimit = choices[0].TryGetProperty("finish_reason", out var reason) &&
+                        reason.ValueKind == JsonValueKind.String && reason.GetString() == "length";
+                }
                 if (text.Length == 0)
                     throw new ProviderException("image_analysis_empty", "视觉模型没有返回有效内容；请检查模型的图片支持并重试。");
-                if (choices[0].TryGetProperty("finish_reason", out var reason) && reason.ValueKind == JsonValueKind.String &&
-                    reason.GetString() == "length")
+                if (reachedOutputLimit)
                     text += options.OutputLanguage == "en-US"
                         ? "\n\n[Output reached the model's token limit; this result may be incomplete.]"
                         : "\n\n[输出达到模型长度上限，以上内容可能不完整。]";
