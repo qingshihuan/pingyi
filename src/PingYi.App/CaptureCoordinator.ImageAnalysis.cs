@@ -63,7 +63,7 @@ public sealed partial class CaptureCoordinator
                 return;
             }
             EnsureCurrent(operation);
-            if (RuntimePolicy.HasConfiguredManagedRuntime(snapshot))
+            if (RuntimePolicy.HasConfiguredManagedRuntime(snapshot, taskId))
             {
                 window.UpdateLoadingStatus(UiText.Get("String.ModelLoadingWait"));
                 await WithTimeoutAsync(token => WaitForModelAsync(operation, window, token, true), ManagedRuntimeTimeout, operation.Token,
