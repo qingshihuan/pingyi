@@ -413,6 +413,38 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
+      <TabItem Classes="workspace-tab" x:Name="ShortcutSettingsTab">
+        <TabItem.Header>
+          <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="7" Background="{DynamicResource NavBlueBrush}">
+              <Path Classes="symbol" Data="M4 7H20 M4 12H20 M4 17H20 M8 4V10 M15 9V15 M11 14V20" Width="16" Height="16" Stroke="White"/>
+            </Border>
+            <TextBlock x:Name="ShortcutSettingsNavText" Text="快捷键" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          </Grid>
+        </TabItem.Header>
+        <ScrollViewer Classes="workspace-page">
+          <StackPanel Margin="28,4,28,20" Spacing="14">
+            <StackPanel Spacing="6">
+              <TextBlock x:Name="ShortcutSettingsTitleText" Text="快捷键" Classes="workspace-title"/>
+              <TextBlock x:Name="ShortcutSettingsHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+            </StackPanel>
+            <Border Classes="workspace-card" CornerRadius="16">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{DynamicResource Text.0299dc01919c}" Classes="workspace-label"/>
+                <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
+                <TextBlock Text="{DynamicResource Text.ef1361324428}" Classes="workspace-help"/>
+                <Border x:Name="LinuxShortcutHelp" Classes="workspace-inset" IsVisible="False">
+                  <StackPanel Spacing="10">
+                    <TextBlock x:Name="LinuxShortcutHintText" Classes="workspace-help"/>
+                    <TextBox x:Name="LinuxCaptureCommandBox" Classes="workspace-field" IsReadOnly="True" TextWrapping="Wrap"/>
+                    <Button x:Name="CopyLinuxCaptureCommandButton" Classes="secondary" HorizontalAlignment="Left" Click="CopyLinuxCaptureCommand_OnClick"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
       <TabItem Classes="workspace-tab" x:Name="AppearanceSettingsTab">
         <TabItem.Header>
           <Grid ColumnDefinitions="28,*" ColumnSpacing="10">
@@ -436,18 +468,6 @@
                   <ComboBox x:Name="UiLanguageCombo" SelectionChanged="UiLanguageCombo_OnSelectionChanged" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.4a456bc2336f}"/>
                 </StackPanel>
                 <TextBlock Text="{DynamicResource Text.914b460edf64}" Classes="workspace-help"/>
-                <StackPanel Spacing="6">
-                  <TextBlock Text="{DynamicResource Text.0299dc01919c}" Classes="workspace-label"/>
-                  <TextBox x:Name="HotkeyBox" Classes="workspace-field" PlaceholderText="Ctrl+Alt+D" AutomationProperties.Name="{DynamicResource Text.e9f6766a6bd4}"/>
-                </StackPanel>
-                <TextBlock Text="{DynamicResource Text.ef1361324428}" Classes="workspace-help"/>
-                <Border x:Name="LinuxShortcutHelp" Classes="workspace-inset" IsVisible="False">
-                  <StackPanel Spacing="10">
-                    <TextBlock x:Name="LinuxShortcutHintText" Classes="workspace-help"/>
-                    <TextBox x:Name="LinuxCaptureCommandBox" Classes="workspace-field" IsReadOnly="True" TextWrapping="Wrap"/>
-                    <Button x:Name="CopyLinuxCaptureCommandButton" Classes="secondary" HorizontalAlignment="Left" Click="CopyLinuxCaptureCommand_OnClick"/>
-                  </StackPanel>
-                </Border>
                 <CheckBox x:Name="StartMinimizedCheckBox" AutomationProperties.Name="{DynamicResource Text.98267fd4ed54}"><TextBlock Text="{DynamicResource Text.98267fd4ed54}" TextWrapping="Wrap"/></CheckBox>
                 <CheckBox x:Name="CheckForUpdatesCheckBox" AutomationProperties.Name="{DynamicResource Text.d95bc1d6f25a}"><TextBlock Text="{DynamicResource Text.b68a94c0e3fb}" TextWrapping="Wrap"/></CheckBox>
                 <WrapPanel>
