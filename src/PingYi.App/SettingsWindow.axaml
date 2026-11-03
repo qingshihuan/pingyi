@@ -239,7 +239,15 @@
               <TextBlock Text="{DynamicResource Workspace.CustomHint}" Classes="workspace-help"/>
             </StackPanel>
             <Border Classes="workspace-card" CornerRadius="16">
-              <StackPanel Spacing="16">
+              <StackPanel Spacing="12">
+                <StackPanel Spacing="6">
+                  <TextBlock x:Name="ThirdPartyApiLabelText" Classes="workspace-label"/>
+                  <ComboBox x:Name="ThirdPartyApiPresetCombo" Classes="workspace-field" AutomationProperties.Name="Third-party API provider"/>
+                </StackPanel>
+                <Button x:Name="ApplyThirdPartyApiPresetButton" Classes="secondary" HorizontalAlignment="Left"
+                        Click="ApplyThirdPartyApiPresetButton_OnClick"/>
+                <TextBlock x:Name="ThirdPartyApiHintText" Classes="workspace-help" TextWrapping="Wrap"/>
+                <Border Height="1" Background="{DynamicResource DividerBrush}"/>
                 <StackPanel Spacing="6">
                   <TextBlock Text="{DynamicResource Text.42910cbc1cab}" Classes="workspace-label"/>
                   <ComboBox x:Name="LocalServicePresetCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.8ccdcad15f65}"/>
