@@ -274,8 +274,12 @@ public sealed class ChatCompatibleTranslationProvider(
 
             var hasMore = root.TryGetProperty("has_more", out var hasMoreElement) &&
                           hasMoreElement.ValueKind == JsonValueKind.True;
-            if (!hasMore || string.IsNullOrWhiteSpace(lastId) || addedOnPage == 0)
+            if (!hasMore)
                 break;
+            if (string.IsNullOrWhiteSpace(lastId) || addedOnPage == 0)
+                throw new JsonException("模型列表分页游标无效或未返回新模型。");
+            if (page == 19)
+                throw new JsonException("模型列表超过 20 页安全上限，未能完整获取。");
 
             after = root.TryGetProperty("last_id", out var lastIdElement) &&
                     lastIdElement.ValueKind == JsonValueKind.String &&
