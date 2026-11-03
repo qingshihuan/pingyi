@@ -106,7 +106,14 @@ public partial class SettingsWindow
         finally { _isLoadingSettings = loading; }
     }
 
-    private void ThirdPartyApiPresetCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+    private void ThirdPartyApiPresetCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!_isLoadingSettings && ThirdPartyApiPresetCombo.SelectedItem is ThirdPartyApiPreset preset)
+            ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(preset.DefaultProtocol);
+        RefreshCustomApiModeUi();
+    }
+
+    private void ApiProtocolCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
         RefreshCustomApiModeUi();
 
     private void CustomEndpointBox_OnTextChanged(object? sender, TextChangedEventArgs e)
@@ -116,7 +123,11 @@ public partial class SettingsWindow
         {
             var loading = _isLoadingSettings;
             _isLoadingSettings = true;
-            try { ThirdPartyApiPresetCombo.SelectedItem = null; }
+            try
+            {
+                ThirdPartyApiPresetCombo.SelectedItem = null;
+                ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions);
+            }
             finally { _isLoadingSettings = loading; }
         }
 
@@ -140,6 +151,7 @@ public partial class SettingsWindow
         LocalServicePresetModeHintText.Text = UiText.IsEnglish
             ? "API mode is selected. Local service presets are disabled; switch back to a loopback endpoint to use llama.cpp, Ollama or LM Studio."
             : "当前为 API 模式，本地服务预设已关闭。若要使用 llama.cpp、Ollama 或 LM Studio，请切换回本机回环地址。";
+        ApiProtocolStack.IsVisible = apiMode;
         CustomModelLabelText.Text = UiText.IsEnglish
             ? apiMode ? "Model name (load from API)" : "Model name"
             : apiMode ? "模型名称（通过 API 获取）" : "模型名称";
@@ -160,16 +172,25 @@ public partial class SettingsWindow
         ApplyThirdPartyApiPresetButton.Content = UiText.IsEnglish
             ? "Use provider endpoint"
             : "填入服务商地址";
+        ApiProtocolLabelText.Text = UiText.IsEnglish ? "API protocol" : "API 协议";
+        ApiProtocolCombo.ItemsSource = ApiProtocolChoices.All.Select(choice => choice with
+        {
+            DisplayName = choice.Id == ModelApiProtocols.Responses
+                ? (UiText.IsEnglish ? "OpenAI Responses API" : "OpenAI Responses API")
+                : (UiText.IsEnglish ? "Chat Completions" : "Chat Completions")
+        }).ToArray();
+        if (ApiProtocolCombo.SelectedItem is ApiProtocolChoice selectedProtocol)
+            ApiProtocolCombo.SelectedItem = ApiProtocolChoices.All.First(choice => choice.Id == selectedProtocol.Id);
         ThirdPartyApiHintText.Text = UiText.IsEnglish
-            ? "Choose a provider and fill its endpoint. Save the API Key, then refresh the model list to choose an ID returned for your account; manual model IDs remain supported if the provider does not expose a list endpoint. Local service presets are disabled in API mode and re-enabled for loopback endpoints. Replace the shared key whenever you switch providers. For screenshot OCR, image description or prompt reconstruction, also select Compatible multimodal LLM OCR and use a vision-capable model. Remote requests send recognized text or the selected image to that provider and may incur charges. Remote endpoints must use HTTPS; keys are stored in the OS secure store."
-            : "选择服务商并填入接口地址后，保存 API Key，再刷新模型列表即可选择当前账号可用的模型；服务商不开放模型列表接口时仍可手动输入模型 ID。API 模式会关闭本地服务预设，切回本机回环地址后重新启用。切换服务商时请替换共用 API Key。若要通过 API 进行截图 OCR、图片描述或提示词反推，还需在“文字识别”中选择“兼容多模态大模型 OCR”，并使用支持图片输入的模型。远程翻译会发送识别文字，视觉任务会发送所选截图给服务商，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
+            ? "OpenAI defaults to the Responses API; other provider presets use Chat Completions. You can change the protocol for compatible endpoints. Save the API Key, then refresh the model list. Local service presets are disabled in API mode and re-enabled for loopback endpoints. Replace the shared key whenever you switch providers. Remote translation sends recognized text; vision tasks send the selected screenshot and may incur charges. Remote endpoints require HTTPS; keys are stored in the OS secure store."
+            : "OpenAI 预设默认使用 Responses API，其他服务商默认使用 Chat Completions。兼容的自定义端点可手动切换协议。保存 API Key 后刷新模型列表。本地 API 模式会关闭本地服务预设，切回回环地址后重新启用。切换服务商时请替换共用 API Key。远程翻译会发送识别文字，视觉任务会发送所选截图，可能产生费用。远程地址必须使用 HTTPS；密钥保存在系统安全存储中。";
     }
 
     private void RefreshChoiceTemplates()
     {
         // Core catalog records use CurrentUICulture. Freeze their display strings here
         // so a later UI dispatcher turn cannot inherit a stale async culture context.
-        foreach (var combo in new[] { ThirdPartyApiPresetCombo, LocalServicePresetCombo, ManagedModelCombo, ManagedRuntimeBackendCombo })
+        foreach (var combo in new[] { ThirdPartyApiPresetCombo, ApiProtocolCombo, LocalServicePresetCombo, ManagedModelCombo, ManagedRuntimeBackendCombo })
         {
             var labels = combo.Items.Cast<object>().ToDictionary(item => item, item => UiText.T(item.ToString()));
             combo.ItemTemplate = new FuncDataTemplate<object>((item, _) => new TextBlock
