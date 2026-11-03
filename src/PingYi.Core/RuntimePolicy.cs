@@ -31,8 +31,18 @@ public static class RuntimePolicy
         UsesManagedRuntime(settings, ModelTaskIds.Ocr) ||
         UsesManagedRuntime(settings, ModelTaskIds.Translation);
 
-    public static bool UsesManagedRuntime(AppSettings settings, string taskId) =>
-        IsManagedRoute(settings, settings.Configuration.Tasks.GetRoute(taskId));
+    public static bool UsesManagedRuntime(AppSettings settings, string taskId)
+    {
+        var route = settings.Configuration.Tasks.GetRoute(taskId);
+        if (string.IsNullOrWhiteSpace(route.ServiceId))
+        {
+            if (!HasConfiguredManagedRuntime(settings)) return false;
+            return taskId == ModelTaskIds.Ocr
+                ? settings.OcrProviderId == "local-vlm-ocr"
+                : taskId == ModelTaskIds.Translation && settings.TranslationProviderId == "custom-chat";
+        }
+        return IsManagedRoute(settings, route);
+    }
     public static int OcrThreadCount(int logicalProcessors) => Math.Clamp(logicalProcessors / 2, 1, 4);
 }
 
