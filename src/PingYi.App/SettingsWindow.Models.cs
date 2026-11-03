@@ -76,7 +76,7 @@ public partial class SettingsWindow
         try
         {
             CustomEndpointBox.Text = AppSettings.ManagedModelEndpoint;
-            CustomModelBox.Text = model.ModelAlias;
+            CustomModelCombo.Text = model.ModelAlias;
             SelectOcrProvider("local-vlm-ocr");
             SelectTranslationProvider("custom-chat");
         }
