@@ -12,7 +12,7 @@ public sealed partial class CaptureCoordinator
         var translator = services.CaptureTranslator(settings);
         var privacy = BuildPrivacyDescription(settings, ocr.Metadata, translator.Metadata);
         var label = UiText.ProviderName(ocr.Metadata.Id, ocr.Metadata.DisplayName);
-        if (window.RequestedPurpose == CapturePurpose.Auto && HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
+        if (settings.ConfirmRemoteRequests && HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
         {
             if (!await AutomaticConsentWindow.ConfirmAsync(window, privacy, operation.Token))
             {
