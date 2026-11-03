@@ -205,7 +205,7 @@ Refresh never downloads, starts a vision model, runs inference or changes the sc
 
 ## Third-party model APIs
 
-Open **Settings → Custom endpoint** and choose OpenAI, DeepSeek, SiliconFlow, OpenRouter, Alibaba Cloud Model Studio (DashScope), or Zhipu BigModel to fill an OpenAI-compatible Chat Completions URL. Enter the exact model ID and API Key, save, then test text translation and image capability. Other compatible endpoints can be entered manually.
+Open **Settings → Custom endpoint** and choose OpenAI, DeepSeek, SiliconFlow, OpenRouter, Alibaba Cloud Model Studio (DashScope), or Zhipu BigModel to fill an OpenAI-compatible Chat Completions URL. Enter the API Key and save; refresh the account's available model list and choose an ID from the editable dropdown. If the provider does not expose a model-list endpoint, a model ID can still be typed manually. Remote API mode automatically disables local service presets; they are re-enabled when switching back to a loopback endpoint. Applying a preset does not send a request. Other compatible endpoints can be entered manually.
 
 Remote text translation is supported, as are vision-model OCR, image description and prompt reconstruction when the model accepts `image_url`. Remote services require HTTPS. API keys are stored in the OS secure store. Remote translation uploads recognized text; vision tasks upload the selected screenshot, and provider charges may apply. Replace the shared API key when switching providers. Native Anthropic Messages and proprietary signed APIs are not supported by this adapter.
 
