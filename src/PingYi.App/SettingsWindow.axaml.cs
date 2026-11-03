@@ -324,10 +324,45 @@ public partial class SettingsWindow : Window
                                  ManagedMultimodalModels.TryGet(current.ManagedModelPackageId, out var managedModel) &&
                                  string.Equals(endpoint, AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) &&
                                  string.Equals(modelName, managedModel.ModelAlias, StringComparison.OrdinalIgnoreCase);
+        var ocrProviderId = (OcrProviderCombo.SelectedItem as ProviderChoice)?.Id ?? current.OcrProviderId;
+        var translationProviderId = (TranslationProviderCombo.SelectedItem as ProviderChoice)?.Id ?? current.TranslationProviderId;
+        var configuration = current.Configuration;
+        if (!string.Equals(ocrProviderId, current.OcrProviderId, StringComparison.Ordinal))
+        {
+            var route = configuration.Tasks.Ocr;
+            configuration = configuration with
+            {
+                Tasks = configuration.Tasks with
+                {
+                    Ocr = route with
+                    {
+                        ServiceId = ocrProviderId == "local-vlm-ocr" ? "legacy-custom" : "provider:" + ocrProviderId,
+                        ModelId = ocrProviderId == "local-vlm-ocr" ? modelName : string.Empty,
+                        RequireImageInput = ocrProviderId == "local-vlm-ocr"
+                    }
+                }
+            };
+        }
+        if (!string.Equals(translationProviderId, current.TranslationProviderId, StringComparison.Ordinal))
+        {
+            var route = configuration.Tasks.Translation;
+            configuration = configuration with
+            {
+                Tasks = configuration.Tasks with
+                {
+                    Translation = route with
+                    {
+                        ServiceId = translationProviderId == "custom-chat" ? "legacy-custom" : "provider:" + translationProviderId,
+                        ModelId = translationProviderId == "custom-chat" ? modelName : string.Empty
+                    }
+                }
+            };
+        }
         return current with
         {
-            OcrProviderId = (OcrProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-paddle",
-            TranslationProviderId = (TranslationProviderCombo.SelectedItem as ProviderChoice)?.Id ?? "local-argos",
+            Configuration = configuration,
+            OcrProviderId = ocrProviderId,
+            TranslationProviderId = translationProviderId,
             TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite,
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = modelName,
