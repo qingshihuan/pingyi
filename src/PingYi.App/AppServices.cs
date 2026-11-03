@@ -12,8 +12,78 @@ public sealed partial class AppServices : IAsyncDisposable
     private readonly HttpClient _imageAnalysisClient = new(new HttpClientHandler { AllowAutoRedirect = false })
         { Timeout = Timeout.InfiniteTimeSpan };
     private ManagedModelProgress? _managedProgress;
-    public IImageAnalysisProvider CreateImageAnalyzer(AppSettings snapshot) =>
-        new ChatCompatibleImageAnalysisProvider(_imageAnalysisClient, SecretStore, snapshot);
+    public IImageAnalysisProvider CreateImageAnalyzer(AppSettings snapshot, string taskId)
+    {
+        var routed = ResolveTaskSettings(snapshot, taskId);
+        var profile = ResolveServiceProfile(snapshot, taskId);
+        return new ChatCompatibleImageAnalysisProvider(
+            _imageAnalysisClient,
+            new ServiceScopedSecretStore(SecretStore, profile.CredentialRef),
+            routed);
+    }
+
+    public AppSettings ResolveTaskSettings(AppSettings snapshot, string taskId)
+    {
+        var profile = ResolveServiceProfile(snapshot, taskId);
+        if (!profile.Enabled)
+            throw new ProviderException("configuration_service_disabled", $"服务“{profile.Name}”已停用。");
+        if (!AppSettings.TryParseChatCompletionsEndpoint(profile.Endpoint, out var endpoint))
+            throw new ProviderException("configuration_service_endpoint", $"服务“{profile.Name}”的接口地址无效。");
+        if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
+            throw new ProviderException("configuration_service_transport", "远程模型服务必须使用 HTTPS；仅本机回环地址允许 HTTP。");
+
+        var route = snapshot.Configuration.Tasks.GetRoute(taskId);
+        return snapshot with
+        {
+            CustomTranslationEndpoint = profile.Endpoint,
+            CustomTranslationModel = string.IsNullOrWhiteSpace(route.ModelId) ? profile.DefaultModelId : route.ModelId,
+            CustomTranslationApiProtocol = profile.Protocol,
+            OcrProviderId = "local-vlm-ocr",
+            TranslationProviderId = "custom-chat"
+        };
+    }
+
+    private static ModelServiceProfile ResolveServiceProfile(AppSettings snapshot, string taskId)
+    {
+        var route = snapshot.Configuration.Tasks.GetRoute(taskId);
+        if (route.ServiceId.StartsWith("provider:", StringComparison.Ordinal) ||
+            route.ServiceId.StartsWith("builtin:", StringComparison.Ordinal))
+            throw new ProviderException("configuration_route_not_model_service", $"任务“{taskId}”当前指向内置处理器，而不是模型服务。");
+        return snapshot.Configuration.Services.FirstOrDefault(service =>
+                   string.Equals(service.Id, route.ServiceId, StringComparison.Ordinal))
+               ?? throw new ProviderException("configuration_service_missing", $"任务“{taskId}”引用的服务“{route.ServiceId}”不存在。");
+    }
+
+    private ProviderMetadata CreateRoutedMetadata(ModelServiceProfile profile, bool uploadsImage)
+    {
+        var location = Uri.TryCreate(profile.Endpoint, UriKind.Absolute, out var endpoint) && endpoint.IsLoopback
+            ? ProviderExecutionLocation.Local : ProviderExecutionLocation.Cloud;
+        return new ProviderMetadata(
+            uploadsImage ? "local-vlm-ocr" : "custom-chat",
+            profile.Name,
+            location,
+            UploadsImage: uploadsImage,
+            RequiresSecret: !string.IsNullOrWhiteSpace(profile.CredentialRef),
+            LanguageCatalog.Codes);
+    }
+
+    public async Task SaveServiceCredentialAsync(string serviceId, string apiKey, CancellationToken cancellationToken = default)
+    {
+        var profile = Settings.Configuration.Services.FirstOrDefault(service =>
+            string.Equals(service.Id, serviceId, StringComparison.Ordinal))
+            ?? throw new ProviderException("configuration_service_missing", $"找不到服务“{serviceId}”。");
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new ProviderException("configuration_credential_empty", "API Key 不能为空。");
+        await SecretStore.SetAsync(profile.CredentialRef, apiKey.Trim(), cancellationToken);
+    }
+
+    public async Task DeleteServiceCredentialAsync(string serviceId, CancellationToken cancellationToken = default)
+    {
+        var profile = Settings.Configuration.Services.FirstOrDefault(service =>
+            string.Equals(service.Id, serviceId, StringComparison.Ordinal))
+            ?? throw new ProviderException("configuration_service_missing", $"找不到服务“{serviceId}”。");
+        await SecretStore.DeleteAsync(profile.CredentialRef, cancellationToken);
+    }
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _managedRuntimeLock = new();
     private readonly SemaphoreSlim _settingsTransitionGate = new(1, 1);
@@ -87,13 +157,35 @@ public sealed partial class AppServices : IAsyncDisposable
     }
 
     // Capture requests use immutable endpoint/model snapshots, including after upload consent.
-    public ITranslationProvider CaptureTranslator(AppSettings snapshot) => snapshot.TranslationProviderId == "custom-chat"
-        ? new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot)
-        : Providers.GetTranslationProvider(snapshot.TranslationProviderId);
-    public IOcrProvider CaptureOcr(AppSettings snapshot) => snapshot.OcrProviderId == "local-vlm-ocr"
-        ? new ChatCompatibleOcrProvider(_inferenceClient, SecretStore, () => snapshot,
-            new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot))
-        : Providers.GetOcrProvider(snapshot.OcrProviderId);
+    public ITranslationProvider CaptureTranslator(AppSettings snapshot)
+    {
+        var route = snapshot.Configuration.Tasks.Translation;
+        if (route.ServiceId.StartsWith("provider:", StringComparison.Ordinal))
+            return Providers.GetTranslationProvider(route.ServiceId["provider:".Length..]);
+
+        var profile = ResolveServiceProfile(snapshot, ModelTaskIds.Translation);
+        var routed = ResolveTaskSettings(snapshot, ModelTaskIds.Translation);
+        return new ChatCompatibleTranslationProvider(
+            _inferenceClient,
+            new ServiceScopedSecretStore(SecretStore, profile.CredentialRef),
+            () => routed,
+            CreateRoutedMetadata(profile, uploadsImage: false));
+    }
+
+    public IOcrProvider CaptureOcr(AppSettings snapshot)
+    {
+        var route = snapshot.Configuration.Tasks.Ocr;
+        if (route.ServiceId.StartsWith("provider:", StringComparison.Ordinal))
+            return Providers.GetOcrProvider(route.ServiceId["provider:".Length..]);
+
+        var profile = ResolveServiceProfile(snapshot, ModelTaskIds.Ocr);
+        var routed = ResolveTaskSettings(snapshot, ModelTaskIds.Ocr);
+        var scopedSecrets = new ServiceScopedSecretStore(SecretStore, profile.CredentialRef);
+        var probe = new ChatCompatibleTranslationProvider(
+            _inferenceClient, scopedSecrets, () => routed, CreateRoutedMetadata(profile, uploadsImage: false));
+        return new ChatCompatibleOcrProvider(
+            _inferenceClient, scopedSecrets, () => routed, probe, CreateRoutedMetadata(profile, uploadsImage: true));
+    }
 
     public Task ClearDownloadedTranslationModelsAsync(CancellationToken cancellationToken = default) =>
         Engine.CallAsync("delete_models", new JsonObject { ["scope"] = "translation" }, cancellationToken);
@@ -120,6 +212,14 @@ public sealed partial class AppServices : IAsyncDisposable
         if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
             throw new ProviderException("custom_endpoint_insecure_transport", "远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。");
         var normalized = settings.Normalize();
+        foreach (var profile in normalized.Configuration.Services.Where(service =>
+                     service.Enabled && service.Kind != ModelServiceKinds.BuiltIn))
+        {
+            if (!AppSettings.TryParseChatCompletionsEndpoint(profile.Endpoint, out var serviceEndpoint))
+                throw new ProviderException("configuration_service_endpoint", $"服务“{profile.Name}”的接口地址无效。");
+            if (!AppSettings.IsChatCompletionsTransportAllowed(serviceEndpoint))
+                throw new ProviderException("configuration_service_transport", $"服务“{profile.Name}”必须使用 HTTPS；仅本机回环地址允许 HTTP。");
+        }
         await _settingsTransitionGate.WaitAsync(cancellationToken);
         try
         {
