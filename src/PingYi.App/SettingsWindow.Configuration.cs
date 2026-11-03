@@ -88,6 +88,8 @@ public partial class SettingsWindow
         ConfigPromptReconstructionRouteLabelText.Text = en ? "Prompt reconstruction" : "提示词反推";
         ConfigQrRouteLabelText.Text = en ? "QR decoding" : "二维码解析";
         ConfigQrRouteText.Text = en ? "Built-in ZXing · local only" : "内置 ZXing · 仅本地解析";
+        ConfigOcrFallbackCheckBox.Content = en ? "Fall back to local PaddleOCR if OCR is unavailable" : "OCR 不可用时回退本地 PaddleOCR";
+        ConfigTranslationFallbackCheckBox.Content = en ? "Fall back to local Argos if translation is unavailable" : "翻译不可用时回退本地 Argos";
         SaveTaskRoutesButton.Content = en ? "Save task routing" : "保存任务路由";
     }
 
@@ -120,6 +122,8 @@ public partial class SettingsWindow
             ConfigTranslationRouteCombo.SelectedItem = translationChoices.FirstOrDefault(choice => choice.Id == config.Tasks.Translation.ServiceId);
             ConfigImageDescriptionRouteCombo.SelectedItem = profileChoices.FirstOrDefault(choice => choice.Id == config.Tasks.ImageDescription.ServiceId);
             ConfigPromptReconstructionRouteCombo.SelectedItem = profileChoices.FirstOrDefault(choice => choice.Id == config.Tasks.PromptReconstruction.ServiceId);
+            ConfigOcrFallbackCheckBox.IsChecked = config.Tasks.Ocr.AllowFallback;
+            ConfigTranslationFallbackCheckBox.IsChecked = config.Tasks.Translation.AllowFallback;
 
             if (_editingConfigurationServiceId is null || !profiles.Any(profile => profile.Id == _editingConfigurationServiceId))
                 _editingConfigurationServiceId = profiles.FirstOrDefault()?.Id;
@@ -367,8 +371,16 @@ public partial class SettingsWindow
 
             var updatedTasks = tasks with
             {
-                Ocr = BuildRoute(ConfigOcrRouteCombo, tasks.Ocr, imageInput: true, "provider:local-paddle"),
-                Translation = BuildRoute(ConfigTranslationRouteCombo, tasks.Translation, imageInput: false, "provider:local-argos"),
+                Ocr = BuildRoute(ConfigOcrRouteCombo, tasks.Ocr, imageInput: true, "provider:local-paddle") with
+                {
+                    AllowFallback = ConfigOcrFallbackCheckBox.IsChecked == true,
+                    FallbackServiceId = "provider:local-paddle"
+                },
+                Translation = BuildRoute(ConfigTranslationRouteCombo, tasks.Translation, imageInput: false, "provider:local-argos") with
+                {
+                    AllowFallback = ConfigTranslationFallbackCheckBox.IsChecked == true,
+                    FallbackServiceId = "provider:local-argos"
+                },
                 ImageDescription = BuildRoute(ConfigImageDescriptionRouteCombo, tasks.ImageDescription, imageInput: true, string.Empty),
                 PromptReconstruction = BuildRoute(ConfigPromptReconstructionRouteCombo, tasks.PromptReconstruction, imageInput: true, string.Empty),
                 QrCode = new TaskModelRoute { ServiceId = "builtin:qr", ModelId = "zxing" }
