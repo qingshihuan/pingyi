@@ -38,8 +38,11 @@ public sealed partial class CaptureCoordinator
 
     private async Task ProcessImageAnalysisAsync(OperationContext operation, ResultWindow window, ImageFrame image)
     {
-        var snapshot = services.Settings;
+        var settingsSnapshot = services.Settings;
         var purpose = window.Purpose;
+        var taskId = purpose == CapturePurpose.DescribeImage
+            ? ModelTaskIds.ImageDescription : ModelTaskIds.PromptReconstruction;
+        var snapshot = services.ResolveTaskSettings(settingsSnapshot, taskId);
         var language = UiText.CurrentLanguage;
         try
         {
@@ -68,12 +71,11 @@ public sealed partial class CaptureCoordinator
             }
             EnsureCurrent(operation);
             // Consent applies only to this endpoint/model. A settings change cannot redirect an upload.
-            if (services.Settings.CustomTranslationEndpoint != snapshot.CustomTranslationEndpoint ||
-                services.Settings.CustomTranslationModel != snapshot.CustomTranslationModel)
+            if (services.Settings != settingsSnapshot)
                 throw new ProviderException("image_analysis_configuration_changed", UiText.Get("String.VisionConfigurationChanged"));
             window.UpdateLoadingStatus(UiText.Get(purpose == CapturePurpose.DescribeImage
                 ? "String.AnalysisDescribing" : "String.AnalysisPrompting"));
-            var result = await services.CreateImageAnalyzer(snapshot).AnalyzeAsync(image,
+            var result = await services.CreateImageAnalyzer(settingsSnapshot, taskId).AnalyzeAsync(image,
                 new ImageAnalysisOptions(purpose, language), operation.Token);
             EnsureCurrent(operation);
             window.SetAnalysisResult(result);
