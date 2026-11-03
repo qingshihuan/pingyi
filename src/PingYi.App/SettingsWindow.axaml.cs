@@ -30,6 +30,8 @@ public partial class SettingsWindow : Window
         InitializeRuntimeStatusPage();
         UiText.Attach(this);
         ThirdPartyApiPresetCombo.ItemsSource = ThirdPartyApiPresets.All;
+        ApiProtocolCombo.ItemsSource = ApiProtocolChoices.All;
+        ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions);
         RefreshThirdPartyApiLanguage();
         RefreshCustomApiModeUi();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
@@ -102,6 +104,7 @@ public partial class SettingsWindow : Window
             LocalServicePresetCombo.SelectedItem =
                 LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
             ThirdPartyApiPresetCombo.SelectedItem = ThirdPartyApiPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
+            ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(settings.CustomTranslationApiProtocol);
             CustomEndpointBox.Text = settings.CustomTranslationEndpoint;
             CustomModelCombo.ItemsSource = Array.Empty<string>();
             CustomModelCombo.Text = settings.CustomTranslationModel;
@@ -326,6 +329,8 @@ public partial class SettingsWindow : Window
             TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite,
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = modelName,
+            CustomTranslationApiProtocol = (ApiProtocolCombo.SelectedItem as ApiProtocolChoice)?.Id ??
+                                           ModelApiProtocols.ChatCompletions,
             ManagedRuntimeEnabled = keepManagedRuntime,
             ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
             ManagedRuntimeDevice = _runtimeHardware?.SelectedDevice ?? current.ManagedRuntimeDevice,
