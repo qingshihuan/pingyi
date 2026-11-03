@@ -28,6 +28,37 @@ public sealed class ChatCompatibleOcrProviderTests
     }
 
     [Fact]
+    public async Task ResponsesProtocol_SendsInputImageWithStorageDisabledAndParsesOutputItems()
+    {
+        var handler = new StubHandler(request =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("https://api.openai.com/v1/responses", request.RequestUri?.AbsoluteUri);
+            using var document = JsonDocument.Parse(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            var root = document.RootElement;
+            Assert.False(root.GetProperty("store").GetBoolean());
+            Assert.Equal("vision-test", root.GetProperty("model").GetString());
+            Assert.Contains("OCR 引擎", root.GetProperty("instructions").GetString());
+            var input = root.GetProperty("input")[0].GetProperty("content");
+            Assert.Equal("input_text", input[0].GetProperty("type").GetString());
+            Assert.Equal("input_image", input[1].GetProperty("type").GetString());
+            Assert.StartsWith("data:image/png;base64,", input[1].GetProperty("image_url").GetString());
+            Assert.False(root.TryGetProperty("messages", out _));
+            return Json("{\\"output\\":[{\\"type\\":\\"message\\",\\"content\\":[{\\"type\\":\\"output_text\\",\\"text\\":\\"PINGYI OCR 2026\\nsecond line\\"}]}]}");
+        });
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationModel = "vision-test",
+            CustomTranslationApiProtocol = ModelApiProtocols.Responses
+        };
+        var result = await CreateProvider(new HttpClient(handler), settings).RecognizeAsync(
+            new ImageFrame([1, 2, 3], 320, 100, new PixelRect(0, 0, 320, 100)), new OcrOptions("en"));
+
+        Assert.Equal("PINGYI OCR 2026\nsecond line", result.PlainText);
+    }
+
+    [Fact]
     public async Task DirectMode_HasNoDraftAndDoesNotInventConfidence()
     {
         var requests = 0;
