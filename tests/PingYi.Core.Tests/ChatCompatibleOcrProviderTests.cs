@@ -44,7 +44,7 @@ public sealed class ChatCompatibleOcrProviderTests
             Assert.Equal("input_image", input[1].GetProperty("type").GetString());
             Assert.StartsWith("data:image/png;base64,", input[1].GetProperty("image_url").GetString());
             Assert.False(root.TryGetProperty("messages", out _));
-            return Json("{\\"output\\":[{\\"type\\":\\"message\\",\\"content\\":[{\\"type\\":\\"output_text\\",\\"text\\":\\"PINGYI OCR 2026\\nsecond line\\"}]}]}");
+            return Json("{\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"PINGYI OCR 2026\\nsecond line\"}]}]}");
         });
         var settings = new AppSettings
         {
