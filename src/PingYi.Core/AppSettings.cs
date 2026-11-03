@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 14;
+    public const int CurrentSchemaVersion = 15;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -22,6 +22,7 @@ public sealed record AppSettings
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
     public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
     public string CustomTranslationApiProtocol { get; init; } = ModelApiProtocols.ChatCompletions;
+    public AppConfiguration Configuration { get; init; } = AppConfiguration.Empty;
     public string ManagedModelPackageId { get; init; } = string.Empty;
     public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Default.Id;
     public string ManagedRuntimeDevice { get; init; } = RuntimeDeviceChoice.Automatic;
@@ -86,7 +87,8 @@ public sealed record AppSettings
                 ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
                 string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
             CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
-            UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
+            UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto",
+            Configuration = (Configuration ?? AppConfiguration.Empty).Normalize(this)
         };
     }
 
