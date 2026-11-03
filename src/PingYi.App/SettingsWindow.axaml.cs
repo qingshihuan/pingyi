@@ -35,6 +35,7 @@ public partial class SettingsWindow : Window
         RefreshThirdPartyApiLanguage();
         RefreshCustomApiModeUi();
         InitializeConfigurationCenter();
+        RefreshPrivacySettingsLanguage();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
@@ -376,6 +377,7 @@ public partial class SettingsWindow : Window
             Hotkey = HotkeyBox.Text ?? AppSettings.DefaultHotkey,
             StartMinimized = StartMinimizedCheckBox.IsChecked == true,
             CheckForUpdates = CheckForUpdatesCheckBox.IsChecked == true,
+            ConfirmRemoteRequests = ConfirmRemoteRequestsCheckBox.IsChecked == true,
             UiLanguage = _services?.Settings.UiLanguage ?? _selectedLanguage
         };
     }
