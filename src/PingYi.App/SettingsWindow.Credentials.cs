@@ -161,6 +161,7 @@ public partial class SettingsWindow
         }
 
         CustomEndpointBox.Text = preset.ChatCompletionsEndpoint;
+        ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(preset.DefaultProtocol);
         RefreshCustomApiModeUi();
         SelectTranslationProvider("custom-chat");
         SetInlineStatus(CustomTranslationStatusText,
