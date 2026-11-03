@@ -6,7 +6,7 @@ namespace PingYi.Infrastructure;
 /// Adapts the legacy custom-key contract used by existing model adapters to a
 /// service-specific credential reference. Secrets remain outside settings.json.
 /// </summary>
-internal sealed class ServiceScopedSecretStore(ISecretStore inner, string credentialRef) : ISecretStore
+public sealed class ServiceScopedSecretStore(ISecretStore inner, string credentialRef) : ISecretStore
 {
     private string Resolve(string key) =>
         string.Equals(key, SecretKeys.CustomTranslationApiKey, StringComparison.Ordinal)
