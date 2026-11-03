@@ -28,8 +28,8 @@ class WorkspaceStructureTests(unittest.TestCase):
         BaiduTranslateAppIdBox BaiduTranslateAppIdRevealButton BaiduTranslateSecretBox BaiduTranslateSecretRevealButton
         BaiduOcrCredentialStatusText BaiduTranslationCredentialStatusText ValidateBaiduCredentialsButton
         GoogleCloudApiKeyBox GoogleCloudApiKeyRevealButton GoogleOcrCredentialStatusText GoogleTranslationCredentialStatusText
-        ValidateGoogleCredentialsButton ThirdPartyApiPresetCombo LocalServicePresetCombo
-        LocalServicePresetModeHintText CustomEndpointBox CustomModelCombo CustomModelLabelText
+        ValidateGoogleCredentialsButton ThirdPartyApiPresetCombo ApiProtocolStack ApiProtocolCombo
+        LocalServicePresetCombo LocalServicePresetModeHintText CustomEndpointBox CustomModelCombo CustomModelLabelText
         CustomModelStatusText RefreshCustomModelsButton CustomApiKeyBox CustomApiKeyRevealButton
         CustomTranslationStatusText UseLocalLlamaPresetButton
         TestCustomTranslationButton TestCustomVisionButton HotkeyBox UiLanguageCombo
