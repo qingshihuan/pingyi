@@ -33,7 +33,8 @@ class WorkspaceStructureTests(unittest.TestCase):
         ConfigServiceModelCombo ConfigServiceApiKeyBox ConfigServiceTextCapabilityCheckBox
         ConfigServiceImageCapabilityCheckBox ConfigServiceEnabledCheckBox SaveConfigurationServiceButton
         TestConfigurationServiceButton ConfigOcrRouteCombo ConfigTranslationRouteCombo
-        ConfigImageDescriptionRouteCombo ConfigPromptReconstructionRouteCombo SaveTaskRoutesButton
+        ConfigImageDescriptionRouteCombo ConfigPromptReconstructionRouteCombo ConfigOcrFallbackCheckBox
+        ConfigTranslationFallbackCheckBox SaveTaskRoutesButton
         ThirdPartyApiPresetCombo ApiProtocolStack ApiProtocolCombo
         LocalServicePresetCombo LocalServicePresetModeHintText CustomEndpointBox CustomModelCombo CustomModelLabelText
         CustomModelStatusText RefreshCustomModelsButton CustomApiKeyBox CustomApiKeyRevealButton
