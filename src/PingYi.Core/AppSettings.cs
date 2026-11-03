@@ -17,6 +17,7 @@ public sealed record AppSettings
     public string TranslationProviderId { get; init; } = "custom-chat";
     public bool InitialSetupCompleted { get; init; }
     public bool AutomaticCaptureEnabled { get; init; } = true;
+    public bool ConfirmRemoteRequests { get; init; } = true;
     public string SourceLanguage { get; init; } = "auto";
     public string TargetLanguage { get; init; } = "auto-opposite";
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
