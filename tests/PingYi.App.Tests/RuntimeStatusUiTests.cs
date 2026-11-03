@@ -83,7 +83,7 @@ public sealed class RuntimeStatusUiTests
         }
         finally { settings.Close(); }
     }
-    [Fact]
+    [AvaloniaFact]
     public void Settings_exposes_third_party_compatible_api_presets_and_privacy_guidance()
     {
         UiText.Configure("zh-CN");
