@@ -29,7 +29,7 @@ class WorkspaceStructureTests(unittest.TestCase):
         BaiduOcrCredentialStatusText BaiduTranslationCredentialStatusText ValidateBaiduCredentialsButton
         GoogleCloudApiKeyBox GoogleCloudApiKeyRevealButton GoogleOcrCredentialStatusText GoogleTranslationCredentialStatusText
         ValidateGoogleCredentialsButton ConfigurationCenterTab ConfigurationModeCombo ConfigurationServiceCombo
-        ConfigServiceNameBox ConfigServiceKindCombo ConfigServiceEndpointBox ConfigServiceProtocolCombo
+        ConfigServiceNameBox ConfigServiceKindCombo ConfigServiceEndpointBox ConfigServiceProtocolCombo ConfigServicePresetCombo ApplyConfigServicePresetButton
         ConfigServiceModelCombo ConfigServiceApiKeyBox ConfigServiceTextCapabilityCheckBox
         ConfigServiceImageCapabilityCheckBox ConfigServiceEnabledCheckBox SaveConfigurationServiceButton
         TestConfigurationServiceButton ConfigOcrRouteCombo ConfigTranslationRouteCombo
