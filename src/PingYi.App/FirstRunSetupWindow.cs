@@ -9,12 +9,13 @@ using PingYi.Infrastructure;
 
 namespace PingYi.App;
 
-internal enum InitialSetupChoice { None, Ready, ConfigureExisting }
+internal enum InitialSetupChoice { None, Ready, ConfigureExisting, ConfigureCloud }
 
 internal sealed class FirstRunSetupWindow : Window
 {
     private readonly Func<ManagedMultimodalModel, string, IProgress<ManagedModelProgress>, CancellationToken, Task> _configure;
     private readonly Func<InitialSetupChoice, CancellationToken, Task> _saveChoice;
+    private readonly Func<ThirdPartyApiPreset, string, string, CancellationToken, Task>? _configureCloud;
     private readonly bool _hasRuntime;
     private RuntimeSetupPanel? _runtimeHardware;
     private readonly StackPanel _runtimeHost = new() { Spacing = 8 };
@@ -23,6 +24,10 @@ internal sealed class FirstRunSetupWindow : Window
     private readonly TextBlock _details = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ProgressBar _progress = new() { Height = 5, IsVisible = false };
+    private readonly ComboBox _cloudProviders = new() { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+    private readonly TextBox _cloudModel = new() { Watermark = "Model ID", HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+    private readonly TextBox _cloudApiKey = new() { Watermark = "API Key", PasswordChar = '●', HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+    internal Button CloudApiButton { get; } = new() { Name = "ConfigureCloudApiButton" };
     internal Button DownloadButton { get; } = new() { Name = "DownloadBasicButton" };
     internal Button LightweightButton { get; } = new() { Name = "UseLightweightButton" };
     internal Button ExistingButton { get; } = new() { Name = "UseExistingModelButton" };
@@ -37,6 +42,52 @@ internal sealed class FirstRunSetupWindow : Window
             var settings = choice == InitialSetupChoice.Ready
                 ? ProcessingModes.Apply(services.Settings, "lite") : services.Settings;
             await services.SaveSettingsAsync(settings with { InitialSetupCompleted = true }, token);
+        }, async (preset, modelId, apiKey, token) =>
+        {
+            if (string.IsNullOrWhiteSpace(modelId) || string.IsNullOrWhiteSpace(apiKey))
+                throw new ProviderException("first_run_api_fields", "请填写模型 ID 和 API Key。");
+            var current = services.Settings;
+            var id = "first-run-" + preset.Id;
+            var profile = new ModelServiceProfile
+            {
+                Id = id,
+                Name = preset.DisplayName,
+                Kind = ModelServiceKinds.Remote,
+                Protocol = preset.DefaultProtocol,
+                Endpoint = preset.ChatCompletionsEndpoint,
+                CredentialRef = ServiceCredentialRefs.ForService(id),
+                DefaultModelId = modelId.Trim(),
+                Capabilities = ["text-generation"]
+            };
+            await services.SecretStore.SetAsync(profile.CredentialRef, apiKey.Trim(), token);
+            var tasks = current.Configuration.Tasks with
+            {
+                Ocr = new TaskModelRoute
+                {
+                    ServiceId = "provider:local-paddle",
+                    FallbackServiceId = null,
+                    AllowFallback = false
+                },
+                Translation = new TaskModelRoute
+                {
+                    ServiceId = id,
+                    ModelId = profile.DefaultModelId,
+                    FallbackServiceId = "provider:local-argos",
+                    AllowFallback = true
+                }
+            };
+            await services.SaveSettingsAsync(current with
+            {
+                InitialSetupCompleted = true,
+                OcrProviderId = "local-paddle",
+                TranslationProviderId = "custom-chat",
+                Configuration = current.Configuration with
+                {
+                    Mode = ConfigurationModes.Hybrid,
+                    Services = current.Configuration.Services.Where(item => item.Id != id).Append(profile).ToArray(),
+                    Tasks = tasks
+                }
+            }, token);
         })
     {
         _backends.SelectedItem = ManagedRuntimeBackends.Get(services.Settings.ManagedRuntimeBackend);
@@ -59,9 +110,10 @@ internal sealed class FirstRunSetupWindow : Window
     // be tested with no network, model files, credentials or user settings.
     internal FirstRunSetupWindow(bool hasRuntime,
         Func<ManagedMultimodalModel, string, IProgress<ManagedModelProgress>, CancellationToken, Task> configure,
-        Func<InitialSetupChoice, CancellationToken, Task> saveChoice)
+        Func<InitialSetupChoice, CancellationToken, Task> saveChoice,
+        Func<ThirdPartyApiPreset, string, string, CancellationToken, Task>? configureCloud = null)
     {
-        _hasRuntime = hasRuntime; _configure = configure; _saveChoice = saveChoice;
+        _hasRuntime = hasRuntime; _configure = configure; _saveChoice = saveChoice; _configureCloud = configureCloud;
         Title = CaptureUiText.Pick("开始使用 · 选择处理模式", "Get started · choose a processing mode");
         Width = 600; Height = 620; MinWidth = 440; MinHeight = 400;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -72,13 +124,16 @@ internal sealed class FirstRunSetupWindow : Window
         _backends.ItemsSource = ManagedRuntimeBackends.All;
         _backends.SelectedItem = ManagedRuntimeBackends.Default;
         _models.SelectionChanged += (_, _) => UpdateDetails();
-        DownloadButton.Content = CaptureUiText.Pick("一键下载并配置基础模式", "Download and configure Basic");
+        _cloudProviders.ItemsSource = ThirdPartyApiPresets.All;
+        _cloudProviders.SelectedItem = ThirdPartyApiPresets.All.FirstOrDefault(preset => preset.Id == "openai");
+        CloudApiButton.Content = CaptureUiText.Pick("使用第三方 API（混合模式）", "Use third-party API (Hybrid)");
+        DownloadButton.Content = CaptureUiText.Pick("一键下载并配置本地基础模式", "Download and configure local Basic");
         LightweightButton.Content = CaptureUiText.Pick("暂不下载，使用轻量模式", "Skip download · use Lightweight");
         ExistingButton.Content = CaptureUiText.Pick("我已有本机模型服务", "Connect an existing local service");
         CancelButton.Content = CaptureUiText.Pick("取消下载／启动", "Cancel download / startup");
         DownloadButton.Classes.Add("primary");
-        foreach (var button in new[] { LightweightButton, ExistingButton, CancelButton }) button.Classes.Add("secondary");
-        foreach (var button in new[] { DownloadButton, LightweightButton, ExistingButton, CancelButton })
+        foreach (var button in new[] { CloudApiButton, LightweightButton, ExistingButton, CancelButton }) button.Classes.Add("secondary");
+        foreach (var button in new[] { DownloadButton, CloudApiButton, LightweightButton, ExistingButton, CancelButton })
         {
             AutomationProperties.SetAutomationId(button, button.Name);
             AutomationProperties.SetName(button, button.Content?.ToString() ?? "");
@@ -87,6 +142,7 @@ internal sealed class FirstRunSetupWindow : Window
         DownloadButton.Click += async (_, _) => { OperationTask = InstallAsync(); await OperationTask; };
         LightweightButton.Click += async (_, _) => { OperationTask = ChooseAsync(InitialSetupChoice.Ready); await OperationTask; };
         ExistingButton.Click += async (_, _) => { OperationTask = ChooseAsync(InitialSetupChoice.ConfigureExisting); await OperationTask; };
+        CloudApiButton.Click += async (_, _) => { OperationTask = ConfigureCloudAsync(); await OperationTask; };
         CancelButton.Click += (_, _) => _operation?.Cancel();
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         Content = new ScrollViewer
@@ -99,8 +155,12 @@ internal sealed class FirstRunSetupWindow : Window
                     new TextBlock { Text = Title, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
                     new TextBlock { Text = CaptureUiText.Pick("基础模式：本机视觉 OCR ＋ 本机模型翻译。一次截图自动判断任务，也可手动选择翻译、描述或二维码。", "Basic: local vision OCR + local model translation. Smart capture chooses a task; you can always choose translation, description or QR manually."), TextWrapping = TextWrapping.Wrap },
                     _models, _backends, _runtimeHost, _details,
-                    new TextBlock { Text = CaptureUiText.Pick("点击后从魔搭下载并校验模型。模型不在安装包内，需要足够磁盘与内存；取消后保留已下载部分以便续传。不上传你的截图。", "Clicking Download fetches and verifies weights from ModelScope. They are not bundled; allow sufficient disk and memory. Cancelling preserves resumable downloads. Your screenshots are not uploaded."), TextWrapping = TextWrapping.Wrap },
-                    DownloadButton, _progress, _status, CancelButton, ExistingButton, LightweightButton
+                    new TextBlock { Text = CaptureUiText.Pick("本地基础模式会下载并配置视觉模型；模型不在安装包内。", "Local Basic downloads and configures a vision model; model weights are not bundled."), TextWrapping = TextWrapping.Wrap },
+                    DownloadButton, _progress,
+                    new TextBlock { Text = CaptureUiText.Pick("云端混合模式：OCR 使用本地 PaddleOCR，翻译调用所选 API。需要提供服务商 API Key，可能产生费用。", "Cloud Hybrid: OCR uses local PaddleOCR and translation uses the selected API. A provider API key is required and charges may apply."), TextWrapping = TextWrapping.Wrap },
+                    _cloudProviders, _cloudModel, _cloudApiKey, CloudApiButton,
+                    new TextBlock { Text = CaptureUiText.Pick("已有本机模型服务可在进入软件后，从配置中心添加并分配到任务。二维码始终本地解析。", "You can add existing local model services in Configuration after setup. QR decoding always stays local."), TextWrapping = TextWrapping.Wrap },
+                    _status, CancelButton, ExistingButton, LightweightButton
                 }
             }
         };
@@ -131,7 +191,8 @@ internal sealed class FirstRunSetupWindow : Window
     {
         _runtimeHardware?.SetParentBusy(busy);
         DownloadButton.IsEnabled = !busy && _hasRuntime;
-        LightweightButton.IsEnabled = ExistingButton.IsEnabled = _models.IsEnabled = _backends.IsEnabled = !busy;
+        LightweightButton.IsEnabled = ExistingButton.IsEnabled = CloudApiButton.IsEnabled =
+            _cloudProviders.IsEnabled = _cloudModel.IsEnabled = _cloudApiKey.IsEnabled = _models.IsEnabled = _backends.IsEnabled = !busy;
         CancelButton.IsVisible = _progress.IsVisible = busy;
     }
     private async Task InstallAsync()
