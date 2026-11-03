@@ -6,6 +6,11 @@ namespace PingYi.App;
 
 public partial class SettingsWindow
 {
+    private sealed record ConfigurationChoice(string Id, string Name)
+    {
+        public override string ToString() => Name;
+    }
+
     private sealed record ConfigurationServiceChoice(string Id, string Name)
     {
         public override string ToString() => Name;
@@ -21,8 +26,6 @@ public partial class SettingsWindow
 
     private void InitializeConfigurationCenter()
     {
-        ConfigurationModeCombo.ItemsSource = new[] { ConfigurationModes.Hybrid, ConfigurationModes.LocalFirst, ConfigurationModes.CloudFirst };
-        ConfigServiceKindCombo.ItemsSource = new[] { ModelServiceKinds.Local, ModelServiceKinds.Remote };
         ConfigServiceProtocolCombo.ItemsSource = ApiProtocolChoices.All;
         RefreshConfigurationCenterLanguage();
     }
@@ -30,6 +33,23 @@ public partial class SettingsWindow
     private void RefreshConfigurationCenterLanguage()
     {
         var en = UiText.IsEnglish;
+        var modes = new[]
+        {
+            new ConfigurationChoice(ConfigurationModes.Hybrid, en ? "Hybrid · per-task routing" : "混合模式 · 任务独立路由"),
+            new ConfigurationChoice(ConfigurationModes.LocalFirst, en ? "Local first" : "本地优先"),
+            new ConfigurationChoice(ConfigurationModes.CloudFirst, en ? "Cloud first" : "云端优先")
+        };
+        var selectedMode = (ConfigurationModeCombo.SelectedItem as ConfigurationChoice)?.Id;
+        ConfigurationModeCombo.ItemsSource = modes;
+        ConfigurationModeCombo.SelectedItem = modes.FirstOrDefault(item => item.Id == selectedMode) ?? modes[0];
+        var kinds = new[]
+        {
+            new ConfigurationChoice(ModelServiceKinds.Local, en ? "Local service" : "本地服务"),
+            new ConfigurationChoice(ModelServiceKinds.Remote, en ? "Remote API" : "远程 API")
+        };
+        var selectedKind = (ConfigServiceKindCombo.SelectedItem as ConfigurationChoice)?.Id;
+        ConfigServiceKindCombo.ItemsSource = kinds;
+        ConfigServiceKindCombo.SelectedItem = kinds.FirstOrDefault(item => item.Id == selectedKind) ?? kinds[1];
         ConfigurationCenterNavText.Text = en ? "Configuration" : "配置中心";
         ConfigurationCenterTitleText.Text = en ? "Configuration center" : "配置中心";
         ConfigurationCenterHintText.Text = en
@@ -76,7 +96,8 @@ public partial class SettingsWindow
         try
         {
             var config = _services.Settings.Configuration;
-            ConfigurationModeCombo.SelectedItem = config.Mode;
+            ConfigurationModeCombo.SelectedItem = ConfigurationModeCombo.ItemsSource is IEnumerable<ConfigurationChoice> modes
+                ? modes.FirstOrDefault(item => item.Id == config.Mode) : null;
             var profiles = config.Services;
             var profileChoices = profiles.Select(profile => new ConfigurationRouteChoice(
                 profile.Id, $"{profile.Name} · {profile.DefaultModelId}" +
@@ -120,7 +141,8 @@ public partial class SettingsWindow
             ConfigServiceEndpointBox.Text = profile?.Endpoint ?? string.Empty;
             ConfigServiceModelBox.Text = profile?.DefaultModelId ?? string.Empty;
             ConfigServiceProtocolCombo.SelectedItem = ApiProtocolChoices.Get(profile?.Protocol);
-            ConfigServiceKindCombo.SelectedItem = profile?.Kind ?? ModelServiceKinds.Remote;
+            ConfigServiceKindCombo.SelectedItem = ConfigServiceKindCombo.ItemsSource is IEnumerable<ConfigurationChoice> kinds
+                ? kinds.FirstOrDefault(item => item.Id == (profile?.Kind ?? ModelServiceKinds.Remote)) : null;
             ConfigServiceTextCapabilityCheckBox.IsChecked = profile?.Capabilities.Contains("text-generation", StringComparer.OrdinalIgnoreCase) ?? true;
             ConfigServiceImageCapabilityCheckBox.IsChecked = profile?.Capabilities.Contains("image-input", StringComparer.OrdinalIgnoreCase) ?? false;
             ConfigServiceEnabledCheckBox.IsChecked = profile?.Enabled ?? true;
@@ -144,7 +166,8 @@ public partial class SettingsWindow
         ConfigurationServiceCombo.SelectedItem = null;
         LoadConfigurationService(null);
         ConfigServiceNameBox.Text = UiText.IsEnglish ? "New model service" : "新模型服务";
-        ConfigServiceKindCombo.SelectedItem = ModelServiceKinds.Remote;
+        ConfigServiceKindCombo.SelectedItem = ConfigServiceKindCombo.ItemsSource is IEnumerable<ConfigurationChoice> kinds
+            ? kinds.FirstOrDefault(item => item.Id == ModelServiceKinds.Remote) : null;
         ConfigServiceEndpointBox.Text = "https://";
         ConfigServiceProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions);
         ConfigurationServiceStatusText.Text = UiText.IsEnglish
@@ -315,7 +338,7 @@ public partial class SettingsWindow
                 PromptReconstruction = BuildRoute(ConfigPromptReconstructionRouteCombo, tasks.PromptReconstruction, imageInput: true, string.Empty),
                 QrCode = new TaskModelRoute { ServiceId = "builtin:qr", ModelId = "zxing" }
             };
-            var mode = ConfigurationModeCombo.SelectedItem as string ?? ConfigurationModes.Hybrid;
+            var mode = (ConfigurationModeCombo.SelectedItem as ConfigurationChoice)?.Id ?? ConfigurationModes.Hybrid;
             await _services.SaveSettingsAsync(current with
             {
                 Configuration = current.Configuration with { Mode = mode, Tasks = updatedTasks }
