@@ -7,6 +7,9 @@ public static class RuntimePolicy
     {
         if (!settings.ManagedRuntimeEnabled || !ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out _))
             return false;
+        if (string.IsNullOrWhiteSpace(route.ServiceId))
+            return string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
+                AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase);
         var service = settings.Configuration.Services.FirstOrDefault(item => item.Id == route.ServiceId);
         var endpoint = service?.Endpoint;
         if (string.IsNullOrWhiteSpace(endpoint) && route.ServiceId == "legacy-custom")
