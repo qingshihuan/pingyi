@@ -24,11 +24,50 @@ public partial class SettingsWindow
     private string? _editingConfigurationServiceId;
     private bool _isLoadingConfiguration;
 
+    private void RefreshPrivacySettingsLanguage()
+    {
+        var en = UiText.IsEnglish;
+        PrivacySettingsNavText.Text = en ? "Privacy & security" : "隐私与安全";
+        PrivacySettingsTitleText.Text = en ? "Privacy & security" : "隐私与安全";
+        PrivacySettingsHintText.Text = en
+            ? "Choose whether PingYi must ask before sending recognized text or selected screenshots to remote model providers."
+            : "设置是否在将识别文字或所选截图发送给远程模型服务商前逐次征求确认。";
+        ConfirmRemoteRequestsCheckBox.Content = en
+            ? "Ask before every remote model request"
+            : "每次远程模型请求前都确认";
+        RemoteTextDataBoundaryText.Text = en
+            ? "Text translation sends the recognized text and task instructions to the selected provider. The provider may log or retain requests and may charge for usage."
+            : "文字翻译会将识别文字和任务指令发送给所选服务商。服务商可能记录或保留请求，并可能按用量收费。";
+        RemoteImageDataBoundaryText.Text = en
+            ? "Remote OCR, image description and prompt reconstruction send the selected screenshot to the provider. QR decoding remains local and is never routed to a model."
+            : "远程 OCR、图片描述和提示词反推会将所选截图发送给服务商。二维码解析始终在本地执行，不会路由到大模型。";
+        SecretStoreTitleText.Text = en ? "Credential storage" : "密钥存储";
+        SecretStoreBoundaryText.Text = en
+            ? "Service API keys are stored by credential reference in the operating system secure store. settings.json contains references only, never the key values."
+            : "各服务 API Key 按独立 credentialRef 保存在操作系统安全存储中。settings.json 只保存引用，不保存密钥值。";
+    }
+
+    private void RefreshSecretStoreStatus()
+    {
+        if (_services is null)
+        {
+            SecretStoreStatusText.Text = UiText.IsEnglish ? "Secure store status is available after startup." : "启动后可检查系统安全存储状态。";
+            return;
+        }
+        var persistent = _services.SecretStore is not PlatformSecretStore store || store.IsPersistent;
+        SecretStoreStatusText.Text = persistent
+            ? (UiText.IsEnglish ? "Credential storage: persistent OS secure store." : "密钥存储：使用持久化系统安全存储。")
+            : (UiText.IsEnglish ? "Warning: OS secure storage is unavailable; keys remain in memory only for this session." : "警告：系统安全存储不可用，密钥仅保存在本次运行的内存中。");
+        ThemeResources.Use(SecretStoreStatusText, TextBlock.ForegroundProperty,
+            persistent ? "SuccessTextBrush" : "WarningTextBrush");
+    }
+
     private void InitializeConfigurationCenter()
     {
         ConfigServiceProtocolCombo.ItemsSource = ApiProtocolChoices.All;
         ConfigServicePresetCombo.ItemsSource = ThirdPartyApiPresets.All;
         RefreshConfigurationCenterLanguage();
+        RefreshPrivacySettingsLanguage();
     }
 
     private void RefreshConfigurationCenterLanguage()
@@ -124,6 +163,8 @@ public partial class SettingsWindow
             ConfigPromptReconstructionRouteCombo.SelectedItem = profileChoices.FirstOrDefault(choice => choice.Id == config.Tasks.PromptReconstruction.ServiceId);
             ConfigOcrFallbackCheckBox.IsChecked = config.Tasks.Ocr.AllowFallback;
             ConfigTranslationFallbackCheckBox.IsChecked = config.Tasks.Translation.AllowFallback;
+            ConfirmRemoteRequestsCheckBox.IsChecked = _services.Settings.ConfirmRemoteRequests;
+            RefreshSecretStoreStatus();
 
             if (_editingConfigurationServiceId is null || !profiles.Any(profile => profile.Id == _editingConfigurationServiceId))
                 _editingConfigurationServiceId = profiles.FirstOrDefault()?.Id;
