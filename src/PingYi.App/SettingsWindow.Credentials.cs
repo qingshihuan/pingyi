@@ -161,6 +161,8 @@ public partial class SettingsWindow
         }
 
         CustomEndpointBox.Text = preset.ChatCompletionsEndpoint;
+        ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(preset.DefaultProtocol);
+        RefreshCustomApiModeUi();
         SelectTranslationProvider("custom-chat");
         SetInlineStatus(CustomTranslationStatusText,
             UiText.IsEnglish
@@ -170,6 +172,83 @@ public partial class SettingsWindow
         SetGlobalStatus(UiText.IsEnglish
             ? "Provider endpoint applied to the form only; no request has been sent and no settings have been saved."
             : "服务商地址仅填入表单，尚未发送请求或保存设置。", false);
+    }
+
+    private async void RefreshCustomModelsButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_services is null)
+            return;
+
+        var button = sender as Button;
+        BeginButtonOperation(button, UiText.IsEnglish ? "Refreshing…" : "正在获取…");
+        SetInlineStatus(CustomModelStatusText,
+            UiText.IsEnglish ? "Saving endpoint and API key, then requesting the provider model list…" : "正在安全保存接口与密钥，并向服务商请求模型列表…",
+            "SecondaryTextBrush");
+        try
+        {
+            if (!AppSettings.TryParseChatCompletionsEndpoint(CustomEndpointBox.Text, out _))
+                throw new ProviderException("custom_endpoint_invalid", "请先填写有效的 Chat Completions 接口地址。");
+
+            if (ThirdPartyApiPresetCombo.SelectedItem is ThirdPartyApiPreset selectedPreset &&
+                !string.Equals(
+                    AppSettings.NormalizeChatCompletionsEndpoint(CustomEndpointBox.Text),
+                    AppSettings.NormalizeChatCompletionsEndpoint(selectedPreset.ChatCompletionsEndpoint),
+                    StringComparison.OrdinalIgnoreCase))
+                throw new ProviderException("custom_endpoint_preset_not_applied", "请先点击“填入服务商地址”，再刷新该服务商的模型列表。");
+
+            await PersistSecretFieldAsync(SecretKeys.CustomTranslationApiKey);
+            HideSecretFields(SecretKeys.CustomTranslationApiKey);
+            await _services.SaveSettingsAsync(BuildSettingsFromForm());
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var models = await _services.CustomTranslationProvider.GetAvailableModelsAsync(timeout.Token);
+            var currentModel = CustomModelCombo.Text?.Trim() ?? string.Empty;
+            CustomModelCombo.ItemsSource = models;
+            if (string.IsNullOrWhiteSpace(currentModel) && models.Count > 0)
+                CustomModelCombo.SelectedItem = models[0];
+            else
+                CustomModelCombo.Text = currentModel;
+
+            if (models.Count == 0)
+            {
+                SetInlineStatus(CustomModelStatusText,
+                    UiText.IsEnglish
+                        ? "The API returned an empty model list. You can still enter a model ID manually."
+                        : "API 返回的模型列表为空，仍可手动输入服务商提供的模型 ID。",
+                    "WarningTextBrush");
+                SetGlobalStatus(UiText.IsEnglish ? "No models were returned by the API." : "API 未返回可用模型。", true);
+                FinishButtonOperation(button, UiText.IsEnglish ? "No models" : "未获取到模型", success: false);
+                return;
+            }
+
+            SetInlineStatus(CustomModelStatusText,
+                UiText.IsEnglish
+                    ? $"Loaded {models.Count} models available to this API key."
+                    : $"已通过 API 获取当前密钥可用的模型列表（共 {models.Count} 个）。",
+                "SuccessTextBrush");
+            SetGlobalStatus(UiText.IsEnglish ? $"Loaded {models.Count} available models." : $"已获取 {models.Count} 个可用模型。", false);
+            FinishButtonOperation(button, UiText.IsEnglish ? "Models refreshed" : "模型列表已更新", success: true);
+        }
+        catch (OperationCanceledException)
+        {
+            SetInlineStatus(CustomModelStatusText,
+                UiText.IsEnglish
+                    ? "Model discovery timed out or was cancelled. Enter a model ID manually or retry."
+                    : "获取模型列表超时或已取消。可以手动输入模型 ID，或稍后重试。",
+                "WarningTextBrush");
+            SetGlobalStatus(UiText.IsEnglish ? "Model discovery timed out." : "获取模型列表超时。", true);
+            FinishButtonOperation(button, UiText.IsEnglish ? "Timed out" : "获取超时", success: false);
+        }
+        catch (Exception exception)
+        {
+            SetInlineStatus(CustomModelStatusText,
+                UiText.IsEnglish
+                    ? $"Could not load models: {UiText.Error(exception)} You can still enter a model ID manually."
+                    : $"获取模型列表失败：{UiText.Error(exception)}。仍可手动输入模型 ID。",
+                "WarningTextBrush");
+            SetGlobalStatus(UiText.Error(exception), true);
+            FinishButtonOperation(button, UiText.IsEnglish ? "Refresh failed" : "获取失败", success: false);
+        }
     }
 
     private async void UseLocalLlamaPresetButton_OnClick(object? sender, RoutedEventArgs e)
@@ -185,8 +264,14 @@ public partial class SettingsWindow
         try
         {
             var preset = LocalServicePresetCombo.SelectedItem as LocalLlmPreset ?? LocalLlmPresets.Default;
+            ThirdPartyApiPresetCombo.SelectedItem = null;
             CustomEndpointBox.Text = preset.ChatCompletionsEndpoint;
-            CustomModelBox.Text = preset.SuggestedModel;
+            RefreshCustomApiModeUi();
+            CustomModelCombo.ItemsSource = Array.Empty<string>();
+            CustomModelCombo.Text = preset.SuggestedModel;
+            SetInlineStatus(CustomModelStatusText,
+                UiText.IsEnglish ? "Local model discovery is available after applying the service preset." : "应用本机服务预设后，可刷新本机模型列表。",
+                "SecondaryTextBrush");
             SelectTranslationProvider("custom-chat");
             await _services.SaveSettingsAsync(BuildSettingsFromForm());
             presetSaved = true;
@@ -202,7 +287,11 @@ public partial class SettingsWindow
                 var models = await _services.CustomTranslationProvider.GetAvailableModelsAsync(timeout.Token);
                 if (models.Count > 0)
                 {
-                    CustomModelBox.Text = models[0];
+                    CustomModelCombo.ItemsSource = models;
+                    CustomModelCombo.SelectedItem = models[0];
+                    SetInlineStatus(CustomModelStatusText,
+                        UiText.IsEnglish ? $"Loaded {models.Count} local models." : $"已获取 {models.Count} 个本机模型。",
+                        "SuccessTextBrush");
                     await _services.SaveSettingsAsync(BuildSettingsFromForm());
                 }
             }

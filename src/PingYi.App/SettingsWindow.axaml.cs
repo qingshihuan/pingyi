@@ -30,7 +30,10 @@ public partial class SettingsWindow : Window
         InitializeRuntimeStatusPage();
         UiText.Attach(this);
         ThirdPartyApiPresetCombo.ItemsSource = ThirdPartyApiPresets.All;
+        ApiProtocolCombo.ItemsSource = ApiProtocolChoices.All;
+        ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(ModelApiProtocols.ChatCompletions);
         RefreshThirdPartyApiLanguage();
+        RefreshCustomApiModeUi();
         _deleteModelsDefaultContent = DeleteModelsButton.Content;
         RegisterSecretFields();
         InitializeLanguageSelection();
@@ -101,8 +104,10 @@ public partial class SettingsWindow : Window
             LocalServicePresetCombo.SelectedItem =
                 LocalLlmPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
             ThirdPartyApiPresetCombo.SelectedItem = ThirdPartyApiPresets.MatchEndpoint(settings.CustomTranslationEndpoint);
+            ApiProtocolCombo.SelectedItem = ApiProtocolChoices.Get(settings.CustomTranslationApiProtocol);
             CustomEndpointBox.Text = settings.CustomTranslationEndpoint;
-            CustomModelBox.Text = settings.CustomTranslationModel;
+            CustomModelCombo.ItemsSource = Array.Empty<string>();
+            CustomModelCombo.Text = settings.CustomTranslationModel;
             var languageChoices = UiLanguageChoice.Create();
             UiLanguageCombo.ItemsSource = languageChoices;
             UiLanguageCombo.SelectedItem = languageChoices
@@ -130,6 +135,7 @@ public partial class SettingsWindow : Window
             _isLoadingSettings = false;
         }
 
+        RefreshCustomApiModeUi();
         RefreshChoiceTemplates();
         SetGlobalStatus(UiText.Get("String.SettingsReady"), isError: false);
     }
@@ -311,7 +317,7 @@ public partial class SettingsWindow : Window
     {
         var current = _services?.Settings ?? new AppSettings();
         var endpoint = AppSettings.NormalizeChatCompletionsEndpoint(CustomEndpointBox.Text);
-        var modelName = CustomModelBox.Text?.Trim() ?? string.Empty;
+        var modelName = CustomModelCombo.Text?.Trim() ?? string.Empty;
         var keepManagedRuntime = current.ManagedRuntimeEnabled &&
                                  ManagedMultimodalModels.TryGet(current.ManagedModelPackageId, out var managedModel) &&
                                  string.Equals(endpoint, AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) &&
@@ -323,6 +329,8 @@ public partial class SettingsWindow : Window
             TargetLanguage = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite,
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = modelName,
+            CustomTranslationApiProtocol = (ApiProtocolCombo.SelectedItem as ApiProtocolChoice)?.Id ??
+                                           ModelApiProtocols.ChatCompletions,
             ManagedRuntimeEnabled = keepManagedRuntime,
             ManagedRuntimeBackend = SelectedManagedRuntimeBackendId,
             ManagedRuntimeDevice = _runtimeHardware?.SelectedDevice ?? current.ManagedRuntimeDevice,

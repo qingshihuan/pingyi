@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 13;
+    public const int CurrentSchemaVersion = 14;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -21,6 +21,7 @@ public sealed record AppSettings
     public string TargetLanguage { get; init; } = "auto-opposite";
     public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
     public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
+    public string CustomTranslationApiProtocol { get; init; } = ModelApiProtocols.ChatCompletions;
     public string ManagedModelPackageId { get; init; } = string.Empty;
     public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Default.Id;
     public string ManagedRuntimeDevice { get; init; } = RuntimeDeviceChoice.Automatic;
@@ -67,6 +68,10 @@ public sealed record AppSettings
             TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
             CustomTranslationEndpoint = endpoint,
             CustomTranslationModel = model,
+            CustomTranslationApiProtocol = ModelApiProtocols.Normalize(
+                SchemaVersion < 14 && ModelApiProtocols.IsOfficialOpenAiEndpoint(endpoint)
+                    ? ModelApiProtocols.Responses
+                    : CustomTranslationApiProtocol),
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
                 ? ManagedModelPackageId.Trim() : string.Empty,
             // Migrate the former automatic default only without an explicit GPU choice.

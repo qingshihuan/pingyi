@@ -242,7 +242,12 @@
               <StackPanel Spacing="12">
                 <StackPanel Spacing="6">
                   <TextBlock x:Name="ThirdPartyApiLabelText" Classes="workspace-label"/>
-                  <ComboBox x:Name="ThirdPartyApiPresetCombo" Classes="workspace-field" AutomationProperties.Name="Third-party API provider"/>
+                  <ComboBox x:Name="ThirdPartyApiPresetCombo" Classes="workspace-field" AutomationProperties.Name="Third-party API provider" SelectionChanged="ThirdPartyApiPresetCombo_OnSelectionChanged"/>
+                </StackPanel>
+                <StackPanel x:Name="ApiProtocolStack" Spacing="6" IsVisible="False">
+                  <TextBlock x:Name="ApiProtocolLabelText" Classes="workspace-label"/>
+                  <ComboBox x:Name="ApiProtocolCombo" Classes="workspace-field" AutomationProperties.Name="API protocol"
+                            SelectionChanged="ApiProtocolCombo_OnSelectionChanged"/>
                 </StackPanel>
                 <Button x:Name="ApplyThirdPartyApiPresetButton" Classes="secondary" HorizontalAlignment="Left"
                         Click="ApplyThirdPartyApiPresetButton_OnClick"/>
@@ -253,13 +258,20 @@
                   <ComboBox x:Name="LocalServicePresetCombo" Classes="workspace-field" AutomationProperties.Name="{DynamicResource Text.8ccdcad15f65}"/>
                 </StackPanel>
                 <Button x:Name="UseLocalLlamaPresetButton" Content="{DynamicResource Text.4daf6c2b1b4f}" Classes="secondary" Click="UseLocalLlamaPresetButton_OnClick" AutomationProperties.Name="{DynamicResource Text.4daf6c2b1b4f}" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="LocalServicePresetModeHintText" Classes="workspace-help" IsVisible="False" TextWrapping="Wrap"/>
                 <StackPanel Spacing="6">
                   <TextBlock Text="{DynamicResource Text.02739d1bae8b}" Classes="workspace-label"/>
-                  <TextBox x:Name="CustomEndpointBox" Classes="workspace-field" PlaceholderText="http://127.0.0.1:8080/v1/chat/completions" AutomationProperties.Name="{DynamicResource Text.e48775667c9f}"/>
+                  <TextBox x:Name="CustomEndpointBox" Classes="workspace-field" PlaceholderText="http://127.0.0.1:8080/v1/chat/completions" AutomationProperties.Name="{DynamicResource Text.e48775667c9f}" TextChanged="CustomEndpointBox_OnTextChanged"/>
                 </StackPanel>
                 <StackPanel Spacing="6">
-                  <TextBlock Text="{DynamicResource Text.90bd954a5853}" Classes="workspace-label"/>
-                  <TextBox x:Name="CustomModelBox" Classes="workspace-field" PlaceholderText="{DynamicResource Text.13434c003ced}" AutomationProperties.Name="{DynamicResource Text.a2f2682c6200}"/>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <TextBlock x:Name="CustomModelLabelText" Classes="workspace-label" VerticalAlignment="Center"/>
+                    <Button x:Name="RefreshCustomModelsButton" Grid.Column="1" Classes="secondary"
+                            Click="RefreshCustomModelsButton_OnClick" AutomationProperties.Name="Refresh API model list"/>
+                  </Grid>
+                  <TextBlock x:Name="CustomModelStatusText" Classes="workspace-help" TextWrapping="Wrap"/>
+                  <ComboBox x:Name="CustomModelCombo" Classes="workspace-field" IsEditable="True"
+                            AutomationProperties.Name="{DynamicResource Text.a2f2682c6200}"/>
                 </StackPanel>
                 <StackPanel Spacing="6">
                   <TextBlock Text="API Key" Classes="workspace-label"/>

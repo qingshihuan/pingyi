@@ -40,6 +40,38 @@ public class ImageAnalysisTests
         Assert.Equal(purpose, result.Purpose);
         Assert.Equal("A blue circle on a plain background.", result.Text);
     }
+    [Fact]
+    public async Task ResponsesProtocol_SendsInputImageAndParsesResponseOutputText()
+    {
+        using var client = new HttpClient(new Handler(async (request, token) =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("https://api.openai.com/v1/responses", request.RequestUri?.AbsoluteUri);
+            using var doc = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            var root = doc.RootElement;
+            Assert.False(root.GetProperty("store").GetBoolean());
+            Assert.Equal("vision-test", root.GetProperty("model").GetString());
+            Assert.Contains("untrusted", root.GetProperty("instructions").GetString());
+            var content = root.GetProperty("input")[0].GetProperty("content");
+            Assert.Equal("input_text", content[0].GetProperty("type").GetString());
+            Assert.Equal("input_image", content[1].GetProperty("type").GetString());
+            Assert.StartsWith("data:image/png;base64,", content[1].GetProperty("image_url").GetString());
+            Assert.False(root.TryGetProperty("messages", out _));
+            return Json("{\"output_text\":\"A blue circle.\"}");
+        }));
+        var settings = new AppSettings
+        {
+            CustomTranslationEndpoint = "https://api.openai.com/v1/chat/completions",
+            CustomTranslationModel = "vision-test",
+            CustomTranslationApiProtocol = ModelApiProtocols.Responses
+        };
+        var provider = new ChatCompatibleImageAnalysisProvider(client, new Secrets(), settings);
+
+        var result = await provider.AnalyzeAsync(Image(), new(CapturePurpose.DescribeImage, "en-US"));
+
+        Assert.Equal("A blue circle.", result.Text);
+    }
+
     [Theory]
     [InlineData("[]", "image_analysis_schema")]
     [InlineData("{\"choices\":[]}", "image_analysis_schema")]

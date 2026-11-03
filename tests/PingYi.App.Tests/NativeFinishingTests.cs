@@ -37,13 +37,13 @@ public class NativeFinishingTests
                 .Single(b => AutomationProperties.GetName(b) == UiText.T("检查处理引擎状态"));
             AssertInScrollViewport(check);
             Assert.DoesNotContain(C<Button>(window, "SaveSettingsButton").GetVisualAncestors(), c => c is ScrollViewer);
-            C<TextBox>(window, "CustomModelBox").Text = "unsaved-example";
+            C<ComboBox>(window, "CustomModelCombo").Text = "unsaved-example";
             var tabs = C<TabControl>(window, "SettingsTabs");
             for (var i = 0; i < 5; i++)
             {
                 tabs.SelectedIndex = i;
                 window.UpdateLayout();
-                Assert.Equal("unsaved-example", C<TextBox>(window, "CustomModelBox").Text);
+                Assert.Equal("unsaved-example", C<ComboBox>(window, "CustomModelCombo").Text);
             }
             tabs.SelectedIndex = 0;
             Frame(window, $"polished-settings-{language}-{dark}");

@@ -90,12 +90,16 @@ public sealed class ChatCompatibleTranslationProvider(
             throw new ProviderException("custom_endpoint_invalid", "自定义翻译接口配置不完整。");
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        var useResponses = ModelApiProtocols.Normalize(settings.CustomTranslationApiProtocol) == ModelApiProtocols.Responses;
+        if (useResponses && endpoint.IsLoopback)
+            throw new ProviderException("custom_protocol_unsupported_local", "本机 llama.cpp / Ollama / LM Studio 预设使用 Chat Completions；Responses API 仅用于支持该协议的远程服务。");
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            OpenAiResponsesApi.ResolveEndpoint(endpoint, settings.CustomTranslationApiProtocol));
         var apiKey = await secretStore.GetAsync(SecretKeys.CustomTranslationApiKey, cancellationToken);
         if (!string.IsNullOrWhiteSpace(apiKey))
-        {
             message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
 
         if (!LanguageCatalog.IsKnown(request.TargetLanguage))
         {
@@ -108,23 +112,32 @@ public sealed class ChatCompatibleTranslationProvider(
             ? "自动识别输入语言"
             : $"识别输入为{LanguageCatalog.GetPromptName(request.SourceLanguage)}";
         var targetName = LanguageCatalog.GetPromptName(request.TargetLanguage);
-        var messages = new JsonArray();
-        messages.Add((JsonNode)new JsonObject
+        var instruction = $"你是专业翻译引擎。{sourceInstruction}，翻译为{targetName}。保留原意、专有名词、段落和换行，只输出译文，不解释。";
+        JsonObject payload;
+        if (useResponses)
         {
-            ["role"] = "system",
-            ["content"] = $"你是专业翻译引擎。{sourceInstruction}，翻译为{targetName}。保留原意、专有名词、段落和换行，只输出译文，不解释。"
-        });
-        messages.Add((JsonNode)new JsonObject
+            payload = new JsonObject
+            {
+                ["model"] = settings.CustomTranslationModel,
+                ["instructions"] = instruction,
+                ["input"] = request.Text,
+                ["store"] = false
+            };
+        }
+        else
         {
-            ["role"] = "user",
-            ["content"] = request.Text
-        });
-        var payload = new JsonObject
-        {
-            ["model"] = settings.CustomTranslationModel,
-            ["temperature"] = 0,
-            ["messages"] = messages
-        };
+            var messages = new JsonArray
+            {
+                new JsonObject { ["role"] = "system", ["content"] = instruction },
+                new JsonObject { ["role"] = "user", ["content"] = request.Text }
+            };
+            payload = new JsonObject
+            {
+                ["model"] = settings.CustomTranslationModel,
+                ["temperature"] = 0,
+                ["messages"] = messages
+            };
+        }
         message.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(message, cancellationToken);
@@ -138,20 +151,9 @@ public sealed class ChatCompatibleTranslationProvider(
         {
             using var document = JsonDocument.Parse(responsePayload);
             var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object ||
-                !root.TryGetProperty("choices", out var choices) ||
-                choices.ValueKind != JsonValueKind.Array ||
-                choices.GetArrayLength() == 0 ||
-                choices[0].ValueKind != JsonValueKind.Object ||
-                !choices[0].TryGetProperty("message", out var reply) ||
-                reply.ValueKind != JsonValueKind.Object ||
-                !reply.TryGetProperty("content", out var content) ||
-                content.ValueKind != JsonValueKind.String)
-            {
-                throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
-            }
-
-            var text = content.GetString()!.Trim();
+            var text = useResponses
+                ? OpenAiResponsesApi.ReadOutputText(root).Trim()
+                : ReadChatCompletionText(root).Trim();
             if (string.IsNullOrWhiteSpace(text))
             {
                 // An empty successful response must not bypass offline fallback.
@@ -165,6 +167,21 @@ public sealed class ChatCompatibleTranslationProvider(
             // Do not retain an untrusted response body in exception diagnostics.
             throw new ProviderException("custom_translate_schema", "自定义接口响应不符合兼容格式。");
         }
+    }
+
+    private static string ReadChatCompletionText(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("choices", out var choices) ||
+            choices.ValueKind != JsonValueKind.Array ||
+            choices.GetArrayLength() == 0 ||
+            choices[0].ValueKind != JsonValueKind.Object ||
+            !choices[0].TryGetProperty("message", out var reply) ||
+            reply.ValueKind != JsonValueKind.Object ||
+            !reply.TryGetProperty("content", out var content) ||
+            content.ValueKind != JsonValueKind.String)
+            throw new JsonException("Chat Completions response has no message content.");
+        return content.GetString()!;
     }
 
     private static Uri BuildModelsEndpoint(Uri chatEndpoint)
@@ -208,45 +225,86 @@ public sealed class ChatCompatibleTranslationProvider(
         Uri chatEndpoint,
         CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildModelsEndpoint(chatEndpoint));
+        var modelsEndpoint = BuildModelsEndpoint(chatEndpoint);
         var apiKey = await secretStore.GetAsync(SecretKeys.CustomTranslationApiKey, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(apiKey))
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"本地大模型服务返回 HTTP {(int)response.StatusCode}；请检查服务地址。",
-                null,
-                response.StatusCode);
-        }
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        var root = document.RootElement;
-        if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty("data", out var data) ||
-            data.ValueKind != JsonValueKind.Array)
-        {
-            throw new JsonException("本地模型列表响应格式不正确。");
-        }
-
         var modelIds = new List<string>();
-        foreach (var item in data.EnumerateArray())
+        string? after = null;
+
+        // OpenAI-style list endpoints may expose cursor pagination. Providers without
+        // pagination simply return one complete data array and omit has_more.
+        for (var page = 0; page < 20; page++)
         {
-            if (item.ValueKind != JsonValueKind.Object ||
-                !item.TryGetProperty("id", out var id) ||
-                id.ValueKind != JsonValueKind.String ||
-                string.IsNullOrWhiteSpace(id.GetString()))
+            var pageEndpoint = modelsEndpoint;
+            if (!string.IsNullOrWhiteSpace(after))
             {
-                throw new JsonException("本地模型列表响应格式不正确。");
+                var builder = new UriBuilder(modelsEndpoint)
+                {
+                    Query = $"limit=100&after={Uri.EscapeDataString(after)}"
+                };
+                pageEndpoint = builder.Uri;
             }
 
-            modelIds.Add(id.GetString()!);
+            using var request = new HttpRequestMessage(HttpMethod.Get, pageEndpoint);
+            if (!string.IsNullOrWhiteSpace(apiKey))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"模型列表接口返回 HTTP {(int)response.StatusCode}；请检查 API 地址、密钥及服务商模型列表权限。",
+                    null,
+                    response.StatusCode);
+            }
+
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (Encoding.UTF8.GetByteCount(payload) > 1_048_576)
+                throw new JsonException("模型列表响应超过 1 MiB 限制。");
+
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("data", out var data) ||
+                data.ValueKind != JsonValueKind.Array)
+                throw new JsonException("模型列表响应格式不正确；需要包含 data 数组的 OpenAI 兼容响应。");
+
+            var addedOnPage = 0;
+            string? lastId = null;
+            foreach (var item in data.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object ||
+                    !item.TryGetProperty("id", out var id) ||
+                    id.ValueKind != JsonValueKind.String ||
+                    string.IsNullOrWhiteSpace(id.GetString()))
+                    throw new JsonException("模型列表中包含无效的模型 ID。");
+
+                lastId = id.GetString()!;
+                if (!modelIds.Contains(lastId, StringComparer.Ordinal))
+                {
+                    modelIds.Add(lastId);
+                    addedOnPage++;
+                }
+
+                if (modelIds.Count > 5000)
+                    throw new JsonException("模型列表超过 5000 项安全上限。");
+            }
+
+            var hasMore = root.TryGetProperty("has_more", out var hasMoreElement) &&
+                          hasMoreElement.ValueKind == JsonValueKind.True;
+            if (!hasMore)
+                break;
+            if (string.IsNullOrWhiteSpace(lastId) || addedOnPage == 0)
+                throw new JsonException("模型列表分页游标无效或未返回新模型。");
+            if (page == 19)
+                throw new JsonException("模型列表超过 20 页安全上限，未能完整获取。");
+
+            after = root.TryGetProperty("last_id", out var lastIdElement) &&
+                    lastIdElement.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(lastIdElement.GetString())
+                ? lastIdElement.GetString()
+                : lastId;
         }
 
-        return modelIds.Distinct(StringComparer.Ordinal).ToArray();
+        return modelIds.ToArray();
     }
 }
