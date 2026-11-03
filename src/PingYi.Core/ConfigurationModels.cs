@@ -41,6 +41,22 @@ public sealed record ModelServiceProfile
     public bool Enabled { get; init; } = true;
     public IReadOnlyList<string> Capabilities { get; init; } = ["text-generation"];
     public string? ProviderId { get; init; }
+
+    public bool Equals(ModelServiceProfile? other) =>
+        ReferenceEquals(this, other) || other is not null &&
+        Id == other.Id && Name == other.Name && Kind == other.Kind && Protocol == other.Protocol &&
+        Endpoint == other.Endpoint && CredentialRef == other.CredentialRef && DefaultModelId == other.DefaultModelId &&
+        Enabled == other.Enabled && ProviderId == other.ProviderId &&
+        (Capabilities ?? []).SequenceEqual(other.Capabilities ?? [], StringComparer.OrdinalIgnoreCase);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Id); hash.Add(Name); hash.Add(Kind); hash.Add(Protocol); hash.Add(Endpoint);
+        hash.Add(CredentialRef); hash.Add(DefaultModelId); hash.Add(Enabled); hash.Add(ProviderId);
+        foreach (var capability in Capabilities ?? []) hash.Add(capability, StringComparer.OrdinalIgnoreCase);
+        return hash.ToHashCode();
+    }
 }
 
 public sealed record TaskModelRoute
@@ -94,6 +110,21 @@ public sealed record ModelCatalogEntry
     public string DiscoverySource { get; init; } = "manual";
     public DateTimeOffset? LastDiscoveredUtc { get; init; }
     public bool Available { get; init; } = true;
+
+    public bool Equals(ModelCatalogEntry? other) =>
+        ReferenceEquals(this, other) || other is not null &&
+        ServiceId == other.ServiceId && ModelId == other.ModelId &&
+        DiscoverySource == other.DiscoverySource && LastDiscoveredUtc == other.LastDiscoveredUtc &&
+        Available == other.Available &&
+        (Capabilities ?? []).SequenceEqual(other.Capabilities ?? [], StringComparer.OrdinalIgnoreCase);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(ServiceId); hash.Add(ModelId); hash.Add(DiscoverySource); hash.Add(LastDiscoveredUtc); hash.Add(Available);
+        foreach (var capability in Capabilities ?? []) hash.Add(capability, StringComparer.OrdinalIgnoreCase);
+        return hash.ToHashCode();
+    }
 }
 
 public sealed record RuntimeConfiguration
@@ -115,6 +146,23 @@ public sealed record AppConfiguration
     public IReadOnlyList<ModelCatalogEntry> Models { get; init; } = [];
     public TaskRoutingConfiguration Tasks { get; init; } = new();
     public RuntimeConfiguration Runtime { get; init; } = new();
+
+    public bool Equals(AppConfiguration? other) =>
+        ReferenceEquals(this, other) || other is not null &&
+        Version == other.Version && Mode == other.Mode &&
+        (Services ?? []).SequenceEqual(other.Services ?? []) &&
+        (Models ?? []).SequenceEqual(other.Models ?? []) &&
+        Equals(Tasks, other.Tasks) && Equals(Runtime, other.Runtime);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Version); hash.Add(Mode);
+        foreach (var service in Services ?? []) hash.Add(service);
+        foreach (var model in Models ?? []) hash.Add(model);
+        hash.Add(Tasks); hash.Add(Runtime);
+        return hash.ToHashCode();
+    }
 
     public static AppConfiguration Empty { get; } = new();
 
