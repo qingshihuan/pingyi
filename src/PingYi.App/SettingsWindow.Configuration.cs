@@ -27,6 +27,7 @@ public partial class SettingsWindow
     private void InitializeConfigurationCenter()
     {
         ConfigServiceProtocolCombo.ItemsSource = ApiProtocolChoices.All;
+        ConfigServicePresetCombo.ItemsSource = ThirdPartyApiPresets.All;
         RefreshConfigurationCenterLanguage();
     }
 
@@ -60,6 +61,7 @@ public partial class SettingsWindow
             ? "Hybrid mode lets each task use a different local or cloud service. Local-first and Cloud-first are routing preferences, not permission to upload data silently."
             : "混合模式允许每种任务分别使用本地或云端服务。本地优先和云端优先只是路由偏好，不代表允许静默上传数据。";
         ConfigurationServicesTitleText.Text = en ? "Model services" : "模型服务";
+        ApplyConfigServicePresetButton.Content = en ? "Apply preset" : "填入预设";
         AddConfigurationServiceButton.Content = en ? "Add service" : "添加服务";
         DeleteConfigurationServiceButton.Content = en ? "Delete service" : "删除服务";
         ConfigServiceNameLabelText.Text = en ? "Service name" : "服务名称";
@@ -161,6 +163,19 @@ public partial class SettingsWindow
             ConfigurationServiceCombo.SelectedItem is not ConfigurationServiceChoice choice) return;
         _editingConfigurationServiceId = choice.Id;
         LoadConfigurationService(_services.Settings.Configuration.Services.FirstOrDefault(profile => profile.Id == choice.Id));
+    }
+
+    private void ApplyConfigServicePresetButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ConfigServicePresetCombo.SelectedItem is not ThirdPartyApiPreset preset) return;
+        ConfigServiceNameBox.Text = preset.DisplayName;
+        ConfigServiceEndpointBox.Text = preset.ChatCompletionsEndpoint;
+        ConfigServiceProtocolCombo.SelectedItem = ApiProtocolChoices.Get(preset.DefaultProtocol);
+        ConfigServiceKindCombo.SelectedItem = ConfigServiceKindCombo.ItemsSource is IEnumerable<ConfigurationChoice> kinds
+            ? kinds.FirstOrDefault(item => item.Id == ModelServiceKinds.Remote) : null;
+        SetInlineStatus(ConfigurationServiceStatusText,
+            UiText.IsEnglish ? "Provider endpoint filled in. Enter the exact model ID and API Key, then save." : "已填入服务商地址。请填写准确模型 ID 和 API Key，然后保存。",
+            "SecondaryTextBrush");
     }
 
     private void AddConfigurationServiceButton_OnClick(object? sender, RoutedEventArgs e)
