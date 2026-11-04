@@ -66,7 +66,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                             var selection = await overlay.ShowAndSelectAsync(selectionToken);
                             EnsureCurrent(operation);
                             return selection is null ? null : services.ImageCropper.Crop(frame, selection.Value);
-                        }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0);
+                        }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0, captureStartedAt);
             }
             finally { IsCapturingScreen = false; }
             EnsureCurrent(operation);
