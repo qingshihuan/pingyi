@@ -6,10 +6,7 @@ namespace PingYi.App;
 
 public sealed partial class CaptureCoordinator
 {
-    private Task RetryAsImageAnalysisAsync(ResultWindow window, CapturePurpose purpose)
-    {
-        return RetrySelectionAsync(window, purpose);
-    }
+    private Task RetryAsImageAnalysisAsync(ResultWindow window, CapturePurpose purpose) => RetrySelectionAsync(window, purpose);
 
     private void CancelForWindow(ResultWindow window)
     {
@@ -24,7 +21,6 @@ public sealed partial class CaptureCoordinator
         var active = true;
         var progress = new Progress<ManagedModelProgress>(value =>
         {
-            // Queued UI callbacks must not replace OCR/analysis feedback after startup ends.
             if (!active || !IsCurrent(operation)) return;
             window.UpdateLoadingStatus(value.Phase == "fallback"
                 ? UiText.Get("String.ModelCpuFallback")
@@ -38,12 +34,14 @@ public sealed partial class CaptureCoordinator
 
     private async Task ProcessImageAnalysisAsync(OperationContext operation, ResultWindow window, ImageFrame image)
     {
-        var snapshot = services.Settings;
+        var originalSettings = services.Settings;
         var purpose = window.Purpose;
         var language = UiText.CurrentLanguage;
         try
         {
             EnsureCurrent(operation);
+            var resolved = ConfigurationRouting.Resolve(originalSettings, ModelTasks.ForPurpose(purpose));
+            var snapshot = resolved.Settings;
             if (!AppSettings.TryParseChatCompletionsEndpoint(snapshot.CustomTranslationEndpoint, out var endpoint) ||
                 string.IsNullOrWhiteSpace(snapshot.CustomTranslationModel) || !string.IsNullOrEmpty(endpoint.UserInfo))
                 throw new ProviderException("image_analysis_configuration", UiText.Get("String.VisionConfiguration"));
@@ -60,20 +58,19 @@ public sealed partial class CaptureCoordinator
                 return;
             }
             EnsureCurrent(operation);
-            if (RuntimePolicy.HasConfiguredManagedRuntime(snapshot))
+            if (resolved.IsManaged)
             {
                 window.UpdateLoadingStatus(UiText.Get("String.ModelLoadingWait"));
                 await WithTimeoutAsync(token => WaitForModelAsync(operation, window, token, true), ManagedRuntimeTimeout, operation.Token,
                     "managed_runtime_timeout", UiText.Get("String.ModelStartTimeout"));
             }
             EnsureCurrent(operation);
-            // Consent applies only to this endpoint/model. A settings change cannot redirect an upload.
-            if (services.Settings.CustomTranslationEndpoint != snapshot.CustomTranslationEndpoint ||
-                services.Settings.CustomTranslationModel != snapshot.CustomTranslationModel)
+            // Consent binds the complete frozen route, including profile, protocol and model.
+            if (services.Settings != originalSettings)
                 throw new ProviderException("image_analysis_configuration_changed", UiText.Get("String.VisionConfigurationChanged"));
             window.UpdateLoadingStatus(UiText.Get(purpose == CapturePurpose.DescribeImage
                 ? "String.AnalysisDescribing" : "String.AnalysisPrompting"));
-            var result = await services.CreateImageAnalyzer(snapshot).AnalyzeAsync(image,
+            var result = await services.TaskImageAnalyzer(originalSettings, purpose).AnalyzeAsync(image,
                 new ImageAnalysisOptions(purpose, language), operation.Token);
             EnsureCurrent(operation);
             window.SetAnalysisResult(result);

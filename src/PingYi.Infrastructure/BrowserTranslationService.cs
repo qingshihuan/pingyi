@@ -6,8 +6,12 @@ using SkiaSharp;
 namespace PingYi.Infrastructure;
 
 public sealed class BrowserTranslationService(ProviderRegistry providers,
-    Func<CancellationToken, Task> ensureRuntime)
+    Func<CancellationToken, Task> ensureRuntime,
+    Func<AppSettings, ITranslationProvider>? createTranslator = null,
+    Func<AppSettings, IOcrProvider>? createOcr = null)
 {
+    private ITranslationProvider Translator(AppSettings settings) => createTranslator?.Invoke(settings) ?? providers.GetTranslationProvider(settings.TranslationProviderId);
+    private IOcrProvider Ocr(AppSettings settings) => createOcr?.Invoke(settings) ?? providers.GetOcrProvider(settings.OcrProviderId);
     private static bool IsRemote(ProviderMetadata provider, AppSettings settings) =>
         provider.Location == ProviderExecutionLocation.Cloud ||
         provider.Location == ProviderExecutionLocation.Configurable &&
@@ -15,11 +19,10 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
 
     public BrowserStatus GetStatus(AppSettings settings)
     {
-        var translation = providers.GetTranslationProvider(settings.TranslationProviderId).Metadata;
-        var ocr = providers.GetOcrProvider(settings.OcrProviderId).Metadata;
-        // Bind consent to both provider IDs, endpoint and model; expose no secrets or endpoint query.
+        var translation = Translator(settings).Metadata;
+        var ocr = Ocr(settings).Metadata;
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            $"{translation.Id}|{ocr.Id}|{settings.CustomTranslationEndpoint}|{settings.CustomTranslationModel}")));
+            $"{ConfigurationRouting.Fingerprint(settings, ModelTasks.Ocr)}|{ConfigurationRouting.Fingerprint(settings, ModelTasks.Translation)}")));
         return new(translation.DisplayName, ocr.DisplayName, IsRemote(translation, settings),
             IsRemote(ocr, settings), key, settings.TargetLanguage, LanguageCatalog.All);
     }
@@ -44,8 +47,7 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
         ImageFrame? image = null;
         if (request.Operation == "ocr")
         {
-            if (request.Image is null || request.Image.Length > 11 * 1024 * 1024)
-                return new(false, "invalid_image");
+            if (request.Image is null || request.Image.Length > 11 * 1024 * 1024) return new(false, "invalid_image");
             try
             {
                 var bytes = Convert.FromBase64String(request.Image);
@@ -53,20 +55,16 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
                 using var codec = SKCodec.Create(data);
                 if (codec is null || codec.EncodedFormat != SKEncodedImageFormat.Png ||
                     codec.Info.Width <= 0 || codec.Info.Height <= 0 ||
-                    (long)codec.Info.Width * codec.Info.Height > 16_000_000)
-                    return new(false, "invalid_image");
-                image = new(bytes, codec.Info.Width, codec.Info.Height,
-                    new(0, 0, codec.Info.Width, codec.Info.Height));
+                    (long)codec.Info.Width * codec.Info.Height > 16_000_000) return new(false, "invalid_image");
+                image = new(bytes, codec.Info.Width, codec.Info.Height, new(0, 0, codec.Info.Width, codec.Info.Height));
             }
             catch (FormatException) { return new(false, "invalid_image"); }
         }
 
-        if (settings.TranslationProviderId == "custom-chat" || image is not null &&
-            settings.OcrProviderId is "local-vlm-ocr" or "local-vlm-corrected")
-            await ensureRuntime(token);
+        if (RuntimePolicy.UsesManagedRuntime(settings)) await ensureRuntime(token);
         if (image is not null)
         {
-            var ocr = providers.GetOcrProvider(settings.OcrProviderId);
+            var ocr = Ocr(settings);
             if (!(await ocr.GetAvailabilityAsync(token)).IsAvailable) return new(false, "ocr_unavailable");
             var recognized = await ocr.RecognizeAsync(image, new(request.SourceLanguage), token);
             text = recognized.PlainText;
@@ -74,14 +72,13 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
         }
         if (string.IsNullOrWhiteSpace(text)) return new(false, "no_text");
         if (text.Length > 12000) return new(false, "text_too_long");
-        var provider = providers.GetTranslationProvider(settings.TranslationProviderId);
+        var provider = Translator(settings);
         var source = request.SourceLanguage == "auto"
             ? LanguageCatalog.IsKnown(detected) ? detected! : TextProcessing.DetectLanguage(text)
             : request.SourceLanguage;
         var target = TextProcessing.ResolveTargetLanguage(source, request.TargetLanguage);
         if (source == target) return new(true, Original: text, Translation: text, SourceLanguage: source, TargetLanguage: target);
         if (!(await provider.GetAvailabilityAsync(token)).IsAvailable) return new(false, "translation_unavailable");
-        // Preserve cloud/model auto detection; the built-in offline pair needs an explicit language.
         var route = TextProcessing.ResolveTranslationLanguages(request.SourceLanguage, target, source, text,
             provider.Metadata.Id != "local-argos");
         var result = await provider.TranslateAsync(new(text, route.SourceLanguage, route.TargetLanguage), token);

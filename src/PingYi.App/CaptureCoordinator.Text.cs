@@ -8,11 +8,14 @@ public sealed partial class CaptureCoordinator
     private async Task ProcessTextAsync(OperationContext operation, ResultWindow window, ImageFrame image)
     {
         var settings = services.Settings;
-        var ocr = services.CaptureOcr(settings);
-        var translator = services.CaptureTranslator(settings);
-        var privacy = BuildPrivacyDescription(settings, ocr.Metadata, translator.Metadata);
-        var label = UiText.ProviderName(ocr.Metadata.Id, ocr.Metadata.DisplayName);
-        if (window.RequestedPurpose == CapturePurpose.Auto && HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
+        var ocr = services.TaskOcr(settings);
+        var translator = services.TaskTranslator(settings);
+        var privacy = settings.ModelConfiguration?.HasOverrides == true
+            ? (UiText.IsEnglish ? $"OCR: {ocr.Metadata.DisplayName}\nTranslation: {translator.Metadata.DisplayName}\nRemote routes send content to the named service and may incur charges."
+                : $"文字识别：{ocr.Metadata.DisplayName}\n文字翻译：{translator.Metadata.DisplayName}\n远程路由会向上述服务发送内容，可能计费。")
+            : BuildPrivacyDescription(settings, ocr.Metadata, translator.Metadata);
+        var label = ocr.Metadata.DisplayName;
+        if ((window.RequestedPurpose == CapturePurpose.Auto || settings.ModelConfiguration?.HasOverrides == true) && HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
         {
             if (!await AutomaticConsentWindow.ConfirmAsync(window, privacy, operation.Token))
             {
@@ -47,7 +50,6 @@ public sealed partial class CaptureCoordinator
                 operation.Token, "ocr_availability_timeout", "OCR 引擎状态检查超时。");
             EnsureCurrent(operation);
             if (!availability.IsAvailable) throw new ProviderException("ocr_unavailable", availability.Message ?? "OCR 引擎不可用。");
-            // Local probe results are reusable only for the same provider and source settings.
             result = ReferenceEquals(ocr, services.PaddleProvider) && TryGetPaddleProbe(image, settings.SourceLanguage, out var cached)
                 ? cached
                 : await WithTimeoutAsync(token => ocr.RecognizeAsync(image, new OcrOptions(settings.SourceLanguage), token),
@@ -56,7 +58,7 @@ public sealed partial class CaptureCoordinator
             if (string.IsNullOrWhiteSpace(result.PlainText)) throw new ProviderException("no_text", "所选区域中没有识别到文字。");
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception primary) when (!ReferenceEquals(ocr, services.PaddleProvider))
+        catch (Exception primary) when (!ReferenceEquals(ocr, services.PaddleProvider) && ConfigurationRouting.AllowOfflineFallback(settings, ModelTasks.Ocr))
         {
             try
             {
@@ -89,11 +91,12 @@ public sealed partial class CaptureCoordinator
             var route = TextProcessing.ResolveTranslationLanguages(settings.SourceLanguage, settings.TargetLanguage,
                 result.DetectedLanguage, result.PlainText, translator.Metadata.SupportedLanguages.Count > 2);
             var request = new TranslationRequest(result.PlainText, route.SourceLanguage, route.TargetLanguage);
-            var execution = await TranslationFallback.ExecuteAsync(translator, services.ArgosProvider, request,
+            var execution = await TranslationFallback.ExecuteAsync(translator,
+                ConfigurationRouting.AllowOfflineFallback(settings, ModelTasks.Translation) ? services.ArgosProvider : translator, request,
                 operation.Token, primaryTimeout: TranslationTimeout, fallbackTimeout: TranslationTimeout);
             EnsureCurrent(operation);
             _ocrRetryCache.MarkTranslationComplete(image);
-            var name = UiText.ProviderName(execution.Provider.Id, execution.Provider.DisplayName);
+            var name = execution.Provider.DisplayName;
             window.SetTranslation(execution.Result, execution.UsedFallback
                 ? UiText.IsEnglish ? $"{name} (lightweight fallback)" : $"{name}（轻量回退）" : name);
         }

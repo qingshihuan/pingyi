@@ -16,7 +16,7 @@ public static class ModelTasks
     };
 }
 
-/// <summary>Unknown is not unsupported or verified. Catalog discovery alone proves neither capability.</summary>
+/// <summary>Unknown is not unsupported or verified. Discovery alone proves neither capability.</summary>
 public sealed record ModelCatalogEntry(string Id, bool TextVerified = false, bool VisionVerified = false);
 
 public sealed record ModelServiceProfile
@@ -41,9 +41,11 @@ public sealed record ModelServiceProfile
         if (!AppSettings.IsChatCompletionsTransportAllowed(uri))
             throw new ProviderException("profile_https_required", "远程服务必须使用 HTTPS。 / Remote services require HTTPS.");
         var path = uri.AbsolutePath.TrimEnd('/');
+        var explicitResource = path.EndsWith("/responses", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase);
         if (path.EndsWith("/responses", StringComparison.OrdinalIgnoreCase)) path = path[..^10];
         else if (path.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase)) path = path[..^17];
-        if (path.Length == 0) path = "/v1";
+        if (path.Length == 0 && !explicitResource) path = "/v1";
         return new UriBuilder(uri) { Path = path + "/chat/completions" }.Uri.AbsoluteUri;
     }
 
@@ -99,7 +101,7 @@ public sealed record ModelConfiguration
     public ModelServiceProfile[] Services { get; init; } = [];
     public ModelTaskRoutes Tasks { get; init; } = new();
     public bool LegacyCredentialPending { get; init; }
-    [JsonIgnore] public bool HasOverrides => ModelTasks.All.Any(t => Tasks.Get(t).ServiceId.Length > 0);
+    [JsonIgnore] public bool HasOverrides => Tasks is not null && ModelTasks.All.Any(t => !string.IsNullOrEmpty(Tasks.Get(t)?.ServiceId));
     public void Validate()
     {
         if (Services is null || Services.Length > 32 || Services.Any(s => s is null) || Tasks is null ||
@@ -127,14 +129,25 @@ public static class ConfigurationMigration
     public static AppSettings Upgrade(AppSettings settings)
     {
         if (settings.ModelConfiguration is not null) return settings;
-        var profile = new ModelServiceProfile
+        if (settings.ManagedRuntimeEnabled && settings.CustomTranslationEndpoint == AppSettings.ManagedModelEndpoint)
+            return settings with { ModelConfiguration = new() }; // Owned runtime is the dedicated $managed route, not an external server.
+        try
         {
-            Id = ModelConfiguration.Imported, Name = "原有模型服务 / Imported service",
-            Endpoint = ModelServiceProfile.CanonicalEndpoint(settings.CustomTranslationEndpoint),
-            Protocol = settings.CustomTranslationApiProtocol,
-            DefaultModel = settings.CustomTranslationModel
-        };
-        return settings with { ModelConfiguration = new ModelConfiguration { Services = [profile], LegacyCredentialPending = true } };
+            var profile = new ModelServiceProfile
+            {
+                Id = ModelConfiguration.Imported, Name = "原有模型服务 / Imported service",
+                Endpoint = ModelServiceProfile.CanonicalEndpoint(settings.CustomTranslationEndpoint),
+                Protocol = settings.CustomTranslationApiProtocol,
+                DefaultModel = settings.CustomTranslationModel
+            };
+            profile.Validate();
+            return settings with { ModelConfiguration = new ModelConfiguration { Services = [profile], LegacyCredentialPending = true } };
+        }
+        catch (ProviderException)
+        {
+            // Keep legacy fields intact so an invalid old endpoint can be repaired, never silently changed into a cloud route.
+            return settings with { ModelConfiguration = new() };
+        }
     }
 }
 

@@ -26,6 +26,8 @@ internal sealed class FirstRunSetupWindow : Window
     internal Button DownloadButton { get; } = new() { Name = "DownloadBasicButton" };
     internal Button LightweightButton { get; } = new() { Name = "UseLightweightButton" };
     internal Button ExistingButton { get; } = new() { Name = "UseExistingModelButton" };
+    internal Button ApiButton { get; } = new() { Name = "ConfigureApiButton" };
+    internal Button HybridButton { get; } = new() { Name = "ConfigureHybridButton" };
     internal Button CancelButton { get; } = new() { Name = "CancelModelSetupButton" };
     internal Task OperationTask { get; private set; } = Task.CompletedTask;
     private CancellationTokenSource? _operation;
@@ -34,8 +36,7 @@ internal sealed class FirstRunSetupWindow : Window
     internal FirstRunSetupWindow(AppServices services) : this(services.ManagedModels.HasBundledRuntime,
         services.ConfigureInitialModelAsync, async (choice, token) =>
         {
-            var settings = choice == InitialSetupChoice.Ready
-                ? ProcessingModes.Apply(services.Settings, "lite") : services.Settings;
+            var settings = choice == InitialSetupChoice.Ready ? ProcessingModes.Apply(services.Settings, "lite") : services.Settings;
             await services.SaveSettingsAsync(settings with { InitialSetupCompleted = true }, token);
         })
     {
@@ -46,7 +47,7 @@ internal sealed class FirstRunSetupWindow : Window
         _runtimeHardware.ActivityChanged += busy =>
         {
             DownloadButton.IsEnabled = !busy && _hasRuntime;
-            LightweightButton.IsEnabled = ExistingButton.IsEnabled = !busy;
+            LightweightButton.IsEnabled = ExistingButton.IsEnabled = ApiButton.IsEnabled = HybridButton.IsEnabled = !busy;
         };
         _configure = (model, backend, progress, token) => services.ConfigureInitialModelAsync(model, backend,
             _runtimeHardware.SelectedDevice, _runtimeHardware.AllowMirrors, _runtimeHardware.MirrorPrefixes, progress, token);
@@ -55,15 +56,13 @@ internal sealed class FirstRunSetupWindow : Window
         Height = 820;
     }
 
-    // Separate UI from download/persistence callbacks so confirmation and cancellation can
-    // be tested with no network, model files, credentials or user settings.
     internal FirstRunSetupWindow(bool hasRuntime,
         Func<ManagedMultimodalModel, string, IProgress<ManagedModelProgress>, CancellationToken, Task> configure,
         Func<InitialSetupChoice, CancellationToken, Task> saveChoice)
     {
         _hasRuntime = hasRuntime; _configure = configure; _saveChoice = saveChoice;
         Title = CaptureUiText.Pick("开始使用 · 选择处理模式", "Get started · choose a processing mode");
-        Width = 600; Height = 620; MinWidth = 440; MinHeight = 400;
+        Width = 600; Height = 720; MinWidth = 440; MinHeight = 400;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Classes.Add("workspace");
         Styles.Add(new StyleInclude(new Uri("avares://PingYi.App/")) { Source = new Uri("avares://PingYi.App/Styles/Workspace.axaml") });
@@ -72,13 +71,15 @@ internal sealed class FirstRunSetupWindow : Window
         _backends.ItemsSource = ManagedRuntimeBackends.All;
         _backends.SelectedItem = ManagedRuntimeBackends.Default;
         _models.SelectionChanged += (_, _) => UpdateDetails();
-        DownloadButton.Content = CaptureUiText.Pick("一键下载并配置基础模式", "Download and configure Basic");
+        DownloadButton.Content = CaptureUiText.Pick("本地运行 · 一键下载并配置基础模式", "Local · download and configure Basic");
         LightweightButton.Content = CaptureUiText.Pick("暂不下载，使用轻量模式", "Skip download · use Lightweight");
         ExistingButton.Content = CaptureUiText.Pick("我已有本机模型服务", "Connect an existing local service");
+        ApiButton.Content = CaptureUiText.Pick("第三方 API · 无需下载本地模型", "Third-party API · no local model download");
+        HybridButton.Content = CaptureUiText.Pick("混合模式 · 每个任务独立选择服务", "Hybrid · choose a service for each task");
         CancelButton.Content = CaptureUiText.Pick("取消下载／启动", "Cancel download / startup");
         DownloadButton.Classes.Add("primary");
-        foreach (var button in new[] { LightweightButton, ExistingButton, CancelButton }) button.Classes.Add("secondary");
-        foreach (var button in new[] { DownloadButton, LightweightButton, ExistingButton, CancelButton })
+        foreach (var button in new[] { LightweightButton, ExistingButton, ApiButton, HybridButton, CancelButton }) button.Classes.Add("secondary");
+        foreach (var button in new[] { DownloadButton, LightweightButton, ExistingButton, ApiButton, HybridButton, CancelButton })
         {
             AutomationProperties.SetAutomationId(button, button.Name);
             AutomationProperties.SetName(button, button.Content?.ToString() ?? "");
@@ -86,7 +87,8 @@ internal sealed class FirstRunSetupWindow : Window
         CancelButton.IsVisible = false;
         DownloadButton.Click += async (_, _) => { OperationTask = InstallAsync(); await OperationTask; };
         LightweightButton.Click += async (_, _) => { OperationTask = ChooseAsync(InitialSetupChoice.Ready); await OperationTask; };
-        ExistingButton.Click += async (_, _) => { OperationTask = ChooseAsync(InitialSetupChoice.ConfigureExisting); await OperationTask; };
+        foreach (var button in new[] { ExistingButton, ApiButton, HybridButton })
+            button.Click += async (_, _) => { OperationTask = ChooseAsync(InitialSetupChoice.ConfigureExisting); await OperationTask; };
         CancelButton.Click += (_, _) => _operation?.Cancel();
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         Content = new ScrollViewer
@@ -97,9 +99,11 @@ internal sealed class FirstRunSetupWindow : Window
                 Children =
                 {
                     new TextBlock { Text = Title, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-                    new TextBlock { Text = CaptureUiText.Pick("基础模式：本机视觉 OCR ＋ 本机模型翻译。一次截图自动判断任务，也可手动选择翻译、描述或二维码。", "Basic: local vision OCR + local model translation. Smart capture chooses a task; you can always choose translation, description or QR manually."), TextWrapping = TextWrapping.Wrap },
+                    new TextBlock { Text = CaptureUiText.Pick("选择本地、API 或混合方式。API/混合会打开配置中心：添加服务 → 获取模型 → 分配任务 → 测试并保存。只选择方式不会发送截图或执行推理。", "Choose local, API or hybrid. API/hybrid opens Configuration center: add a service → fetch models → assign tasks → test and save. Choosing a mode sends no screenshots or inference requests."), TextWrapping = TextWrapping.Wrap },
+                    ApiButton, HybridButton,
+                    new TextBlock { Text = CaptureUiText.Pick("本地基础模式：视觉 OCR ＋ 本机模型翻译", "Local Basic: vision OCR + model translation"), FontWeight = FontWeight.SemiBold },
                     _models, _backends, _runtimeHost, _details,
-                    new TextBlock { Text = CaptureUiText.Pick("点击后从魔搭下载并校验模型。模型不在安装包内，需要足够磁盘与内存；取消后保留已下载部分以便续传。不上传你的截图。", "Clicking Download fetches and verifies weights from ModelScope. They are not bundled; allow sufficient disk and memory. Cancelling preserves resumable downloads. Your screenshots are not uploaded."), TextWrapping = TextWrapping.Wrap },
+                    new TextBlock { Text = CaptureUiText.Pick("仅点击下载按钮才会下载并校验权重；API 模式不需要本地权重。已安装模型继续复用，退出时可释放后端资源。", "Weights are downloaded and verified only after clicking Download. API mode needs no local weights. Installed models are reused; exiting can release backend resources."), TextWrapping = TextWrapping.Wrap },
                     DownloadButton, _progress, _status, CancelButton, ExistingButton, LightweightButton
                 }
             }
@@ -108,7 +112,7 @@ internal sealed class FirstRunSetupWindow : Window
         if (!hasRuntime)
         {
             DownloadButton.IsEnabled = false;
-            _status.Text = CaptureUiText.Pick("当前目录缺少 llama.cpp 运行时。请使用完整安装包，或选择已有本机服务／轻量模式。", "This directory lacks llama.cpp. Use a complete runtime bundle, an existing local service, or Lightweight.");
+            _status.Text = CaptureUiText.Pick("当前目录缺少 llama.cpp 运行时。可使用 API、已有本机服务或轻量模式。", "This directory lacks llama.cpp. API, existing local services and Lightweight remain available.");
         }
         Closing += (_, e) =>
         {
@@ -131,7 +135,7 @@ internal sealed class FirstRunSetupWindow : Window
     {
         _runtimeHardware?.SetParentBusy(busy);
         DownloadButton.IsEnabled = !busy && _hasRuntime;
-        LightweightButton.IsEnabled = ExistingButton.IsEnabled = _models.IsEnabled = _backends.IsEnabled = !busy;
+        LightweightButton.IsEnabled = ExistingButton.IsEnabled = ApiButton.IsEnabled = HybridButton.IsEnabled = _models.IsEnabled = _backends.IsEnabled = !busy;
         CancelButton.IsVisible = _progress.IsVisible = busy;
     }
     private async Task InstallAsync()
