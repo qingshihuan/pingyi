@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
     private readonly Dictionary<Button, bool> _buttonDefaultEnabledStates = [];
     private readonly Dictionary<Button, CancellationTokenSource> _buttonFeedbackResetTokens = [];
     private bool _isLoadingSettings;
+    private bool _settingsClosed;
     private CancellationTokenSource? _managedModelOperation;
     private Uri? _latestReleasePage;
     private ModelConfiguration? _baselineConfiguration;
@@ -41,6 +42,7 @@ public partial class SettingsWindow : Window
         UiText.LanguageChanged += OnLanguageChanged;
         Closed += (_, _) =>
         {
+            _settingsClosed = true;
             UiText.LanguageChanged -= OnLanguageChanged;
             ConfigurationCenter.Cancel(); _managedModelOperation?.Cancel();
             foreach (var button in _buttonFeedbackResetTokens.Keys.ToArray()) CancelButtonFeedbackReset(button);
@@ -50,6 +52,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppServices services) : this()
     {
         _services = services;
+        ConfigureLocalAutomatically = services.ConfigureLocalModelAutomaticallyAsync;
         _persistLanguage = services.SaveUiLanguageAsync;
         ConfigurationCenter.Discover = services.DiscoverProfileModelsAsync;
         ConfigurationCenter.Verify = services.TestProfileModelAsync;

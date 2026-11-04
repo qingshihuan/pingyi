@@ -56,7 +56,8 @@ public sealed partial class AppServices
                     // Retain Auto through model loading: a detected GPU may still fail to load the model.
                     await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation, device);
                     progress.Report(new ManagedModelProgress("runtime-verify", "正在验证新后端的固定 OCR／翻译样例… / Testing OCR and translation on the new backend…", 0, 0, true));
-                    await VerifyConfiguredModelAsync(next, cancellation);
+                    if (await VerifyManagedRuntimeWithFallbackAsync(model, next, progress, cancellation))
+                        next = next with { ManagedRuntimeBackend = "cpu", ManagedRuntimeDevice = "auto" };
                 }
                 else await ManagedModels.StopAsync(cancellation);
             }, async cancellation =>

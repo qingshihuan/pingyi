@@ -25,6 +25,17 @@
       <TabItem x:Name="LocalSettingsTab" Header="本地模型管理" Classes="workspace-tab">
         <ScrollViewer><StackPanel Margin="24" Spacing="16">
           <TextBlock x:Name="LocalModelHint" Classes="workspace-help" TextWrapping="Wrap"/>
+          <Border Classes="workspace-inset">
+            <StackPanel Spacing="10">
+              <WrapPanel>
+                <Button x:Name="AutomaticLocalSetupButton" Classes="primary" Click="AutomaticLocalSetup_OnClick" Margin="0,0,8,8"/>
+                <Button x:Name="AutomaticLocalSetupCancelButton" Classes="secondary" Click="ManagedModelCancelButton_OnClick" IsVisible="False" Margin="0,0,8,8"/>
+              </WrapPanel>
+              <TextBlock x:Name="AutomaticLocalSetupHint" Classes="workspace-help" TextWrapping="Wrap"/>
+              <ProgressBar x:Name="AutomaticLocalSetupProgress" Minimum="0" Maximum="100" Height="6" IsVisible="False"/>
+              <TextBlock x:Name="AutomaticLocalSetupStatus" Classes="workspace-help" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+            </StackPanel>
+          </Border>
           <Expander x:Name="ManagedModelExpander" Header="{DynamicResource Text.28137e0aafbe}" IsExpanded="True" IsVisible="False">
               <StackPanel Spacing="14" Margin="0,14,0,0">
                 <StackPanel Spacing="6">

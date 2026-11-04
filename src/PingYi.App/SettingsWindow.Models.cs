@@ -123,9 +123,12 @@ public partial class SettingsWindow
     }
     private void SetManagedModelBusy(bool busy)
     {
+        if (busy) CancelButtonFeedbackReset(SaveSettingsButton);
         _runtimeHardware?.SetParentBusy(busy);
         ManagedModelCombo.IsEnabled = ManagedRuntimeBackendCombo.IsEnabled = ManagedModelSourceButton.IsEnabled =
             ManagedModelFolderButton.IsEnabled = ManagedModelInstallButton.IsEnabled = ManagedModelStartButton.IsEnabled = !busy;
+        AutomaticLocalSetupButton.IsEnabled = SaveSettingsButton.IsEnabled = !busy;
+        CurrentModelSettingsTab.IsEnabled = ApiSettingsTab.IsEnabled = HotkeySettingsTab.IsEnabled = GeneralSettingsTab.IsEnabled = !busy;
         ManagedModelCancelButton.IsVisible = busy; ManagedModelCancelButton.IsEnabled = busy;
         ManagedModelProgressBar.IsVisible = busy;
         if (!busy) ManagedModelProgressBar.IsIndeterminate = false;

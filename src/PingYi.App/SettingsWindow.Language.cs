@@ -91,6 +91,13 @@ public partial class SettingsWindow
             "Manage local and cloud API models together, including Ollama, LM Studio and compatible endpoints. Connect existing services here; app-owned downloads, runtimes and GPUs are under Local models.");
         LocalModelHint.Text = CaptureUiText.Pick("软件基础功能：下载并运行本机多模态模型，管理推理后端与显卡，无需云端 API。本地 API 服务调用请在“API 模型管理”中配置。",
             "Built-in functionality: download and run a local multimodal model and manage its runtime and GPU, without a cloud API. Configure existing local API services under API models.");
+        AutomaticLocalSetupButton.Content = CaptureUiText.Pick("一键检测并自动配置", "Detect and configure automatically");
+        AutomaticLocalSetupCancelButton.Content = CaptureUiText.Pick("取消", "Cancel");
+        AutomaticLocalSetupHint.Text = CaptureUiText.Pick(
+            "自动检测显卡、准备后端和模型，验证识字与翻译后保存并设为当前模型。显卡不可用时使用 CPU。已有模型优先复用，首次下载推荐模型约 1.82 GiB。",
+            "Detect hardware, prepare the runtime and model, then verify recognition and translation before saving and selecting it. Use CPU when GPUs are unavailable. Reuse your configured model; the first recommended download is about 1.82 GiB.");
+        Avalonia.Automation.AutomationProperties.SetName(AutomaticLocalSetupButton, AutomaticLocalSetupButton.Content.ToString());
+        Avalonia.Automation.AutomationProperties.SetName(AutomaticLocalSetupCancelButton, AutomaticLocalSetupCancelButton.Content.ToString());
         UiLanguageLabel.Text = CaptureUiText.Pick("界面语言", "Interface language");
         Avalonia.Automation.AutomationProperties.SetName(SaveSettingsButton, CaptureUiText.Pick("保存并应用", "Save and apply"));
         SaveSettingsButton.Content = CaptureUiText.Pick("保存并应用", "Save and apply");

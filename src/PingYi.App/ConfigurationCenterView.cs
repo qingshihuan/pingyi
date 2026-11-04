@@ -34,6 +34,17 @@ internal sealed partial class ConfigurationCenterView : UserControl
     private DateTimeOffset _deleteUntil;
     private readonly Button _add, _delete, _refresh, _textTest, _visionTest, _cancel;
     internal ModelConfiguration? Baseline { get; private set; }
+    internal void UpdateCurrentModelContext(ModelConfiguration configuration)
+    {
+        Baseline = configuration;
+        _configuration = _configuration with
+        {
+            CurrentModel = configuration.CurrentModel,
+            VerifiedManagedModelId = configuration.VerifiedManagedModelId,
+            PendingModel = configuration.PendingModel,
+            MigrationNotice = configuration.MigrationNotice
+        };
+    }
     internal Func<ModelServiceProfile, string?, CancellationToken, Task<IReadOnlyList<string>>>? Discover { get; set; }
     internal Func<ModelServiceProfile, string, string?, bool, CancellationToken, Task<ModelCatalogEntry>>? Verify { get; set; }
     internal Task OperationTask { get; private set; } = Task.CompletedTask;

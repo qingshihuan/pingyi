@@ -79,6 +79,11 @@ internal sealed partial class RuntimeSetupPanel
                     _progress.IsIndeterminate = p.IsIndeterminate; _progress.Value = p.Percentage;
                     _status.Text = UiText.T(p.Message);
                 }), token);
+            if (_currentSettings?.Invoke() is { } applied)
+            {
+                ApplySettings(applied);
+                _backend.SelectedItem = ManagedRuntimeBackends.Get(applied.ManagedRuntimeBackend);
+            }
             var refreshWarning = await RefreshAfterCommittedOperationAsync(token);
             ManagementStatus.Text = Pick("所选后端已保存。已配置托管模型时，切换包含 OCR／翻译验证；未配置模型时请继续模型配置。旧后端文件保留，可选择并卸载已下载的旧后端。",
                 "Backend choice saved. Configured managed models pass OCR/translation verification; otherwise continue model setup. Previous downloaded backends may now be selected and uninstalled.") + refreshWarning;

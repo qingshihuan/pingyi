@@ -81,6 +81,13 @@ internal sealed partial class RuntimeSetupPanel : StackPanel
         await RefreshAsync();
     }
     public void SetParentBusy(bool busy) { _parentBusy = busy; SetControls(); }
+    internal void ApplySettings(AppSettings settings)
+    {
+        _selection = settings.ManagedRuntimeDevice;
+        _mirrors.IsChecked = settings.RuntimeAllowMirrors;
+        _customMirrors.Text = settings.RuntimeMirrorPrefixes;
+        SetDeviceChoices([], null);
+    }
     private void SetControls()
     {
         var ready = !_closed && !_parentBusy && _work is null;
@@ -175,7 +182,7 @@ public partial class SettingsWindow
         _runtimeHardware = new RuntimeSetupPanel(_services.ManagedModels.Runtimes, ManagedRuntimeBackendCombo,
             _services.Settings, () => _services.ManagedModels.CurrentRuntimeDescription, _services);
         parent.Children.Insert(parent.Children.IndexOf(ManagedRuntimeBackendHintText) + 1, _runtimeHardware);
-        var controls = new Control[] { SaveSettingsButton, ManagedModelCombo, ManagedModelInstallButton, ManagedModelStartButton };
+        var controls = new Control[] { SaveSettingsButton, ManagedModelCombo, ManagedModelInstallButton, ManagedModelStartButton, AutomaticLocalSetupButton };
         bool[]? enabled = null;
         _runtimeHardware.ActivityChanged += busy =>
         {

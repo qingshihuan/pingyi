@@ -4,6 +4,8 @@ namespace PingYi.Infrastructure;
 
 public sealed partial class ManagedModelService
 {
+    public bool IsRunningOnGpu => HasRunningOwnedBackend && _runningBackendId is not (null or "cpu");
+
     public bool HasRunningOwnedBackend
     {
         get

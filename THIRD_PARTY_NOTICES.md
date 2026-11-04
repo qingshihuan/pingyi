@@ -17,6 +17,8 @@ Release builds reject retired engines and NVIDIA CUDA/cuDNN/Torch binaries. Opti
 
 Automatic backend detection is the default selection and uses CPU as the fallback when GPU backends are unusable. This preference does not add bundled GPU dependencies; the package still includes CPU/Vulkan only, and optional backends retain their existing installation and license requirements.
 
+One-click local setup reuses installed runtimes and configured models, downloading missing components only after the user starts setup. It uses the same pinned model hashes and official runtime digest checks. The source/version audit is documented in [runtime downloads](docs/RUNTIME_DOWNLOADS.md); this UI addition does not replace the bundled runtime.
+
 ## User-downloaded models and services
 
 Model downloads use pinned ModelScope revisions, expected lengths and SHA-256 values from `ManagedMultimodalModels`. The UI presents each model's source, license and device guidance before downloading. Model weights and remote service credentials are not included in releases. Users should review the applicable model/service terms. Capability verification is not a quality, performance or legal-use guarantee.
