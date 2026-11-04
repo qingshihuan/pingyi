@@ -1,0 +1,172 @@
+name: Temporary unsigned preview release
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/temporary-unsigned-release.yml"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Preview version (must be a SemVer version)
+        required: true
+        default: 0.10.1-unsigned.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pingyi-unsigned-preview
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Resolve preview version
+        id: resolve
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.1"
+          if not re.fullmatch(r"(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
+              raise SystemExit("Invalid preview version")
+          if "unsigned" not in version.lower():
+              raise SystemExit("Temporary preview version must contain 'unsigned'")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version={version}\\ntag=v{version}\\n")
+          PY
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
+      - name: Test and audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet restore PingYi.slnx
+          dotnet build PingYi.slnx -c Release --no-restore
+          dotnet test PingYi.slnx -c Release --no-build
+          python -m unittest discover -s scripts -p "test_*.py"
+          python scripts/audit-secrets.py --ref HEAD
+      - name: Build explicitly unsigned Windows packages
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          choco install innosetup --version 6.7.1 --yes --no-progress
+          $env:PATH += ";C:\\Program Files (x86)\\Inno Setup 6"
+          python ./scripts/prepare-llama-runtime.py --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
+          ./scripts/publish.ps1 -Runtime win-x64 -Version $env:RELEASE_VERSION -Edition Complete -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 -BuildInstaller
+          python scripts/audit-secrets.py --directory ./artifacts/publish/win-x64-complete
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-unsigned-preview
+          if-no-files-found: error
+          path: |
+            artifacts/PingYi-Complete-*-win-x64.zip
+            packaging/windows/Output/PingYi-Complete-*-win-x64-setup.exe
+
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
+      - name: Test and audit
+        run: |
+          dotnet restore PingYi.slnx
+          dotnet build PingYi.slnx -c Release --no-restore
+          dotnet test PingYi.slnx -c Release --no-build
+          python -m unittest discover -s scripts -p "test_*.py"
+          python scripts/audit-secrets.py --ref HEAD
+      - name: Build Linux packages
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y dpkg-dev
+          chmod +x scripts/*.sh
+          python scripts/prepare-llama-runtime.py --runtime linux-x64 --destination artifacts/llama-runtime/linux-x64
+          for backend in cpu vulkan; do
+            server="artifacts/llama-runtime/linux-x64/$backend/llama-server"
+            if ldd "$server" | grep -q "not found"; then ldd "$server"; exit 1; fi
+            "$server" --version
+          done
+          PINGYI_LLAMA_RUNTIME_SOURCE="$PWD/artifacts/llama-runtime/linux-x64" ./scripts/publish.sh "$RELEASE_VERSION" complete
+          python scripts/audit-secrets.py --directory ./artifacts/publish/linux-x64-complete
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: linux-preview
+          if-no-files-found: error
+          path: |
+            artifacts/PingYi-Complete-*-linux-x64.tar.gz
+            artifacts/PingYi-Complete-*-linux-x64.deb
+
+  publish-preview:
+    needs: [version, windows, linux]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: release-files
+          merge-multiple: true
+      - name: Validate preview assets and checksums
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          version = os.environ["RELEASE_VERSION"]
+          expected = {
+              f"PingYi-Complete-{version}-win-x64.zip",
+              f"PingYi-Complete-{version}-win-x64-setup.exe",
+              f"PingYi-Complete-{version}-linux-x64.tar.gz",
+              f"PingYi-Complete-{version}-linux-x64.deb",
+          }
+          files = [p for p in Path("release-files").rglob("*") if p.is_file()]
+          found = {p.name for p in files}
+          if found != expected:
+              raise SystemExit(f"Preview assets mismatch; missing={sorted(expected-found)}, unexpected={sorted(found-expected)}")
+          dest = Path("release-assets"); dest.mkdir()
+          for p in files: shutil.copyfile(p, dest / p.name)
+          PY
+          cd release-assets && sha256sum ./* > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: "PingYi ${{ needs.version.outputs.tag }} (unsigned preview)"
+          prerelease: true
+          make_latest: false
+          body: |
+            **Temporary unsigned preview build for screenshot performance testing.**
+
+            - Windows ZIP and installer are NOT Authenticode-signed. Windows SmartScreen may show warnings.
+            - Linux packages are built and audited by CI.
+            - This is a prerelease and is not a replacement for the signed stable release.
+            - Do not use this build where signed binaries are required.
+          files: release-assets/*
