@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using PingYi.Core;
 using PingYi.Infrastructure;
 
@@ -13,9 +14,7 @@ public partial class MainWindow : Window, IMainWindowShell
     private AppServices? _services;
     private CaptureCoordinator? _captureCoordinator;
     private Func<Task>? _openSettings;
-    private bool _isRefreshing;
     private HelpAboutWindow? _helpWindow;
-    private readonly PassiveRefreshPolicy _passiveRefresh = new(TimeSpan.FromSeconds(30));
 
     public MainWindow()
     {
@@ -31,6 +30,11 @@ public partial class MainWindow : Window, IMainWindowShell
     public MainWindow(AppServices services, CaptureCoordinator captureCoordinator, Func<Task>? openSettings = null) : this()
     {
         _services = services; _captureCoordinator = captureCoordinator; _openSettings = openSettings;
+        InitializeStatusUpdates(() => services.Settings, services.ReadRuntimeStatusAsync,
+            () => services.IsInitialSetupActive || services.IsShuttingDown);
+        EventHandler changed = (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshDashboardAsync(force: true));
+        services.RuntimeStatusChanged += changed;
+        Closed += (_, _) => services.RuntimeStatusChanged -= changed;
         LoadSettings();
         Opened += async (_, _) => { await ShowInitialSetupAsync(); await RefreshDashboardAsync(); };
         Activated += async (_, _) => await RefreshSettingsFromStoreAsync();
@@ -71,32 +75,43 @@ public partial class MainWindow : Window, IMainWindowShell
     }
     private async Task RefreshSettingsFromStoreAsync()
     {
-        if (_services is null || !IsVisible || _isRefreshing) return;
+        if (_services is null || !IsVisible) return;
         LoadSettings();
-        if (_passiveRefresh.ShouldRefresh(_services.Settings)) await RefreshDashboardAsync();
+        await RefreshDashboardAsync();
     }
-    private async Task RefreshDashboardAsync(bool force = false)
+    internal Task RefreshDashboardAsync(bool force = false) => _statusUpdater?.RequestAsync(force) ?? Task.CompletedTask;
+    internal void InitializeStatusUpdates(Func<AppSettings> settings,
+        Func<CancellationToken, bool, Task<RuntimeStatusSnapshot>> read, Func<bool> paused)
     {
-        if (_services is null || _isRefreshing || _statusClosed || _services.IsInitialSetupActive) return;
-        _isRefreshing = true;
-        TopStatusText.Text = ModeStatusText.Pick("正在检查", "Checking");
-        TopStatusDot.Background = FindBrush("TertiaryTextBrush");
+        _statusUpdater?.Dispose();
+        _statusUpdater = new PassiveStatusUpdater(
+            () => IsVisible && WindowState != WindowState.Minimized && !_statusClosed && !paused(),
+            (token, force) => RefreshDashboardCoreAsync(settings, read, token, force));
+    }
+    private async Task RefreshDashboardCoreAsync(Func<AppSettings> settings,
+        Func<CancellationToken, bool, Task<RuntimeStatusSnapshot>> read, CancellationToken token, bool force)
+    {
+        if (force || _runtimeStatusSnapshot.CheckedAt is null)
+        {
+            TopStatusText.Text = ModeStatusText.Pick("正在检查", "Checking");
+            TopStatusDot.Background = FindBrush("TertiaryTextBrush");
+        }
         try
         {
             for (var attempt = 0; attempt < 2; attempt++)
             {
-                var snapshot = await _services.ReadRuntimeStatusAsync(_statusLifetime.Token, force);
+                var snapshot = await read(token, force);
                 if (_statusClosed) return;
-                if (snapshot.Settings != _services.Settings) continue;
-                RenderRuntimeStatus(snapshot);
-                RenderPipelineStatus(snapshot);
-                _passiveRefresh.RecordRefresh(snapshot.Settings);
+                if (snapshot.Settings != settings()) continue;
+                if (force || !_runtimeStatusSnapshot.SameState(snapshot) || _runtimeStatusSnapshot.CheckedAt is null)
+                {
+                    LoadSettings(); RenderRuntimeStatus(snapshot); RenderPipelineStatus(snapshot);
+                }
                 return;
             }
         }
-        catch (OperationCanceledException) when (_statusClosed || _services.IsShuttingDown) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested || _services?.IsShuttingDown == true) { }
         catch (Exception) { if (!_statusClosed) SetGlobalStatus(ModeStatusText.Pick("状态检查未完成，请重试。", "Status check did not complete; retry."), true); }
-        finally { _isRefreshing = false; }
     }
     private async void CaptureButton_OnClick(object? sender, RoutedEventArgs e)
     {

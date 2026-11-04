@@ -25,6 +25,7 @@ internal static class ModeStatusText
         ModeReadinessState.Unconfigured => Pick("未配置", "Not set"),
         ModeReadinessState.NeedsAttention => Pick("需处理", "Attention"),
         ModeReadinessState.Unverified => Pick("待验证", "Unverified"),
+        ModeReadinessState.Verified => Pick("已验证", "Verified"),
         _ => Pick("未检测", "Not checked")
     };
     internal static string Reason(ModeReadiness state) => state.Reason switch
@@ -40,6 +41,7 @@ internal static class ModeStatusText
         "local-unreachable" => Pick("已保存本机服务配置，但当前无法连接，请启动服务或检查端口。", "A local service is configured but is not reachable. Start it or check its port."),
         "api-unconfigured" => Pick("尚未保存 API 模型服务；不影响本地基础功能。", "No API model services are configured. Built-in local features are unaffected."),
         "api-unverified" => Pick("已保存本地或云端 API 配置；本次未请求服务。请在 API 模型管理中主动测试。", "Local or cloud API settings are present; no service was contacted during this refresh. Test explicitly under API models."),
+        "api-tested" => Pick("已有 API 模型通过图片与文字能力验证；其他模型可能仍需测试。本次刷新未联网检查连通性或额度。", "An API model has passed image and text tests; other models may still need testing. This refresh does not check live connectivity or quota."),
         _ => Pick("尚未检测；不会仅凭已选模式显示为可用。", "Not checked. Selecting a mode alone does not make it available.")
     };
 }
@@ -111,9 +113,10 @@ internal sealed class ModeStatusCard : Border
     {
         State = state; TitleText.Text = ModeStatusText.Title(ModeId); BadgeText.Text = ModeStatusText.Badge(state);
         var error = state.State is ModeReadinessState.Unconfigured or ModeReadinessState.NeedsAttention;
-        ThemeResources.Use(Indicator, BackgroundProperty, state.IsReady ? "SuccessBrush" : error ? "DangerBrush" : "TertiaryTextBrush");
-        ThemeResources.Use(_badge, BackgroundProperty, state.IsReady ? "SuccessBackgroundBrush" : error ? "StatusDangerBackgroundBrush" : "HoverBackgroundBrush");
-        ThemeResources.Use(BadgeText, TextBlock.ForegroundProperty, state.IsReady ? "SuccessTextBrush" : error ? "DangerTextBrush" : "SecondaryTextBrush");
+        var verified = state.State == ModeReadinessState.Verified;
+        ThemeResources.Use(Indicator, BackgroundProperty, verified ? "BrandBrush" : state.IsReady ? "SuccessBrush" : error ? "DangerBrush" : "TertiaryTextBrush");
+        ThemeResources.Use(_badge, BackgroundProperty, verified ? "BrandSoftBrush" : state.IsReady ? "SuccessBackgroundBrush" : error ? "StatusDangerBackgroundBrush" : "HoverBackgroundBrush");
+        ThemeResources.Use(BadgeText, TextBlock.ForegroundProperty, verified ? "BrandBrush" : state.IsReady ? "SuccessTextBrush" : error ? "DangerTextBrush" : "SecondaryTextBrush");
         var description = $"{TitleText.Text}：{BadgeText.Text}。{ModeStatusText.Reason(state)}";
         ToolTip.SetTip(this, description); AutomationProperties.SetName(this, description);
     }

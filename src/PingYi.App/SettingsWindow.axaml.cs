@@ -52,6 +52,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppServices services) : this()
     {
         _services = services;
+        InitializeStatusUpdates(services);
         ConfigureLocalAutomatically = services.ConfigureLocalModelAutomaticallyAsync;
         _persistLanguage = services.SaveUiLanguageAsync;
         ConfigurationCenter.Discover = services.DiscoverProfileModelsAsync;

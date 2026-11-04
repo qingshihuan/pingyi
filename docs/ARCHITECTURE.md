@@ -36,6 +36,8 @@ The setup wizard and Local models one-click actions delegate to `ConfigureLocalM
 
 ## Layers
 
+`PassiveStatusUpdater` coalesces UI-thread refresh requests and polls every two seconds only when the consuming window/page can refresh. Saved settings notify both views immediately; the status cache also compares passive model/process evidence, so startup/exit does not retain an idle/running cache entry. Refresh cancellation follows window lifetime. Snapshots with stale settings are discarded, and unchanged snapshots preserve operation feedback and detail controls. API capability evidence maps to `Verified` (not live `Available`); reading status never probes an API or starts inference.
+
 - `PingYi.Core`: configuration, migration conversion, capability rules, routing, capture purposes, runtime policy and contracts.
 - `PingYi.Infrastructure`: compatible Chat Completions / Responses adapters, QR decoding, local settings and secret storage, model/runtime downloads and process ownership, desktop capture and browser bridge.
 - `PingYi.App`: five-page draft editor, explicit capability tests, capture consent, cancellation, result windows and runtime controls.

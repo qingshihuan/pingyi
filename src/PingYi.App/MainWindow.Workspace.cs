@@ -7,7 +7,7 @@ public partial class MainWindow
 {
     private async void RefreshWorkspaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_isRefreshing || !RefreshWorkspaceButton.IsEnabled)
+        if (!RefreshWorkspaceButton.IsEnabled)
             return;
 
         RefreshWorkspaceButton.IsEnabled = false;

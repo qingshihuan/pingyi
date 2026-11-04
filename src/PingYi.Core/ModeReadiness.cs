@@ -1,6 +1,6 @@
 namespace PingYi.Core;
 
-public enum ModeReadinessState { Unknown, Available, OnDemand, Unconfigured, NeedsAttention, Unverified }
+public enum ModeReadinessState { Unknown, Available, OnDemand, Unconfigured, NeedsAttention, Unverified, Verified }
 public sealed record ModeReadiness(ModeReadinessState State, string Reason)
 {
     public bool IsReady => State is ModeReadinessState.Available or ModeReadinessState.OnDemand;
@@ -26,4 +26,20 @@ public static class ModeReadinessPolicy
     }
     public static bool HasApiConfiguration(AppSettings settings) => settings.ModelConfiguration?.AllServices.Any() == true;
     public static bool HasLocalConfiguration(AppSettings settings) => RuntimePolicy.HasConfiguredManagedRuntime(settings);
+    public static ModeReadiness Api(AppSettings settings)
+    {
+        if (!HasApiConfiguration(settings)) return new(ModeReadinessState.Unconfigured, "api-unconfigured");
+        return settings.ModelConfiguration!.AllServices.Any(s => s.Models.Any(m => m.TextVerified && m.VisionVerified))
+            ? new(ModeReadinessState.Verified, "api-tested")
+            : new(ModeReadinessState.Unverified, "api-unverified");
+    }
+    public static ModeReadiness Current(AppSettings settings, ModeReadiness local)
+    {
+        try
+        {
+            var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
+            return route.IsManaged ? local : new(ModeReadinessState.Verified, "current-tested");
+        }
+        catch (ProviderException) { return new(ModeReadinessState.Unconfigured, "current-unconfigured"); }
+    }
 }

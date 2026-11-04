@@ -8,6 +8,8 @@ internal sealed record RuntimeStatusSnapshot(AppSettings Settings, ModeReadiness
 {
     public static RuntimeStatusSnapshot Unknown { get; } = new(new AppSettings(), ModeReadiness.Unknown,
         ModeReadiness.Unknown, ModeReadiness.Unknown, null, null, null);
+    internal bool SameState(RuntimeStatusSnapshot other) => Settings == other.Settings && Current == other.Current &&
+        Basic == other.Basic && Api == other.Api && Model == other.Model && Runtime == other.Runtime;
 }
 
 public sealed partial class AppServices
@@ -22,24 +24,17 @@ public sealed partial class AppServices
         try
         {
             var settings = Settings;
-            if (!force && _lastStatus is { CheckedAt: { } checkedAt } cached && cached.Settings == settings &&
-                DateTimeOffset.UtcNow - checkedAt < TimeSpan.FromSeconds(5)) return cached;
             var model = ManagedModels.InspectForStatus(settings);
+            if (!force && _lastStatus is { CheckedAt: { } checkedAt } cached && cached.Settings == settings &&
+                cached.Model == model && DateTimeOffset.UtcNow - checkedAt < TimeSpan.FromSeconds(5)) return cached;
             InstalledRuntime? runtime = null;
-            try { runtime = await ManagedModels.Runtimes.RecommendedInstalledAsync(settings.ManagedRuntimeBackend, settings.ManagedRuntimeDevice, token); }
+            try { runtime = await ManagedModels.Runtimes.RecommendedInstalledAsync(model.RunningBackend ?? settings.ManagedRuntimeBackend, settings.ManagedRuntimeDevice, token); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception) { }
             var local = ModeReadinessPolicy.Basic(new(ModeReadinessPolicy.HasLocalConfiguration(settings),
                 RuntimePolicy.HasConfiguredManagedRuntime(settings), model.FilesPresent, runtime is not null, model.Running, null));
-            var api = new ModeReadiness(ModeReadinessPolicy.HasApiConfiguration(settings) ? ModeReadinessState.Unverified : ModeReadinessState.Unconfigured,
-                ModeReadinessPolicy.HasApiConfiguration(settings) ? "api-unverified" : "api-unconfigured");
-            ModeReadiness current;
-            try
-            {
-                var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
-                current = route.IsManaged ? local : new(ModeReadinessState.Unverified, "current-tested");
-            }
-            catch (ProviderException) { current = new(ModeReadinessState.Unconfigured, "current-unconfigured"); }
+            var api = ModeReadinessPolicy.Api(settings);
+            var current = ModeReadinessPolicy.Current(settings, local);
             var snapshot = new RuntimeStatusSnapshot(settings, current, local, api, model, runtime, DateTimeOffset.UtcNow);
             if (Settings == settings) _lastStatus = snapshot;
             return snapshot;

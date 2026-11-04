@@ -10,7 +10,7 @@ namespace PingYi.App;
 public partial class MainWindow
 {
     private RuntimeStatusSnapshot _runtimeStatusSnapshot = RuntimeStatusSnapshot.Unknown;
-    private readonly CancellationTokenSource _statusLifetime = new();
+    private PassiveStatusUpdater? _statusUpdater;
     private bool _statusClosed;
     private readonly TextBlock _modeRefreshLabel = new() { VerticalAlignment = VerticalAlignment.Center };
 
@@ -42,7 +42,7 @@ public partial class MainWindow
         ModeDetailsButton.BorderThickness = new Thickness(0);
         ModeDetailsButton.Background = Brushes.Transparent;
         RefreshModeStatusLanguage();
-        Closed += (_, _) => { _statusClosed = true; _statusLifetime.Cancel(); };
+        Closed += (_, _) => { _statusClosed = true; _statusUpdater?.Dispose(); };
     }
     private void RefreshModeStatusLanguage()
     {
@@ -73,6 +73,15 @@ public partial class MainWindow
         var broken = new[] { ocr, translation }.FirstOrDefault(state =>
             state.State is ModeReadinessState.NeedsAttention or ModeReadinessState.Unconfigured);
         if (broken is not null) { SetGlobalStatus(ModeStatusText.Reason(broken), true); return; }
+        if (snapshot.Current.State == ModeReadinessState.Verified)
+        {
+            SetGlobalStatus(ModeStatusText.Reason(snapshot.Current), false);
+            if (_services?.HotkeyRegistrationError is not null) return;
+            TopStatusText.Text = LiveStatusTitleText.Text = ModeStatusText.Badge(snapshot.Current);
+            ThemeResources.Use(TopStatusDot, Border.BackgroundProperty, "BrandBrush");
+            ThemeResources.Use(LiveStatusDot, Border.BackgroundProperty, "BrandBrush");
+            return;
+        }
         var onDemand = ocr.State == ModeReadinessState.OnDemand || translation.State == ModeReadinessState.OnDemand;
         var verified = ocr.IsReady && translation.IsReady;
         SetGlobalStatus(onDemand ? ModeStatusText.Reason(snapshot.Basic)

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Home and runtime details now refresh on saved configuration changes and poll passive local state while visible. Runtime starts/stops invalidate cached model evidence, overlapping refresh requests are retained, and unchanged polls preserve operation messages and detail controls. Saved API capability evidence is shown as blue “Verified”, separately from local availability and live connectivity.
 - The setup wizard now exposes the same one-click automatic local setup as Local models. Manual model/runtime choices remain expandable; progress, cancellation and failure retry stay in the wizard, which completes only after verified configuration is saved. Opening the wizard does not start downloads.
 - Local models now has a one-click detect-and-configure action covering hardware, installed runtime checks, model reuse/download, vision/text verification and selection of the verified current model. Automatic GPU inference verification failures retry on CPU before saving. It is cancellable, retains unrelated setting/key drafts, and restores a previously running model if setup fails.
 - Verified the official runtime download resolver against llama.cpp v0.9.0 / b12110 metadata for all Windows/Ubuntu CPU, Vulkan, CUDA 12/13 and ROCm packages. The bundled runtime and offline fallback remain b11146; online downloads resolve the latest stable release.

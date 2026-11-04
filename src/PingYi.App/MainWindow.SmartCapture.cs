@@ -96,6 +96,6 @@ public partial class MainWindow
         finally { _services.IsInitialSetupActive = false; _firstRunSetup = null; }
         LoadSettings();
         if (choice == InitialSetupChoice.ConfigureExisting) await OpenSettingsWindowAsync();
-        await RefreshDashboardAsync();
+        await RefreshDashboardAsync(force: true);
     }
 }

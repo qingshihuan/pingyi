@@ -1,11 +1,13 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
+using PingYi.Core;
 
 namespace PingYi.App;
 
 public partial class SettingsWindow
 {
-    private readonly CancellationTokenSource _runtimeStatusLifetime = new();
-    private bool _runtimeStatusBusy, _runtimeStatusClosed;
+    private PassiveStatusUpdater? _runtimeStatusUpdater;
+    private bool _runtimeStatusClosed;
     private void InitializeRuntimeStatusPage()
     {
         RuntimeStatusPage.RefreshRequested += async (_, _) => await RefreshRuntimeStatusAsync(true);
@@ -16,31 +18,49 @@ public partial class SettingsWindow
             if (LocalSettingsTab.IsSelected) await RefreshRuntimeStatusAsync();
         };
         Activated += async (_, _) => { if (LocalSettingsTab.IsSelected) await RefreshRuntimeStatusAsync(); };
-        Closed += (_, _) => { _runtimeStatusClosed = true; _runtimeStatusLifetime.Cancel(); };
+        Closed += (_, _) => { _runtimeStatusClosed = true; _runtimeStatusUpdater?.Dispose(); };
     }
     internal void SelectRuntimeStatus()
     {
         SettingsTabs.SelectedItem = LocalSettingsTab;
         if (RuntimeStatusPage.Parent is Expander expander) expander.IsExpanded = true;
     }
-    private async Task RefreshRuntimeStatusAsync(bool force = false)
+    internal Task RefreshRuntimeStatusAsync(bool force = false) => _runtimeStatusUpdater?.RequestAsync(force) ?? Task.CompletedTask;
+    internal void InitializeStatusUpdates(Func<AppSettings> settings,
+        Func<CancellationToken, bool, Task<RuntimeStatusSnapshot>> read, Func<bool> paused)
     {
-        if (_services is null || _runtimeStatusBusy || _runtimeStatusClosed) return;
-        _runtimeStatusBusy = true; RuntimeStatusPage.SetBusy(true);
+        _runtimeStatusUpdater?.Dispose();
+        _runtimeStatusUpdater = new PassiveStatusUpdater(
+            () => IsVisible && WindowState != WindowState.Minimized && LocalSettingsTab.IsSelected && !_runtimeStatusClosed && !paused(),
+            (token, force) => RefreshRuntimeStatusCoreAsync(settings, read, token, force));
+    }
+    private void InitializeStatusUpdates(AppServices services)
+    {
+        InitializeStatusUpdates(() => services.Settings, services.ReadRuntimeStatusAsync,
+            () => services.IsInitialSetupActive || services.IsShuttingDown);
+        EventHandler changed = (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshRuntimeStatusAsync(true));
+        services.RuntimeStatusChanged += changed;
+        Closed += (_, _) => services.RuntimeStatusChanged -= changed;
+    }
+    private async Task RefreshRuntimeStatusCoreAsync(Func<AppSettings> settings,
+        Func<CancellationToken, bool, Task<RuntimeStatusSnapshot>> read, CancellationToken token, bool force)
+    {
+        if (force || RuntimeStatusPage.Snapshot.CheckedAt is null) RuntimeStatusPage.SetBusy(true);
         try
         {
             for (var attempt = 0; attempt < 2; attempt++)
             {
-                var snapshot = await _services.ReadRuntimeStatusAsync(_runtimeStatusLifetime.Token, force);
+                var snapshot = await read(token, force);
                 if (_runtimeStatusClosed) return;
-                if (snapshot.Settings != _services.Settings) continue;
-                RuntimeStatusPage.SetSnapshot(snapshot); return;
+                if (snapshot.Settings != settings()) continue;
+                RuntimeStatusPage.SetSnapshot(snapshot);
+                return;
             }
             RuntimeStatusPage.SetError();
         }
-        catch (OperationCanceledException) when (_runtimeStatusClosed || _services.IsShuttingDown) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested || _services?.IsShuttingDown == true) { }
         catch (Exception) { if (!_runtimeStatusClosed) RuntimeStatusPage.SetError(); }
-        finally { _runtimeStatusBusy = false; if (!_runtimeStatusClosed) RuntimeStatusPage.SetBusy(false); }
+        finally { if (!_runtimeStatusClosed) RuntimeStatusPage.SetBusy(false); }
     }
 }
 

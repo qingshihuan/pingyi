@@ -27,6 +27,8 @@ The runtime backend defaults to **Automatic (default)**: use a compatible GPU wh
 
 ## Capture and privacy
 
+Home and runtime details update automatically after configuration saves and check local model state every two seconds while visible. API “Verified” means saved image/text capability evidence, not a live connectivity or quota check. Status refresh does not call APIs, download or start models, or overwrite setting drafts.
+
 Use the main capture button, `Ctrl+Alt+D` on Windows, or `Ctrl+Shift+D` on Linux X11. Hotkeys can be recorded or edited under Hotkeys. Wayland uses the system screenshot portal and requires a desktop-managed global shortcut; see [Linux capture](docs/LINUX_CAPTURE.md).
 
 Automatic capture first attempts local QR decoding. A decoded QR stays local; otherwise the current model recognizes and translates the image. Image description and prompt reconstruction remain explicit actions in the result window. Remote image/text requests require consent for that destination. QR decoding works without a configured model; other tasks explain when a current model is missing.

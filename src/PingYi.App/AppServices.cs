@@ -52,7 +52,18 @@ public sealed partial class AppServices : IAsyncDisposable
     public AppDataPaths Paths { get; }
     public ISettingsStore SettingsStore { get; }
     public ISecretStore SecretStore { get; }
-    public AppSettings Settings { get; private set; }
+    private AppSettings _settings = new();
+    public AppSettings Settings
+    {
+        get => _settings;
+        private set
+        {
+            if (_settings == value) return;
+            _settings = value;
+            RuntimeStatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+    internal event EventHandler? RuntimeStatusChanged;
     public string? ConfigurationCredentialWarning { get; private set; }
     public IGlobalHotkeyService HotkeyService { get; }
     public IScreenCaptureService ScreenCaptureService { get; }

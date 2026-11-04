@@ -32,7 +32,12 @@ public sealed class RuntimeStatusView : UserControl
         Render();
     }
     private void LanguageChanged(object? sender, EventArgs e) => Render();
-    internal void SetSnapshot(RuntimeStatusSnapshot snapshot) { Snapshot = snapshot; _refreshError = false; Render(); }
+    internal void SetSnapshot(RuntimeStatusSnapshot snapshot)
+    {
+        var changed = !Snapshot.SameState(snapshot) || Snapshot.CheckedAt is null;
+        Snapshot = snapshot; _refreshError = false;
+        if (changed) Render(); else RenderHeader();
+    }
     internal void SetBusy(bool busy) { _busy = busy; RenderHeader(); }
     internal void SetError() { _refreshError = true; RenderHeader(); }
     private void RenderHeader()
@@ -59,8 +64,8 @@ public sealed class RuntimeStatusView : UserControl
         _details.Children.Add(new Border { Classes = { "workspace-inset" }, Child = new TextBlock
         {
             Classes = { "workspace-help" }, Text = ModeStatusText.Pick(
-                "绿色：本地可用或已配置按需加载；红色：未配置或需要处理；灰色：未检测／待验证。\n刷新不会下载、启动视觉模型、执行推理或更改处理方案。API 服务测试在“API 模型管理”中主动执行。",
-                "Green: local readiness or configured on-demand loading. Red: not configured or needs attention. Gray: unknown or unverified.\nRefresh never downloads, starts a vision model, runs inference or changes your scheme. Test API services explicitly under API models.")
+                "绿色：本地可用或按需加载；蓝色：能力已验证，不代表已检查实时连通性；红色：未配置或需要处理；灰色：未检测／待验证。\n状态自动刷新，不会下载、启动模型、执行推理或更改配置。API 服务测试在“API 模型管理”中主动执行。",
+                "Green: local readiness or on-demand loading. Blue: capabilities verified, not a live connectivity check. Red: not configured or needs attention. Gray: unknown or unverified.\nStatus refreshes automatically without downloads, model startup, inference or configuration changes. Test API services explicitly under API models.")
         } });
     }
     private Control ModeDetail(string id, ModeReadiness readiness, int tab)
