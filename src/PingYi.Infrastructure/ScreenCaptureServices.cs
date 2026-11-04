@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using PingYi.Core;
 using SkiaSharp;
@@ -43,10 +44,12 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
         var oldObject = SelectObject(memoryDc, bitmap);
         try
         {
+            var bitBltStartedAt = Stopwatch.GetTimestamp();
             if (!BitBlt(memoryDc, 0, 0, width, height, screenDc, x, y, SrcCopy | CaptureBlt))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "屏幕捕获失败。");
             }
+            Trace.WriteLine($"[PingYi.CaptureTiming] duration=gdi_bitblt elapsed_ms={Stopwatch.GetElapsedTime(bitBltStartedAt).TotalMilliseconds:F1}");
 
             var header = new BitmapInfo
             {
@@ -61,15 +64,20 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
                     SizeImage = (uint)(width * height * 4)
                 }
             };
-            var pixels = new byte[width * height * 4];
+            var pixels = new byte[checked(width * height * 4)];
+            var readPixelsStartedAt = Stopwatch.GetTimestamp();
             var copied = GetDIBits(memoryDc, bitmap, 0, (uint)height, pixels, ref header, DibRgbColors);
             if (copied == 0)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "无法读取屏幕像素。");
             }
+            Trace.WriteLine($"[PingYi.CaptureTiming] duration=gdi_read_pixels elapsed_ms={Stopwatch.GetElapsedTime(readPixelsStartedAt).TotalMilliseconds:F1}");
 
+            var encodeStartedAt = Stopwatch.GetTimestamp();
+            var png = EncodeBgraToPng(pixels, width, height);
+            Trace.WriteLine($"[PingYi.CaptureTiming] duration=desktop_png_encode elapsed_ms={Stopwatch.GetElapsedTime(encodeStartedAt).TotalMilliseconds:F1} width={width} height={height}");
             return Task.FromResult(new ImageFrame(
-                EncodeBgraToPng(pixels, width, height),
+                png,
                 width,
                 height,
                 new PixelRect(x, y, width, height)));

@@ -32,10 +32,14 @@ public partial class CaptureOverlayWindow : Window
         _capture = capture;
         _preferredScaling = preferredScaling > 0 ? preferredScaling : 1;
         _session = session;
+        var initializeStartedAt = CapturePerformance.Start();
         InitializeComponent();
+        CapturePerformance.LogDuration("overlay_xaml_initialize", initializeStartedAt);
         UiText.Attach(this);
         Title = UiText.IsEnglish ? "Screen Insight Capture" : "截屏释义框选";
+        var bitmapDecodeStartedAt = CapturePerformance.Start();
         _bitmap = new Bitmap(new MemoryStream(capture.PngBytes));
+        CapturePerformance.LogDuration("overlay_bitmap_decode", bitmapDecodeStartedAt);
         ScreenshotImage.Source = _bitmap;
         Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);
         Width = capture.Width / _preferredScaling;
@@ -255,7 +259,20 @@ internal sealed class CaptureOverlaySession(
             var relativeCapture = ScreenSelectionGeometry.ToCaptureRelative(
                 displayCapture,
                 desktop.DesktopBounds);
-            var image = imageCropper.Crop(desktop, relativeCapture);
+            ImageFrame image;
+            if (relativeCapture.X == 0 && relativeCapture.Y == 0 &&
+                relativeCapture.Width == desktop.Width && relativeCapture.Height == desktop.Height)
+            {
+                // A single display commonly covers the entire captured desktop. Reuse the
+                // fresh frame instead of decoding and re-encoding the same full-screen PNG.
+                image = desktop;
+            }
+            else
+            {
+                var cropStartedAt = CapturePerformance.Start();
+                image = imageCropper.Crop(desktop, relativeCapture);
+                CapturePerformance.LogDuration("display_crop_decode_draw_encode", cropStartedAt);
+            }
             _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this, captureStartedAt));
         }
 
@@ -271,10 +288,12 @@ internal sealed class CaptureOverlaySession(
                 DispatcherPriority.Send));
         try
         {
+            var showStartedAt = CapturePerformance.Start();
             foreach (var window in _windows)
             {
                 window.ShowOverlay();
             }
+            CapturePerformance.LogDuration("overlay_show_requests", showStartedAt);
         }
         catch
         {
