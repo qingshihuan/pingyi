@@ -34,7 +34,7 @@ jobs:
           python3 - <<'PY'
           import os, re
           from pathlib import Path
-          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.1"
+          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.2"
           if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
               raise SystemExit("Invalid preview version")
           if "unsigned" not in version.lower():
