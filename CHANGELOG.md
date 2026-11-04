@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Automatic runtime switching now probes installed candidates through CPU when GPU probes fail, and retains Auto during model loading so GPU startup failures can fall back to CPU. Resetting to Automatic also clears a saved GPU pin. Existing saved choices remain unchanged until explicitly applied.
 - Automatic detection is now the default runtime backend and the first dropdown option. Saved backend/device choices are retained; missing or invalid backend settings use Auto. The reset action and Chinese/English guidance follow the new default.
 - Local API endpoint presets (llama.cpp, Ollama, LM Studio and vLLM) now show a localized “Local” suffix to distinguish them from cloud presets. Endpoint URLs and model IDs are unchanged.
 - Translation and screenshot recognition share a single current multimodal model. Image description and prompt reconstruction use the same selection.

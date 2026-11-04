@@ -27,18 +27,19 @@ public sealed partial class AppServices
             RuntimeAllowMirrors = allowMirrors, RuntimeMirrorPrefixes = mirrors };
         var wasRunning = false;
         var activationStarted = false;
-        InstalledRuntime? runtime = null;
         try
         {
             // Keep a currently loading/ready old server untouched during preparation.
             wasRunning = ManagedModels.HasRunningOwnedBackend;
             await RuntimeChangeTransaction.ApplyAsync(async cancellation =>
             {
-                runtime = await ManagedModels.Runtimes.RecommendedInstalledAsync(backend, device, cancellation)
-                    ?? await ManagedModels.Runtimes.InstallAsync(backend, device, allowMirrors,
+                var runtime = await ManagedModels.Runtimes.UsableInstalledAsync(backend, device, cancellation);
+                if (runtime is null)
+                {
+                    runtime = await ManagedModels.Runtimes.InstallAsync(backend, device, allowMirrors,
                         mirrors.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries), progress, cancellation);
-                // Probe existing files as well as newly installed packages before activation.
-                await ManagedModels.Runtimes.ValidateInstalledAsync(runtime, device, cancellation);
+                    await ManagedModels.Runtimes.ValidateInstalledAsync(runtime, device, cancellation);
+                }
                 if (model is not null && !(await ManagedModels.GetStatusAsync(model, cancellation)).IsInstalled)
                     throw new ProviderException("runtime_model_missing", "模型尚未完整安装，请先完成模型配置；切换后端不会重新下载模型。 / Complete model setup first; backend switching does not download weights.");
             }, async cancellation =>
@@ -50,7 +51,10 @@ public sealed partial class AppServices
                 await startup.Task;
                 if (model is not null)
                 {
-                    await ManagedModels.EnsureStartedAsync(model, runtime!.Backend, progress, cancellation, device);
+                    // An explicit Auto switch must reconsider GPUs instead of reusing a healthy CPU fallback.
+                    if (backend == "auto") await ManagedModels.StopAsync(cancellation);
+                    // Retain Auto through model loading: a detected GPU may still fail to load the model.
+                    await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation, device);
                     progress.Report(new ManagedModelProgress("runtime-verify", "正在验证新后端的固定 OCR／翻译样例… / Testing OCR and translation on the new backend…", 0, 0, true));
                     await VerifyConfiguredModelAsync(next, cancellation);
                 }

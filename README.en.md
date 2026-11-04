@@ -21,7 +21,7 @@ PaddleOCR, Baidu Cloud OCR, Google Cloud Vision, traditional OCR configuration a
 
 Settings has five sections: **Current model, API models, Local models, Hotkeys, General**. Local and cloud API profiles share one editor while retaining their IDs, capability evidence and credential references. Loading settings or fetching a model list does not select a model or start inference. App-owned setup verifies both capabilities before making the model current.
 
-The runtime backend defaults to **Automatic (default)**. Saved backend and GPU selections are retained. Existing users can reset to Automatic under Local models, then choose **Install and switch** to apply it.
+The runtime backend defaults to **Automatic (default)**: use a compatible GPU when available and fall back to CPU when no GPU is usable or GPU startup fails. Saved backend and GPU selections are retained. **Reset to default: Automatic** resets both choices to automatic; choose **Install and switch** to apply it.
 
 ## Capture and privacy
 

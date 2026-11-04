@@ -43,6 +43,31 @@ public sealed class RuntimeManagementUiTests
     }
 
     [AvaloniaFact]
+    public async Task Reset_to_automatic_clears_a_saved_gpu_pin_before_explicit_application()
+    {
+        RuntimeDevice[] devices = [new("vulkan", "Vulkan0", "Synthetic GPU", 8192, 6000)];
+        var choice = RuntimeDeviceChoice.Encode(devices[0], devices);
+        var backends = new ComboBox { ItemsSource = ManagedRuntimeBackends.All, SelectedItem = ManagedRuntimeBackends.Auto };
+        var panel = new RuntimeSetupPanel(null, backends, new AppSettings { ManagedRuntimeDevice = choice });
+        panel.SetDeviceChoices(devices, "vulkan");
+        Assert.Equal(choice, panel.SelectedDevice);
+        var switches = 0;
+        panel.SetManagementActions((backend, device, _, _, _, _) =>
+        {
+            Assert.Equal("auto", backend);
+            Assert.Equal("auto", device);
+            switches++;
+            return Task.CompletedTask;
+        }, (_, _) => throw new InvalidOperationException("Must not uninstall"), _ => false);
+        panel.DefaultButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal("auto", panel.SelectedDevice);
+        Assert.Equal(0, switches);
+        await panel.SwitchAsync();
+        Assert.Equal(1, switches);
+        panel.Cancel();
+    }
+
+    [AvaloniaFact]
     public async Task Busy_switch_blocks_duplicate_actions_and_cancellation_remains_available()
     {
         var backends = new ComboBox { ItemsSource = ManagedRuntimeBackends.All, SelectedItem = ManagedRuntimeBackends.Rocm };

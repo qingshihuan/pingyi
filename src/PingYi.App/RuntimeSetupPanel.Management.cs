@@ -43,7 +43,12 @@ internal sealed partial class RuntimeSetupPanel
         _hasDownloaded = _manager is null ? null : _manager.HasDownloadedBackend;
         SwitchButton.Click += async (_, _) => { OperationTask = SwitchAsync(); await OperationTask; };
         UninstallButton.Click += async (_, _) => { OperationTask = UninstallAsync(); await OperationTask; };
-        DefaultButton.Click += (_, _) => _backend.SelectedItem = ManagedRuntimeBackends.Default;
+        DefaultButton.Click += (_, _) =>
+        {
+            _selection = "auto";
+            Devices.SelectedIndex = 0;
+            _backend.SelectedItem = ManagedRuntimeBackends.Default;
+        };
         SetManagementControls(true);
     }
 

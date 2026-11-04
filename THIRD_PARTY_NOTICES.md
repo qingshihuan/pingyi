@@ -15,7 +15,7 @@ PaddleOCR, ONNX Runtime, Argos Translate, CTranslate2, SentencePiece and the emb
 
 Release builds reject retired engines and NVIDIA CUDA/cuDNN/Torch binaries. Optional runtimes downloaded later at the user's explicit request are separate from bundled release contents and retain their upstream licenses.
 
-Automatic backend detection is the default selection. This preference does not add bundled GPU dependencies; the package still includes CPU/Vulkan only, and optional backends retain their existing installation and license requirements.
+Automatic backend detection is the default selection and uses CPU as the fallback when GPU backends are unusable. This preference does not add bundled GPU dependencies; the package still includes CPU/Vulkan only, and optional backends retain their existing installation and license requirements.
 
 ## User-downloaded models and services
 

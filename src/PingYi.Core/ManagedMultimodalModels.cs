@@ -18,7 +18,7 @@ public sealed record ManagedRuntimeBackend(
 
     public string LocalizedDescription => IsEnglishCulture ? Id switch
     {
-        "auto" => "Detect hardware and prefer compatible installed CUDA/ROCm; otherwise try Vulkan, then CPU. New downloads require confirmation.",
+        "auto" => "Use a compatible GPU when available; fall back to CPU if no GPU is usable or GPU startup fails. Reuse installed backends; new downloads require confirmation.",
         "cuda12" => "CUDA 12 for compatible NVIDIA GPUs/drivers; Windows uses 12.4, Linux 12.8 in the bundled catalogue. No silent fallback.",
         "cuda13" => "CUDA 13 for Turing or newer NVIDIA GPUs and compatible drivers. No silent fallback.",
         "rocm" => "AMD ROCm/HIP; actual device and driver support must pass a runtime probe. No silent fallback.",
@@ -38,7 +38,7 @@ public static class ManagedRuntimeBackends
     public static ManagedRuntimeBackend Auto { get; } = new(
         "auto",
         "自动检测（默认）",
-        "识别显卡，优先已安装的兼容 CUDA／ROCm，否则尝试 Vulkan、CPU。新后端只在确认下载后安装。");
+        "自动使用适用的显卡；无可用显卡或显卡后端启动失败时回退 CPU。优先复用已安装后端，新下载需主动确认。");
 
     public static ManagedRuntimeBackend Vulkan { get; } = new(
         "vulkan",
