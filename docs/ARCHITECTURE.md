@@ -1,6 +1,6 @@
 # Unified multimodal model architecture (schema 16)
 
-This document describes unreleased main. Earlier release notes are historical.
+This document describes the v0.10.0 architecture. Earlier release notes are historical.
 
 ## Request flow
 
@@ -58,4 +58,4 @@ Windows DPAPI and the existing Linux Secret Service/memory fallback remain uncha
 
 Core tests cover routing identity, capability rejection, protocol payloads, credential isolation and rollback, cancellation, backups, migration, runtime downloads/process ownership and capture. Avalonia tests exercise settings navigation, credential drafts, capability selection, hotkeys, cancellation, themes and viewport layouts. Python checks cover packaging/licenses, secret audits and UI/resource consistency. Native Linux/X11 and screenshot portal checks run in CI.
 
-Capability tests demonstrate connectivity and synthetic image reading, not real-world OCR accuracy or speed. Provider catalogs, actual cloud permissions and GPU inference require testing on the chosen account/device. No release is published by this refactor.
+Capability tests demonstrate connectivity and synthetic image reading, not real-world OCR accuracy or speed. Provider catalogs, actual cloud permissions and GPU inference require testing on the chosen account/device. See the [v0.10.0 release notes](releases/v0.10.0.md) for packaging and upgrade details.

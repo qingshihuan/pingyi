@@ -10,7 +10,7 @@ on:
       version:
         description: Version to place in the package names
         required: true
-        default: 0.6.0
+        default: 0.10.0
 
 permissions:
   contents: read
@@ -73,6 +73,7 @@ jobs:
           dotnet build PingYi.slnx -c Release --no-restore
           dotnet test PingYi.slnx -c Release --no-build
           python -m unittest discover -s scripts -p "test_*.py"
+          python scripts/audit-secrets.py --ref HEAD
       - name: Import optional Authenticode certificate
         id: signing
         shell: pwsh
@@ -116,7 +117,7 @@ jobs:
           python ./scripts/prepare-llama-runtime.py `
             --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
           ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
-            -OfflineModelSource ./artifacts/model-source -Edition Complete `
+            -Edition Complete `
             -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 `
             -BuildInstaller @signingArguments
       - name: Remove optional Authenticode certificate
@@ -154,6 +155,7 @@ jobs:
           dotnet build PingYi.slnx -c Release --no-restore
           dotnet test PingYi.slnx -c Release --no-build
           python -m unittest discover -s scripts -p "test_*.py"
+          python scripts/audit-secrets.py --ref HEAD
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y dpkg-dev
       - name: Build Linux release
@@ -173,8 +175,7 @@ jobs:
             fi
             "$server" --version
           done
-          PINGYI_OFFLINE_MODEL_SOURCE="$PWD/artifacts/model-source" \
-            PINGYI_LLAMA_RUNTIME_SOURCE="$PWD/artifacts/llama-runtime/linux-x64" \
+          PINGYI_LLAMA_RUNTIME_SOURCE="$PWD/artifacts/llama-runtime/linux-x64" \
             ./scripts/publish.sh "$version" complete
       - name: Verify Debian packages on clean Ubuntu systems
         run: |

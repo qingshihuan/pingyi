@@ -1,11 +1,10 @@
 # Changelog
 
-## Unreleased — unified multimodal model refactor
+## 0.10.0 — 2026-11-05 — unified multimodal model refactor
 
 ### Changed
 
 - Desktop capture and image-analysis dialogs now offer “Allow and remember”. Approval survives restart for the same service, endpoint, protocol and model; General settings can restore prompts without losing drafts. Existing one-time approval/cancellation and independent browser-extension consent remain available. Schema 16 gains only optional destination digests; key storage and capture-history behavior are unchanged.
-
 - Home and runtime details now refresh on saved configuration changes and poll passive local state while visible. Runtime starts/stops invalidate cached model evidence, overlapping refresh requests are retained, and unchanged polls preserve operation messages and detail controls. Saved API capability evidence is shown as blue “Verified”, separately from local availability and live connectivity.
 - The setup wizard now exposes the same one-click automatic local setup as Local models. Manual model/runtime choices remain expandable; progress, cancellation and failure retry stay in the wizard, which completes only after verified configuration is saved. Opening the wizard does not start downloads.
 - Local models now has a one-click detect-and-configure action covering hardware, installed runtime checks, model reuse/download, vision/text verification and selection of the verified current model. Automatic GPU inference verification failures retry on CPU before saving. It is cancellable, retains unrelated setting/key drafts, and restores a previously running model if setup fails.
@@ -33,6 +32,6 @@
 - Updated Chinese/English READMEs, settings/API/migration guides, architecture, contributor/security guidance and third-party notices.
 - Earlier videos and release notes remain historical material and do not describe the new settings/model behavior.
 
-No version number, release marker or tag is changed. This entry does not declare a release.
+Release packaging no longer passes retired offline-model arguments and audits source trees as well as unpacked assets. See the [v0.10.0 release notes](docs/releases/v0.10.0.md) for downloads, compatibility changes and upgrade guidance.
 
 Earlier version details are retained in [release notes](docs/releases/).

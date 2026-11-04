@@ -1,6 +1,6 @@
 # Third-party notices
 
-Screen Insight (截屏释义, formerly PingYi) is MIT licensed. This notice describes the unreleased unified-model branch; historical release notes describe older packages.
+Screen Insight (截屏释义, formerly PingYi) is MIT licensed. This notice describes the v0.10.0 unified-model architecture; historical release notes describe older packages.
 
 ## Shipped components
 

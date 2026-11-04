@@ -4,7 +4,7 @@
 
 A Windows / Ubuntu desktop tool for screenshot recognition, translation, image description and local QR decoding. **Recognition and translation share one current multimodal model.** Image description and prompt reconstruction use the same selection.
 
-This README describes the unreleased `main` branch. [Existing releases](https://github.com/qingshihuan/pingyi/releases) retain the behavior documented for their version. This refactor does not publish a new version.
+This README describes the unified multimodal architecture in v0.10.0. [Download packages and read upgrade notes](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.0). Older releases retain the behavior documented for their version.
 
 ## Current model architecture
 
@@ -43,7 +43,7 @@ The existing local storage mechanism is retained: Windows uses existing DPAPI fi
 
 Schema 16 preserves service IDs, destination-scoped keys, language and shortcuts. Before the first save, the original file is copied once to `settings.json.pre-v16.bak`; an existing backup is never overwritten. Conflicting or unverified legacy routes require explicit model selection. No local key, external server or downloaded model is deleted automatically. See [migration and rollback](docs/CONFIGURATION_MIGRATION.md).
 
-The current Complete edition retains its existing data directories (`%LOCALAPPDATA%/PingYiComplete` or XDG `pingyi-complete`); historical Standard data stays in its separate directory and is not automatically merged. Back up configuration and secrets before testing an unreleased build. `PINGYI_CONFIG_DIR` can isolate a test session without using your normal configuration.
+The current Complete edition retains its existing data directories (`%LOCALAPPDATA%/PingYiComplete` or XDG `pingyi-complete`); historical Standard data stays in its separate directory and is not automatically merged. Exit the app and back up configuration and secrets before upgrading. `PINGYI_CONFIG_DIR` can isolate a development test session without using your normal configuration.
 
 ## Build and verify
 

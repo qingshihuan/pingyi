@@ -4,7 +4,7 @@
 
 Windows / Ubuntu 桌面截图工具，支持识字、翻译、图片描述、提示词反推和本地二维码解析。**截图识字与翻译共用一个当前多模态模型**，图片描述与提示词反推也沿用同一选择。
 
-本文描述尚未发布的 `main` 分支。[已有正式版](https://github.com/qingshihuan/pingyi/releases) 的功能以各版本发布说明为准；本次重构不发布新版本。
+本文描述 v0.10.0 的统一多模态模型架构。[下载安装包与查看升级说明](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.0)。旧版功能以对应版本发布说明为准。
 
 ## 新模型架构
 
@@ -43,7 +43,7 @@ Windows / Ubuntu 桌面截图工具，支持识字、翻译、图片描述、提
 
 配置升级到 schema 16 时保留服务标识、按目标地址隔离的密钥、语言及快捷键。首次保存前将原文件复制为 `settings.json.pre-v16.bak`，已有备份不覆盖。旧任务使用不同模型或能力未验证时，等待用户选择当前模型。迁移不自动删除本地密钥、外部服务或下载模型，详见 [迁移与回滚](docs/CONFIGURATION_MIGRATION.md)。
 
-当前完全版继续使用 `%LOCALAPPDATA%/PingYiComplete` 或 XDG 下的 `pingyi-complete`；旧标准版的独立目录保留在原处，不自动合并。测试开发版前请备份配置和密钥，可设置 `PINGYI_CONFIG_DIR` 使用隔离的测试目录。
+当前完全版继续使用 `%LOCALAPPDATA%/PingYiComplete` 或 XDG 下的 `pingyi-complete`；旧标准版的独立目录保留在原处，不自动合并。升级前请退出程序并备份配置和密钥；测试开发版可设置 `PINGYI_CONFIG_DIR` 使用隔离目录。
 
 ## 开发与验证
 
