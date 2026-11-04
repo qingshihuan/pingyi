@@ -83,6 +83,9 @@ public partial class SettingsWindow
         LocalSettingsTab.Header = CaptureUiText.Pick("本地模型管理", "Local models");
         HotkeySettingsTab.Header = CaptureUiText.Pick("快捷键", "Hotkeys");
         GeneralSettingsTab.Header = CaptureUiText.Pick("通用设置", "General");
+        ResetCaptureApprovalsButton.Content = CaptureUiText.Pick("恢复远程发送确认", "Reset remote transfer prompts");
+        CaptureApprovalsHint.Text = CaptureUiText.Pick("清除“同意并不再提示”的记录。下次向 API 发送截图或识别文字前会重新询问，立即生效。",
+            "Clear remembered approvals. The next API transfer of a screenshot or recognized text will ask again. Takes effect immediately.");
         CurrentModelHint.Text = CaptureUiText.Pick("截图识字、翻译、图片描述与提示词反推共用此模型。请先在 API 模型管理中测试接口模型，或在本地模型管理中下载并验证本机模型。未验证和纯文本模型不能设为当前模型。",
             "Recognition, translation, image description and prompt reconstruction share this model. Test an endpoint under API models, or download and verify a model under Local models. Unverified and text-only models cannot be selected.");
         RefreshCurrentModelsButton.Content = CaptureUiText.Pick("刷新可用模型", "Refresh verified models");

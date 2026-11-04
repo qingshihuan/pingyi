@@ -11,7 +11,7 @@
   <x:String x:Key="String.VisionConfiguration">Configure an image-capable model in Custom endpoint, or install and apply a managed multimodal model in Complete edition.</x:String>
   <x:String x:Key="String.VisionHttps">Remote image analysis requires HTTPS; only loopback endpoints may use HTTP.</x:String>
   <x:String x:Key="String.VisionLocal">Image sent to the loopback vision service · Screen Insight keeps no analysis history</x:String>
-  <x:String x:Key="String.VisionRemote">The full selected image will be sent to {0} · Confirmation required</x:String>
+  <x:String x:Key="String.VisionRemote">The full selected image will be sent to {0} · Uses one-time or remembered approval</x:String>
   <x:String x:Key="String.AnalysisPreparing">Preparing image analysis…</x:String>
   <x:String x:Key="String.VisionNotSent">Cancelled: no image was sent.</x:String>
   <x:String x:Key="String.VisionConfigurationChanged">The endpoint or model changed. Run again and confirm the new destination.</x:String>
@@ -26,9 +26,10 @@
   <x:String x:Key="String.VisionConsentTitle">Confirm image upload</x:String>
   <x:String x:Key="String.VisionConsentBody">This task sends the full selected image, not just recognized text. The receiving service may retain data or charge fees under its own terms.</x:String>
   <x:String x:Key="String.VisionDestination">Destination and model</x:String>
-  <x:String x:Key="String.VisionConsentHint">Check that the image contains nothing you wish to keep private. Permission is for this request only; retries require confirmation again.</x:String>
+  <x:String x:Key="String.VisionConsentHint">Allow only this request, or remember this service, address, protocol and model for later screenshot recognition, translation and image analysis. Reset prompts under General settings.</x:String>
+  <x:String x:Key="String.VisionRememberConsent">Allow and remember</x:String>
   <x:String x:Key="String.VisionDoNotSend">Do not send</x:String>
   <x:String x:Key="String.VisionSendOnce">Send this image</x:String>
   <x:String x:Key="String.VisionHelpTitle">Image description and prompt reconstruction</x:String>
-  <x:String x:Key="String.VisionHelp">Use Describe image or Reconstruct prompt on Home to capture images even without text. Switch tasks or retry the same image in the result window. Output follows the interface language. An image_url-capable vision model is required; translation, recognition and image analysis share the same current model; Complete edition can start an applied local multimodal model on demand. Each remote HTTPS upload requires confirmation, separately from text translation. No persistent history is added; models can be wrong and cannot recover the original prompt.</x:String>
+  <x:String x:Key="String.VisionHelp">Use Describe image or Reconstruct prompt on Home to capture images even without text. Switch tasks or retry the same image in the result window. Output follows the interface language. An image_url-capable vision model is required; translation, recognition and image analysis share the same current model; Complete edition can start an applied local multimodal model on demand. Remote HTTPS uploads ask for consent. Allow and remember covers later screenshot recognition, translation and image analysis for the same service, address, protocol and model; reset prompts under General settings. No persistent history is added; models can be wrong and cannot recover the original prompt.</x:String>
 </ResourceDictionary>

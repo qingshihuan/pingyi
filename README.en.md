@@ -33,6 +33,8 @@ Use the main capture button, `Ctrl+Alt+D` on Windows, or `Ctrl+Shift+D` on Linux
 
 Automatic capture first attempts local QR decoding. A decoded QR stays local; otherwise the current model recognizes and translates the image. Image description and prompt reconstruction remain explicit actions in the result window. Remote image/text requests require consent for that destination. QR decoding works without a configured model; other tasks explain when a current model is missing.
 
+Remote transfer dialogs offer Cancel, Allow once, and Allow and remember. Remembered approval survives restart and covers desktop screenshot recognition, translation and image analysis only for the same service, address, protocol and model. New destinations require confirmation. Clear approvals under General → Reset remote transfer prompts. Only destination digests are added to existing local settings, without keys, screenshots or text; browser-extension consent remains separate.
+
 Screenshots and results stay in memory. Cloud requests send the selected content to the chosen service, which may charge and apply its own retention policy. Local inference sends content only to the configured loopback service. Downloads and explicit update checks require networking; normal local inference does not require a cloud API.
 
 ## Configuration and API keys

@@ -28,7 +28,7 @@ flowchart TD
 | API models | Existing local and cloud services in one editor; per-service keys, protocols, catalogs and capability tests |
 | Local models | Built-in app-owned model download, runtime installation, GPU selection, start/stop and backend switching |
 | Hotkeys | Record/edit shortcut, conflict handling and platform guidance |
-| General | Interface language, startup and explicit update checks |
+| General | Interface language, startup, explicit update checks and resetting remote transfer prompts |
 
 `Services` contains cloud profiles; `LocalServices` contains loopback profiles. A single API model editor loads both collections and partitions them by endpoint when saving, retaining schema 16, service IDs and credential references. App-owned llama.cpp deployment is a separate built-in feature; switching to an API model does not erase local installation preferences. External Ollama/LM Studio instances retain ownership of their processes and model lifecycle; the app only connects and tests them. Status cards count external local services as API models, not app-owned deployments.
 
@@ -45,6 +45,8 @@ The setup wizard and Local models one-click actions delegate to `ConfigureLocalM
 PaddleOCR, ONNX Runtime, Baidu OCR/translation, Google Vision/translation, Python/Argos/CTranslate2 and all traditional OCR installers are removed. No Python inference host or lightweight mode remains. The `IOcrProvider` interface now represents multimodal transcription only. No failures trigger another model or traditional engine. Automatic capture uses local QR evidence only; other images go to the current multimodal model for recognition and translation.
 
 ## Persistence and migration
+
+`RemoteCaptureConsent` supports denial, one-time approval and remembered desktop approval. An optional schema 16 string stores up to 256 SHA-256 destination identities (service credential scope, canonical full endpoint, protocol and model with length-prefixed fields), never keys, images or text. Missing/invalid entries grant nothing. Recognition/translation and image-analysis dialogs share this policy; browser bridge authorization remains independent. Both capture paths use the returned approved settings snapshot, so saving the preference does not invalidate its own request. A settings change while prompting aborts before sending. Remember/reset writes use the existing settings transition gate and atomic settings store; failed saves cannot authorize a request. General settings can immediately clear approvals without discarding form drafts.
 
 `JsonSettingsStore` loads older settings without rewriting them. `ConfigurationMigration` splits local/cloud profiles while preserving service IDs (and therefore credential references). An unambiguous previously verified shared model may remain selected; conflicting or unverified routes become a pending suggestion. Removed settings remain recoverable in the original backup. Invalid/future files fail explicitly instead of being silently replaced.
 

@@ -73,6 +73,18 @@ public sealed class BrowserBridgeTests
     }
 
     [Fact]
+    public async Task Remembered_desktop_approval_does_not_authorize_browser_requests()
+    {
+        var translator = new Translator(ProviderExecutionLocation.Cloud); var ocr = new Ocr(ProviderExecutionLocation.Cloud);
+        var service = Service(translator, ocr);
+        var settings = RemoteCaptureConsent.Remember(Configured("https://example.test/v1"));
+        var request = Request(service, settings) with { Operation = "ocr", Image = "not an image" };
+        Assert.Equal("remote_text_consent_required", (await service.HandleAsync(request, settings, default)).Error);
+        Assert.Equal("remote_image_consent_required", (await service.HandleAsync(request with { AllowRemoteText = true }, settings, default)).Error);
+        Assert.Equal(0, translator.Calls); Assert.Equal(0, ocr.Calls);
+    }
+
+    [Fact]
     public async Task ScreenshotUsesConfiguredOcrThenTranslation()
     {
         using var bitmap = new SkiaSharp.SKBitmap(20, 10);

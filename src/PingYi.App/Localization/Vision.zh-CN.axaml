@@ -11,7 +11,7 @@
   <x:String x:Key="String.VisionConfiguration">请在自定义接口中配置支持图片的模型，或在完全版中安装并应用本机多模态模型。</x:String>
   <x:String x:Key="String.VisionHttps">远程图片分析服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。</x:String>
   <x:String x:Key="String.VisionLocal">图片发送到本机回环视觉服务 · 截屏释义不保存分析历史</x:String>
-  <x:String x:Key="String.VisionRemote">完整所选截图将发送到 {0} · 发送前需确认</x:String>
+  <x:String x:Key="String.VisionRemote">完整所选截图将发送到 {0} · 使用本次或已记住的授权</x:String>
   <x:String x:Key="String.AnalysisPreparing">正在准备图片分析…</x:String>
   <x:String x:Key="String.VisionNotSent">已取消：没有发送截图。</x:String>
   <x:String x:Key="String.VisionConfigurationChanged">分析接口或模型已改变。请重新执行并确认新的接收服务。</x:String>
@@ -26,9 +26,10 @@
   <x:String x:Key="String.VisionConsentTitle">确认发送截图进行图片分析</x:String>
   <x:String x:Key="String.VisionConsentBody">这次任务需要发送完整的所选截图，而不只是识别出的文字。接收服务可能按其政策留存数据或产生费用。</x:String>
   <x:String x:Key="String.VisionDestination">接收服务与模型</x:String>
-  <x:String x:Key="String.VisionConsentHint">请确认截图不含不希望上传的内容。仅授权本次请求；重试需要再次确认。</x:String>
+  <x:String x:Key="String.VisionConsentHint">可仅同意本次，或记住此服务、地址、协议与模型，让后续截图识字、翻译和图片分析不再提示。可在“通用设置”恢复确认。</x:String>
+  <x:String x:Key="String.VisionRememberConsent">同意并不再提示</x:String>
   <x:String x:Key="String.VisionDoNotSend">不发送</x:String>
   <x:String x:Key="String.VisionSendOnce">发送本次截图</x:String>
   <x:String x:Key="String.VisionHelpTitle">图片描述与提示词反推</x:String>
-  <x:String x:Key="String.VisionHelp">主页可直接框选无文字的图片进行“描述图片”或“反推提示词”；结果窗口可对同一张截图切换任务或重试。输出语言跟随界面语言。需要兼容 image_url 的视觉模型。翻译、识字和图片分析共用同一个当前模型，完全版可按需启动已应用的本机多模态模型。远程 HTTPS 接口每次发送前询问；不会因文字翻译授权就自动上传图片。不增加持久历史，模型可能看错，不声称恢复原始提示词。</x:String>
+  <x:String x:Key="String.VisionHelp">主页可直接框选无文字的图片进行“描述图片”或“反推提示词”；结果窗口可对同一张截图切换任务或重试。输出语言跟随界面语言。需要兼容 image_url 的视觉模型。翻译、识字和图片分析共用同一个当前模型，完全版可按需启动已应用的本机多模态模型。远程 HTTPS 接口发送前询问；选择“同意并不再提示”后，同一服务、地址、协议与模型的后续截图识字、翻译和图片分析无需重复确认，可在通用设置中恢复。不增加持久历史，模型可能看错，不声称恢复原始提示词。</x:String>
 </ResourceDictionary>

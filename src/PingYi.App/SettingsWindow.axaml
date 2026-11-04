@@ -80,6 +80,8 @@
           <ComboBox x:Name="UiLanguageCombo" Classes="workspace-field" SelectionChanged="UiLanguageCombo_OnSelectionChanged" AutomationProperties.Name="UI language"/>
           <CheckBox x:Name="StartMinimizedCheckBox" Content="启动时最小化 / Start minimized"/>
           <CheckBox x:Name="CheckForUpdatesCheckBox" Content="检查更新 / Check for updates"/>
+          <Button x:Name="ResetCaptureApprovalsButton" Classes="secondary" Click="ResetCaptureApprovals_OnClick"/>
+          <TextBlock x:Name="CaptureApprovalsHint" Classes="workspace-help" TextWrapping="Wrap"/>
           <Button x:Name="CheckUpdatesNowButton" Click="CheckUpdatesNowButton_OnClick" Content="立即检查更新 / Check now"/>
           <Button x:Name="OpenLatestReleaseButton" Click="OpenLatestReleaseButton_OnClick" Content="打开发布页面 / Open releases" IsVisible="False"/>
           <TextBlock x:Name="UpdateStatusText" Classes="workspace-help" TextWrapping="Wrap"/>

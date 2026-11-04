@@ -15,12 +15,15 @@ public sealed partial class CaptureCoordinator
         var label = ocr.Metadata.DisplayName;
         if (HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
         {
-            if (!await AutomaticConsentWindow.ConfirmAsync(window, privacy, operation.Token))
+            var approved = await services.AuthorizeRemoteCaptureAsync(settings,
+                token => AutomaticConsentWindow.ConfirmAsync(window, privacy, token), operation.Token);
+            if (approved is null)
             {
                 EnsureCurrent(operation);
                 window.SetAnalysisCancelled(CaptureUiText.NotSent);
                 return;
             }
+            settings = approved;
             EnsureCurrent(operation);
             if (services.Settings != settings) { window.SetError(CaptureUiText.SettingsChanged); return; }
         }

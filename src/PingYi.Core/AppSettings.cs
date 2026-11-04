@@ -18,6 +18,7 @@ public sealed record AppSettings
     public string Hotkey { get; init; } = DefaultHotkey;
     public bool InitialSetupCompleted { get; init; }
     public bool AutomaticCaptureEnabled { get; init; } = true;
+    public string RemoteCaptureApprovals { get; init; } = "";
     public string SourceLanguage { get; init; } = "auto";
     public string TargetLanguage { get; init; } = "auto-opposite";
     [JsonIgnore] public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
@@ -60,6 +61,7 @@ public sealed record AppSettings
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
             InitialSetupCompleted = InitialSetupCompleted || SchemaVersion < 11,
+            RemoteCaptureApprovals = RemoteCaptureConsent.NormalizeApprovals(RemoteCaptureApprovals),
             SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
             TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
             CustomTranslationEndpoint = endpoint,

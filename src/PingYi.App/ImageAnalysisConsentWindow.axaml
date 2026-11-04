@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PingYi.App.ImageAnalysisConsentWindow" Classes="workspace"
-        Title="{DynamicResource String.VisionConsentTitle}" Width="580" Height="400" MinWidth="460" MinHeight="320"
+        Title="{DynamicResource String.VisionConsentTitle}" Width="620" Height="440" MinWidth="460" MinHeight="360"
         ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
   <Window.Styles><StyleInclude Source="avares://PingYi.App/Styles/Workspace.axaml"/></Window.Styles>
   <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="16">
@@ -18,9 +18,10 @@
         <TextBlock Text="{DynamicResource String.VisionConsentHint}" Classes="workspace-help"/>
       </StackPanel>
     </ScrollViewer>
-    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-      <Button x:Name="RejectButton" Classes="secondary" Content="{DynamicResource String.VisionDoNotSend}" Click="Cancel_OnClick"/>
-      <Button x:Name="ConfirmButton" Classes="primary" Content="{DynamicResource String.VisionSendOnce}" Click="Confirm_OnClick"/>
-    </StackPanel>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Right">
+      <Button x:Name="RejectButton" Classes="secondary" Content="{DynamicResource String.VisionDoNotSend}" Click="Cancel_OnClick" Margin="0,0,8,8"/>
+      <Button x:Name="ConfirmButton" Classes="secondary" Content="{DynamicResource String.VisionSendOnce}" Click="Confirm_OnClick" Margin="0,0,8,8"/>
+      <Button x:Name="RememberButton" Classes="primary" Content="{DynamicResource String.VisionRememberConsent}" Click="Remember_OnClick" Margin="0,0,8,8"/>
+    </WrapPanel>
   </Grid>
 </Window>

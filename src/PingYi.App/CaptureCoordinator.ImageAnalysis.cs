@@ -50,12 +50,17 @@ public sealed partial class CaptureCoordinator
             var privacy = endpoint.IsLoopback ? UiText.Get("String.VisionLocal")
                 : string.Format(UiText.Get("String.VisionRemote"), endpoint.GetLeftPart(UriPartial.Authority));
             window.SetLoading(UiText.Get("String.AnalysisPreparing"), privacy);
-            if (!endpoint.IsLoopback && !await ImageAnalysisConsentWindow.ConfirmAsync(window, endpoint,
-                    snapshot.CustomTranslationModel, operation.Token))
+            if (!endpoint.IsLoopback)
             {
-                EnsureCurrent(operation);
-                window.SetAnalysisCancelled(UiText.Get("String.VisionNotSent"));
-                return;
+                var approved = await services.AuthorizeRemoteCaptureAsync(originalSettings,
+                    token => ImageAnalysisConsentWindow.ConfirmAsync(window, endpoint, snapshot.CustomTranslationModel, token), operation.Token);
+                if (approved is null)
+                {
+                    EnsureCurrent(operation);
+                    window.SetAnalysisCancelled(UiText.Get("String.VisionNotSent"));
+                    return;
+                }
+                originalSettings = approved;
             }
             EnsureCurrent(operation);
             if (resolved.IsManaged)

@@ -111,14 +111,14 @@ public class ImageAnalysisUiTests
             owner.Show();
             C<TextBlock>(dialog, "DestinationText").Text = "https://example.invalid";
             C<TextBlock>(dialog, "ModelText").Text = "synthetic-vision";
-            var decision = dialog.ShowDialog<bool>(owner);
+            var decision = dialog.ShowDialog<RemoteCaptureConsentChoice>(owner);
             dialog.UpdateLayout(); Dispatcher.UIThread.RunJobs();
             Assert.False(decision.IsCompleted);
             Frame(dialog, $"vision-consent-{language}");
             C<Button>(dialog, accept ? "ConfirmButton" : "RejectButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal(accept, await decision);
+            Assert.Equal(accept ? RemoteCaptureConsentChoice.AllowOnce : RemoteCaptureConsentChoice.Deny, await decision);
         }
-        finally { dialog.Close(false); owner.ClosePermanently(); }
+        finally { dialog.Close(RemoteCaptureConsentChoice.Deny); owner.ClosePermanently(); }
     }
     [AvaloniaFact]
     public async Task Cancelled_consent_does_not_open_a_window()

@@ -27,6 +27,8 @@ Built-in local deployment remains separate from API model management. The unifie
 
 ## Desktop integration
 
+Optional remembered desktop transfer approval uses .NET SHA-256 and the existing local settings store. It adds no third-party dependency, credential storage or capture history; service terms still apply, and browser-extension approval remains independent.
+
 Automatic runtime status refresh uses local configuration, file metadata and owned-process state only. It adds no dependency or background API inference; saved API capability evidence is displayed separately from live availability.
 
 Windows capture/hotkeys and DPAPI use operating-system APIs. Linux X11 uses the system libX11 (MIT/X11); Wayland capture uses system GLib/GIO/GObject (LGPL-2.1-or-later) and the public XDG screenshot portal. These system libraries and portal backends are not copied into the app package.

@@ -54,6 +54,7 @@ public partial class SettingsWindow : Window
         _services = services;
         InitializeStatusUpdates(services);
         ConfigureLocalAutomatically = services.ConfigureLocalModelAutomaticallyAsync;
+        ResetCaptureApprovals = services.ResetRemoteCaptureApprovalsAsync;
         _persistLanguage = services.SaveUiLanguageAsync;
         ConfigurationCenter.Discover = services.DiscoverProfileModelsAsync;
         ConfigurationCenter.Verify = services.TestProfileModelAsync;
