@@ -32,6 +32,8 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
         if (services.IsInitialSetupActive || services.IsShuttingDown) return;
         if (purpose == CapturePurpose.Auto && !services.Settings.AutomaticCaptureEnabled) purpose = CapturePurpose.TranslateText;
+        var captureStartedAt = CapturePerformance.Start();
+        CapturePerformance.Log("trigger", captureStartedAt);
         var operation = BeginOperation();
         if (operation is null) return;
         _mainWindow = mainWindow;
@@ -40,6 +42,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         {
             await _operationGate.WaitAsync(operation.Token);
             enteredGate = true;
+            CapturePerformance.Log("operation_gate_acquired", captureStartedAt);
             EnsureCurrent(operation);
             if (_resultWindow?.IsPinned == true) { ArchivePinnedWindow(_resultWindow); _resultWindow = null; }
             var displays = mainWindow?.GetCaptureDisplays();
@@ -57,12 +60,13 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                         async (frame, selectionToken) =>
                         {
                             EnsureCurrent(operation);
+                            CapturePerformance.Log("desktop_frame_ready", captureStartedAt);
                             var captureDisplays = displays is { Count: > 0 } ? displays : new[] { new CaptureDisplay(frame.DesktopBounds, 1) };
-                            var overlay = new CaptureOverlaySession(frame, captureDisplays, services.ImageCropper);
+                            var overlay = new CaptureOverlaySession(frame, captureDisplays, services.ImageCropper, captureStartedAt);
                             var selection = await overlay.ShowAndSelectAsync(selectionToken);
                             EnsureCurrent(operation);
                             return selection is null ? null : services.ImageCropper.Crop(frame, selection.Value);
-                        }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0);
+                        }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0, captureStartedAt);
             }
             finally { IsCapturingScreen = false; }
             EnsureCurrent(operation);
