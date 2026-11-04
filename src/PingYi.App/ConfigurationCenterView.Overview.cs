@@ -12,29 +12,81 @@ internal sealed partial class ConfigurationCenterView
     private readonly StackPanel _overviewRows = new() { Spacing = 10 };
     private readonly TextBlock _overviewSummary = new() { TextWrapping = TextWrapping.Wrap };
     private AppSettings _baselineSettings = new();
+    private readonly Dictionary<string, TextBlock> _routeHelp = [];
     internal IReadOnlyList<TaskConfigurationReview> TaskReview { get; private set; } = [];
     internal string CapabilityText => _capabilities.Text ?? "";
+    internal Func<AppSettings>? CompatibilityDraft { get; set; }
 
-    private Control CreateOverviewPage() => new StackPanel
+    private Control CreateOverviewPage()
     {
-        Spacing = 12,
-        Children =
+        InitializeRouteHelp();
+        return new StackPanel
         {
-            Text("当前任务配置", "Current task configuration", true),
-            Text("显示当前表单草稿，保存后才会生效。仅检查配置与固定样例测试记录；不会联网、启动模型或读取密钥。",
-                "This is the current draft; changes apply only after saving. Review uses configuration and recorded sample tests, with no network requests, model startup or key reads."),
-            _overviewSummary,
-            new WrapPanel { Children =
+            Spacing = 12,
+            Children =
             {
-                Button("管理服务与模型", "Manage services", (_, _) => _tabs.SelectedIndex = 1),
-                Button("调整任务配置", "Edit task routing", (_, _) => _tabs.SelectedIndex = 2),
-                Button("更新配置概览", "Refresh overview", (_, _) => RefreshOverview())
-            } },
-            _overviewRows,
-            Text("二维码解析始终在本机完成。远程文字任务发送识别文本，远程视觉任务发送所选截图；不会静默换用其他云服务。",
-                "QR decoding always stays local. Remote text tasks send recognized text; remote vision tasks send the selected screenshot. There is no silent switch to another cloud service.")
+                Text("当前任务配置", "Current task configuration", true),
+                Text("显示当前表单草稿，保存后才会生效。仅检查配置与固定样例测试记录；不会联网、启动模型或读取密钥。",
+                    "This is the current draft; changes apply only after saving. Review uses configuration and recorded sample tests, with no network requests, model startup or key reads."),
+                _overviewSummary,
+                new WrapPanel { Children =
+                {
+                    Button("管理服务与模型", "Manage services", (_, _) => _tabs.SelectedIndex = 1),
+                    Button("调整任务配置", "Edit task routing", (_, _) => _tabs.SelectedIndex = 2),
+                    Button("更新配置概览", "Refresh overview", (_, _) => RefreshOverview())
+                } },
+                _overviewRows,
+                Text("二维码解析始终在本机完成。远程文字任务发送识别文本，远程视觉任务发送所选截图；不会静默换用其他云服务。",
+                    "QR decoding always stays local. Remote text tasks send recognized text; remote vision tasks send the selected screenshot. There is no silent switch to another cloud service.")
+            }
+        };
+    }
+
+    private void InitializeRouteHelp()
+    {
+        foreach (var task in ModelTasks.All)
+        {
+            var controls = _routeControls[task];
+            var hint = new TextBlock { Name = "RouteHelp-" + task, TextWrapping = TextWrapping.Wrap };
+            _routeHelp.Add(task, hint);
+            ThemeResources.Use(hint, TextBlock.ForegroundProperty, "SecondaryTextBrush");
+            if (controls.Model.Parent is StackPanel card)
+                card.Children.Insert(card.Children.IndexOf(controls.Model) + 1, hint);
+            controls.Model.PropertyChanged += (_, e) =>
+            {
+                if (!_loading && e.Property == ComboBox.TextProperty) RefreshRouteHelp();
+            };
+            controls.Service.SelectionChanged += (_, _) => { if (!_loading) RefreshRouteHelp(); };
         }
-    };
+        _model.PropertyChanged += (_, e) =>
+        {
+            if (!_loading && e.Property == ComboBox.TextProperty) RefreshRouteHelp();
+        };
+    }
+
+    private void RefreshRouteHelp()
+    {
+        var current = CurrentEditorProfile();
+        foreach (var task in ModelTasks.All)
+        {
+            if (!_routeHelp.TryGetValue(task, out var hint)) continue;
+            var controls = _routeControls[task];
+            var id = (controls.Service.SelectedItem as Choice)?.Id ?? "";
+            var model = controls.Model.Text?.Trim() ?? "";
+            var profile = current?.Id == id ? current : _profiles.FirstOrDefault(p => p.Id == id);
+            hint.Text = id switch
+            {
+                "" => T("沿用旧版兼容配置，不使用此任务的模型输入框。", "Follows compatibility settings; this task's model editor is not used."),
+                ModelConfiguration.Offline => T("本机离线组件，不调用模型 API。", "Local offline component; no model API request."),
+                ModelConfiguration.Managed => T("使用“本地模型”页配置的托管模型。", "Uses the managed model configured under Local models."),
+                _ when profile is null => T("缺失服务：请重新选择任务服务。", "Service missing: select a service for this task."),
+                _ when model.Length > 0 => T("此任务使用模型：", "Model for this task: ") + model,
+                _ when !string.IsNullOrWhiteSpace(profile.DefaultModel) =>
+                    T("留空表示使用服务默认模型：", "Blank uses the service default model: ") + profile.DefaultModel,
+                _ => T("尚未选择模型：填写任务模型，或先设置服务默认模型。", "No model selected: enter a task model or set a service default model.")
+            };
+        }
+    }
 
     /// <summary>Read the editor without staging secrets, saving settings or mutating a profile.</summary>
     private ModelServiceProfile? CurrentEditorProfile()
@@ -59,10 +111,12 @@ internal sealed partial class ConfigurationCenterView
     internal void RefreshOverview()
     {
         if (_loading || _closed || _routeControls.Count != ModelTasks.All.Count) return;
+        RefreshRouteHelp();
         var current = CurrentEditorProfile();
         var profiles = _profiles.Select(profile => current?.Id == profile.Id ? current : profile).ToArray();
         var configuration = _configuration with { Services = profiles!, Tasks = ReadRoutes() };
-        TaskReview = ConfigurationReview.Read(_baselineSettings with { ModelConfiguration = configuration });
+        var compatibility = CompatibilityDraft?.Invoke() ?? _baselineSettings;
+        TaskReview = ConfigurationReview.Read(compatibility with { ModelConfiguration = configuration });
         var invalid = TaskReview.Count(t => t.Evidence == ConfigurationEvidence.NeedsConfiguration);
         _overviewSummary.Text = T($"{profiles.Length} 个服务档案 · {TaskReview.Count} 项任务 · {invalid} 项配置需处理",
             $"{profiles.Length} service profiles · {TaskReview.Count} tasks · {invalid} configuration issues");

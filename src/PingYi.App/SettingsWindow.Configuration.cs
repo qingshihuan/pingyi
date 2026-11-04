@@ -32,6 +32,8 @@ public partial class SettingsWindow
     private void BindConfigurationCenter()
     {
         if (_services is null) return;
+        ConfigurationCenter.CompatibilityDraft = () => BuildSettingsFromForm() with
+            { CustomTranslationEndpoint = CustomEndpointBox.Text ?? "" };
         ConfigurationCenter.Load(_services.Settings);
         ConfigurationCenter.Discover = _services.DiscoverProfileModelsAsync;
         ConfigurationCenter.Verify = _services.TestProfileModelAsync;
