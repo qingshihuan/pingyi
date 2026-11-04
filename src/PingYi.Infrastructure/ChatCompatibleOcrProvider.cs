@@ -6,7 +6,7 @@ using PingYi.Core;
 
 namespace PingYi.Infrastructure;
 
-/// <summary>Direct visual transcription. There is no Paddle draft or correction pass.</summary>
+/// <summary>Direct visual transcription through the selected multimodal model.</summary>
 public sealed class ChatCompatibleOcrProvider(
     HttpClient httpClient,
     ISecretStore secretStore,

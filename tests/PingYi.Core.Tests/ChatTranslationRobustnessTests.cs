@@ -45,22 +45,6 @@ public sealed class ChatTranslationRobustnessTests
         Assert.Equal("custom_translate_empty", exception.Code);
     }
 
-    [Fact]
-    public async Task EmptyTranslation_ActuallyInvokesOfflineFallback()
-    {
-        using var client = new HttpClient(new StubHandler(request => request.Method == HttpMethod.Get
-            ? Json("{\"data\":[{\"id\":\"test-model\"}]}")
-            : Json("{\"choices\":[{\"message\":{\"content\":\" \"}}]}")));
-        var fallback = new OfflineProvider();
-
-        var execution = await TranslationFallback.ExecuteAsync(
-            CreateProvider(client), fallback, new TranslationRequest("Hello", "en", "zh"));
-
-        Assert.True(execution.UsedFallback);
-        Assert.Equal("离线译文", execution.Result.Text);
-        Assert.Equal(1, fallback.Calls);
-    }
-
     [Theory]
     [InlineData("not-json")]
     [InlineData("null")]
@@ -138,18 +122,4 @@ public sealed class ChatTranslationRobustnessTests
         public Task DeleteAsync(string key, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
-    private sealed class OfflineProvider : ITranslationProvider
-    {
-        public int Calls { get; private set; }
-        public ProviderMetadata Metadata { get; } = new(
-            "local-argos", "offline", ProviderExecutionLocation.Local,
-            UploadsImage: false, RequiresSecret: false, ["en", "zh"]);
-        public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(ProviderAvailability.Available);
-        public Task<TranslationResult> TranslateAsync(TranslationRequest request, CancellationToken cancellationToken = default)
-        {
-            Calls++;
-            return Task.FromResult(new TranslationResult("离线译文", request.SourceLanguage, request.TargetLanguage));
-        }
-    }
 }

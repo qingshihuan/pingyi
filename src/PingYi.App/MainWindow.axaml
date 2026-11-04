@@ -98,13 +98,13 @@
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="22">
               <StackPanel Spacing="4">
                 <TextBlock Text="{DynamicResource Text.5fd5df38157d}" Classes="workspace-help" FontSize="12"/>
-                <TextBlock x:Name="OcrSummaryText" Text="{DynamicResource Text.c5b809959cde}" Classes="workspace-section"/>
+                <TextBlock x:Name="OcrSummaryText" Text="{DynamicResource String.ModelNotSelected}" Classes="workspace-section"/>
                 <TextBlock x:Name="OcrHealthText" Text="{DynamicResource String.CheckPending}" Classes="workspace-help" FontSize="12"/>
               </StackPanel>
               <Path Grid.Column="1" Classes="symbol" Stroke="{DynamicResource TertiaryTextBrush}" Width="24" Data="M3 12H21 M16 7L21 12L16 17"/>
               <StackPanel Grid.Column="2" Spacing="4">
                 <TextBlock Text="{DynamicResource Text.da4ace1c0a46}" Classes="workspace-help" FontSize="12"/>
-                <TextBlock x:Name="TranslationSummaryText" Text="{DynamicResource Text.955983eac341}" Classes="workspace-section"/>
+                <TextBlock x:Name="TranslationSummaryText" Text="{DynamicResource String.ModelNotSelected}" Classes="workspace-section"/>
                 <TextBlock x:Name="TranslationHealthText" Text="{DynamicResource String.CheckPending}" Classes="workspace-help" FontSize="12"/>
               </StackPanel>
             </Grid>

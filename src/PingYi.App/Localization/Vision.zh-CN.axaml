@@ -30,5 +30,5 @@
   <x:String x:Key="String.VisionDoNotSend">不发送</x:String>
   <x:String x:Key="String.VisionSendOnce">发送本次截图</x:String>
   <x:String x:Key="String.VisionHelpTitle">图片描述与提示词反推</x:String>
-  <x:String x:Key="String.VisionHelp">主页可直接框选无文字的图片进行“描述图片”或“反推提示词”；结果窗口可对同一张截图切换任务或重试。输出语言跟随界面语言。需要兼容 image_url 的视觉模型；PaddleOCR 和 Argos 不能分析图片语义。默认使用已配置的兼容模型，完全版可按需启动已应用的本机多模态模型。远程 HTTPS 接口每次发送前询问；不会因文字翻译授权就自动上传图片。不增加持久历史，模型可能看错，不声称恢复原始提示词。</x:String>
+  <x:String x:Key="String.VisionHelp">主页可直接框选无文字的图片进行“描述图片”或“反推提示词”；结果窗口可对同一张截图切换任务或重试。输出语言跟随界面语言。需要兼容 image_url 的视觉模型。翻译、识字和图片分析共用同一个当前模型，完全版可按需启动已应用的本机多模态模型。远程 HTTPS 接口每次发送前询问；不会因文字翻译授权就自动上传图片。不增加持久历史，模型可能看错，不声称恢复原始提示词。</x:String>
 </ResourceDictionary>

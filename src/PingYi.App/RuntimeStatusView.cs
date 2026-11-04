@@ -38,7 +38,7 @@ public sealed class RuntimeStatusView : UserControl
     private void RenderHeader()
     {
         _title.Text = ModeStatusText.Pick("运行状态", "Runtime status");
-        _hint.Text = ModeStatusText.Pick("分别查看各模式是否配置、是否可用；与当前选择的处理方案无关。", "Availability for every mode, independent of the selected processing scheme.");
+        _hint.Text = ModeStatusText.Pick("查看当前模型、本地后端和云端配置状态。", "Current model, local backend and cloud configuration status.");
         RefreshButton.Content = _busy ? ModeStatusText.Pick("正在检查…", "Checking…") : WorkspaceText.Refresh;
         RefreshButton.IsEnabled = !_busy;
         _checked.Text = _refreshError ? ModeStatusText.Pick("状态检查未完成。保留上次结果，请重试。", "Status check did not complete. Previous results are retained; retry.") : Snapshot.CheckedAt is { } date
@@ -51,8 +51,8 @@ public sealed class RuntimeStatusView : UserControl
         var cards = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), ColumnSpacing = 12, RowSpacing = 12 };
         var entries = new Control[]
         {
-            ModeDetail("lite", Snapshot.Lightweight, 1), ModeDetail("basic", Snapshot.Basic, 1),
-            ModeDetail("cloud", Snapshot.Cloud, 2), RuntimeDetail(), ModelDetail(), GpuDetail()
+            ModeDetail("current", Snapshot.Current, 0), ModeDetail("basic", Snapshot.Basic, 2),
+            ModeDetail("cloud", Snapshot.Cloud, 1), RuntimeDetail(), ModelDetail(), GpuDetail()
         };
         for (var i = 0; i < entries.Length; i++) { Grid.SetColumn(entries[i], i % 2); Grid.SetRow(entries[i], i / 2); cards.Children.Add(entries[i]); }
         _details.Children.Add(cards);
@@ -75,7 +75,7 @@ public sealed class RuntimeStatusView : UserControl
             : runtime is null ? ModeStatusText.Pick("所选后端未安装或不可用", "Selected runtime is not installed or available")
             : ManagedRuntimeBackends.Get(runtime.Backend).LocalizedDisplayName + " · " + runtime.Tag + "\n" +
               (Snapshot.Model?.Running == true ? Snapshot.Model.RuntimeDescription : ModeStatusText.Pick("已安装，不等同于模型正在运行", "Installed; this does not mean a model is running"));
-        return Detail(Heading("运行后端", "Inference runtime"), text, ModeStatusText.Pick("管理后端", "Manage runtime"), 1);
+        return Detail(Heading("运行后端", "Inference runtime"), text, ModeStatusText.Pick("管理后端", "Manage runtime"), 2);
     }
     private Control ModelDetail()
     {
@@ -86,7 +86,7 @@ public sealed class RuntimeStatusView : UserControl
                 : model?.ModelName + "\n" + (model?.FilesPresent == true
                     ? ModeStatusText.Pick("文件存在且大小匹配；启动时进行完整校验。", "Files exist and sizes match; full integrity verification runs at startup.")
                     : ModeStatusText.Pick("模型／视觉组件不完整，请修复。", "Model / projector files are incomplete; repair them."));
-        return Detail(Heading("本地模型", "Local model"), text ?? "", ModeStatusText.Pick("配置模型", "Configure model"), 1);
+        return Detail(Heading("本地模型", "Local model"), text ?? "", ModeStatusText.Pick("配置模型", "Configure model"), 2);
     }
     private Control GpuDetail()
     {
@@ -94,7 +94,7 @@ public sealed class RuntimeStatusView : UserControl
             : Snapshot.Settings.ManagedRuntimeBackend == "cpu" ? ModeStatusText.Pick("CPU 模式，不使用执行显卡。", "CPU mode; no execution GPU is used.")
             : Snapshot.Model?.Running == true ? Snapshot.Model.RuntimeDescription
             : ModeStatusText.Pick("当前未运行托管模型，不能将已选显卡显示为正在使用。请在本地模型页检测／选择实际设备。", "No managed model is running. A saved GPU selection is not an active device. Detect / select actual devices in Local models.");
-        return Detail(Heading("执行显卡", "Execution GPU"), text ?? "", ModeStatusText.Pick("查看／选择显卡", "Inspect / select GPU"), 1);
+        return Detail(Heading("执行显卡", "Execution GPU"), text ?? "", ModeStatusText.Pick("查看／选择显卡", "Inspect / select GPU"), 2);
     }
     private static TextBlock Heading(string zh, string en) => new() { Text = ModeStatusText.Pick(zh, en), Classes = { "workspace-section" } };
     private Border Detail(Control heading, string text, string action, int tab)

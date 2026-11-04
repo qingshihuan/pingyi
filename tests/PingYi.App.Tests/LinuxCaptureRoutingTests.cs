@@ -13,11 +13,11 @@ public class LinuxCaptureRoutingTests
         var service = new Portal();
         bool overlayCalled = false;
         var image = await CaptureSelectionRouter.SelectAsync(service, (_, _) =>
-        { overlayCalled = true; throw new Exception("Must not overlay a portal-selected image"); }, default);
+        { overlayCalled = true; throw new Exception("Must not overlay a portal-selected image"); }, TestContext.Current.CancellationToken);
         Assert.Same(service.Image, image);
         Assert.False(overlayCalled);
         service.Cancel = true;
-        Assert.Null(await CaptureSelectionRouter.SelectAsync(service, (_, _) => throw new Exception(), default));
+        Assert.Null(await CaptureSelectionRouter.SelectAsync(service, (_, _) => throw new Exception(), TestContext.Current.CancellationToken));
     }
     [Fact]
     public async Task X11_capture_still_enters_the_application_selection_interface()
@@ -25,7 +25,7 @@ public class LinuxCaptureRoutingTests
         var service = new Desktop();
         int calls = 0;
         var image = await CaptureSelectionRouter.SelectAsync(service, (frame, _) =>
-        { calls++; return Task.FromResult<ImageFrame?>(frame); }, default);
+        { calls++; return Task.FromResult<ImageFrame?>(frame); }, TestContext.Current.CancellationToken);
         Assert.Equal(1, calls);
         Assert.NotNull(image);
     }

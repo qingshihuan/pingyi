@@ -72,12 +72,12 @@ public partial class MainWindow
                     labels[1].TextWrapping = TextWrapping.Wrap;
                 }
                 if (labels.Length >= 3)
-                    labels[2].Text = CaptureUiText.Pick("图片描述与基础模式需要视觉模型。", "Basic and image description need a vision model.");
+                    labels[2].Text = CaptureUiText.Pick("识字与翻译共用当前多模态模型。", "Recognition and translation share the current multimodal model.");
             }
             AutomationProperties.SetName(CaptureButtonV2, _automaticCaptureToggle.IsChecked == true ? CaptureUiText.Automatic : UiText.Get("String.TranslateText"));
             AutomationProperties.SetAutomationId(_automaticCaptureToggle, "AutomaticCaptureToggle");
             AutomationProperties.SetName(_translateCaptureButton, UiText.Get("String.TranslateText"));
-            AutomationProperties.SetName(_modelSetupButton, CaptureUiText.Pick("基础模式模型配置引导", "Configure a local model for Basic mode"));
+            AutomationProperties.SetName(_modelSetupButton, CaptureUiText.Pick("本地模型配置引导", "Configure a local multimodal model"));
             ToolTip.SetTip(DescribeImageButton, UiText.Get("String.DescribeImage"));
             ToolTip.SetTip(ReconstructPromptButton, UiText.Get("String.ReconstructPrompt"));
             ToolTip.SetTip(QrCodeButton, UiText.Get("String.DecodeQrCode"));

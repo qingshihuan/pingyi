@@ -24,17 +24,17 @@ public sealed class AppDataPaths
                 AppEdition.LinuxDataDirectoryName);
         }
 
+        var configOverride = Environment.GetEnvironmentVariable("PINGYI_CONFIG_DIR");
+        if (!string.IsNullOrWhiteSpace(configOverride))
+        {
+            ConfigDirectory = Path.GetFullPath(configOverride);
+            DataDirectory = ConfigDirectory;
+        }
+
         var modelOverride = Environment.GetEnvironmentVariable("PINGYI_MODEL_DIR");
         ModelDirectory = string.IsNullOrWhiteSpace(modelOverride)
             ? Path.Combine(DataDirectory, "models")
             : Path.GetFullPath(modelOverride);
-        var bundledOverride = Environment.GetEnvironmentVariable("PINGYI_BUNDLED_MODEL_DIR");
-        BundledModelDirectory = string.IsNullOrWhiteSpace(bundledOverride)
-            ? Path.Combine(AppContext.BaseDirectory, "offline-models")
-            : Path.GetFullPath(bundledOverride);
-        ModelSearchDirectories = Directory.Exists(BundledModelDirectory)
-            ? [ModelDirectory, BundledModelDirectory]
-            : [ModelDirectory];
         ManagedModelDirectory = Path.Combine(ModelDirectory, "managed-vlm");
         var llamaRuntimeOverride = Environment.GetEnvironmentVariable("PINGYI_LLAMA_RUNTIME_DIR");
         LlamaRuntimeDirectory = string.IsNullOrWhiteSpace(llamaRuntimeOverride)
@@ -49,10 +49,8 @@ public sealed class AppDataPaths
     public string ConfigDirectory { get; }
     public string DataDirectory { get; }
     public string ModelDirectory { get; }
-    public string BundledModelDirectory { get; }
     public string ManagedModelDirectory { get; }
     public string LlamaRuntimeDirectory { get; }
-    public IReadOnlyList<string> ModelSearchDirectories { get; }
     public string SettingsFile => Path.Combine(ConfigDirectory, "settings.json");
     public string SecretsDirectory => Path.Combine(ConfigDirectory, "secrets");
 }

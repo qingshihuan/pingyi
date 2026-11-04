@@ -13,9 +13,9 @@ internal static class ModeStatusText
     internal static string Pick(string zh, string en) => UiText.IsEnglish ? en : zh;
     internal static string Title(string id) => id switch
     {
-        "lite" => Pick("轻量模式", "Lightweight"),
-        "basic" => Pick("基础模式", "Basic mode"),
-        "cloud" => Pick("云端模式", "Cloud mode"),
+        "current" => Pick("当前模型", "Current model"),
+        "basic" => Pick("本地模型", "Local models"),
+        "cloud" => Pick("云端 API", "Cloud APIs"),
         _ => id
     };
     internal static string Badge(ModeReadiness state) => state.State switch
@@ -29,19 +29,17 @@ internal static class ModeStatusText
     };
     internal static string Reason(ModeReadiness state) => state.Reason switch
     {
-        "lite-ready" => Pick("PaddleOCR 与 Argos 可用，支持本地探测及中英离线翻译。", "PaddleOCR and Argos are available for local detection and offline Chinese/English translation."),
-        "lite-missing" => Pick("本地 OCR 或中英翻译组件未就绪，请检查本地模型。", "Local OCR or the Chinese/English translator is not ready. Check Local models."),
-        "basic-unconfigured" => Pick("尚未配置本机视觉模型。可通过模型配置引导设置基础模式。", "No local vision model is configured. Use model setup to configure Basic mode."),
+        "basic-unconfigured" => Pick("尚未配置本地多模态模型。", "No local multimodal model is configured."),
+        "current-unconfigured" => Pick("请测试图片和文字能力，然后选择当前模型。", "Test image and text support, then select the current model."),
+        "current-tested" => Pick("图片与文字样例已验证；本次刷新未联网检查连通性或额度。", "Image and text samples verified; this refresh does not check live connectivity or quota."),
         "model-missing" => Pick("模型或视觉组件缺失／大小不符，请在本地模型中修复。", "Model or vision-projector files are missing or have the wrong size. Repair them in Local models."),
         "runtime-missing" => Pick("所选运行后端尚未安装，请在本地模型中管理后端。", "The selected runtime is not installed. Manage runtimes in Local models."),
         "basic-running" => Pick("已配置的托管模型服务正在运行；状态检查不进行额外推理。", "The configured managed model is running. Status checks do not perform extra inference."),
         "basic-on-demand" => Pick("本机模型与后端已配置，文件大小检查通过，当前未加载。截图时才校验并启动，不因刷新状态占用显存。", "Local model and runtime are configured and file sizes match; the model is not loaded. Capture verifies and starts it on demand. Refresh does not allocate model VRAM."),
-        "local-vision-unverified" => Pick("本机服务可连接；模型列表不代表视觉 OCR 已验证，请在自定义接口测试图片能力。", "The local service is reachable. Its model list does not verify vision OCR; test image support in Custom endpoint."),
+        "local-configured" => Pick("本机服务可连接；模型列表不代表视觉 OCR 已验证，请在本地模型管理中测试能力。", "The local service is reachable. Its model list does not verify vision OCR; test capabilities under Local models."),
         "local-unreachable" => Pick("已保存本机服务配置，但当前无法连接，请启动服务或检查端口。", "A local service is configured but is not reachable. Start it or check its port."),
-        "cloud-unconfigured" => Pick("尚未保存云端 OCR／翻译凭据或远程兼容接口；不影响本地功能。", "No cloud OCR/translation credentials or remote compatible endpoint are configured. Local features are unaffected."),
+        "cloud-unconfigured" => Pick("尚未保存云端模型服务；不影响本地功能。", "No cloud model services are configured. Local features are unaffected."),
         "cloud-unverified" => Pick("已保存云端配置，但本次未联网验证凭据、额度或连通性。请在云端服务／自定义接口中主动验证。", "Cloud settings are present; credentials, quota and connectivity were not checked online. Verify explicitly in Cloud services or Custom endpoint."),
-        "cloud-incomplete" => Pick("云端凭据不完整，请补齐 OCR 和翻译所需配置。", "Cloud credentials are incomplete. Complete the required OCR and translation settings."),
-        "credentials-unreadable" => Pick("无法读取系统安全存储，云端状态未知；未显示或记录密钥。", "Secure-store access failed; cloud status is unknown. No keys are displayed or logged."),
         _ => Pick("尚未检测；不会仅凭已选模式显示为可用。", "Not checked. Selecting a mode alone does not make it available.")
     };
 }
@@ -52,7 +50,7 @@ public sealed class ModeStatusCards : UserControl
     internal RuntimeStatusSnapshot Snapshot { get; private set; } = RuntimeStatusSnapshot.Unknown;
     public ModeStatusCards()
     {
-        Cards = [new("lite"), new("basic"), new("cloud")];
+        Cards = [new("current"), new("basic"), new("cloud")];
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,*"), ColumnSpacing = 12 };
         for (var i = 0; i < Cards.Length; i++) { Grid.SetColumn(Cards[i], i); grid.Children.Add(Cards[i]); }
         Content = grid;
@@ -64,7 +62,7 @@ public sealed class ModeStatusCards : UserControl
     internal void SetSnapshot(RuntimeStatusSnapshot snapshot) { Snapshot = snapshot; Render(); }
     private void Render()
     {
-        Cards[0].SetState(Snapshot.Lightweight); Cards[1].SetState(Snapshot.Basic); Cards[2].SetState(Snapshot.Cloud);
+        Cards[0].SetState(Snapshot.Current); Cards[1].SetState(Snapshot.Basic); Cards[2].SetState(Snapshot.Cloud);
     }
 }
 
@@ -84,17 +82,17 @@ internal sealed class ModeStatusCard : Border
         ThemeResources.Use(this, BackgroundProperty, "SubtleBackgroundBrush");
         ThemeResources.Use(this, BorderBrushProperty, "BorderBrush");
         var tile = new Border { Width = 36, Height = 36, CornerRadius = new CornerRadius(18), VerticalAlignment = VerticalAlignment.Center };
-        ThemeResources.Use(tile, BackgroundProperty, id == "lite" ? "SuccessBackgroundBrush" : "BrandSoftBrush");
+        ThemeResources.Use(tile, BackgroundProperty, id == "current" ? "SuccessBackgroundBrush" : "BrandSoftBrush");
         var icon = new ShapePath { Width = 20, Height = 20, Stretch = Stretch.Uniform, StrokeThickness = 1.7,
             StrokeLineCap = PenLineCap.Round, StrokeJoin = PenLineJoin.Round,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             Data = Geometry.Parse(id switch
             {
-                "lite" => "M5 2H14L20 8V22H5Z M14 2V8H20 M8 12H16 M8 16H13",
+                "current" => "M5 2H14L20 8V22H5Z M14 2V8H20 M8 12H16 M8 16H13",
                 "basic" => "M3 6L12 1L21 6V18L12 23L3 18Z M3 6L12 11L21 6 M12 11V23",
                 _ => "M6 19H20C26 19 26 10 20 10C19 1 7 1 6 11C0 10 -1 19 6 19Z"
             }) };
-        ThemeResources.Use(icon, ShapePath.StrokeProperty, id == "lite" ? "SuccessBrush" : "BrandBrush");
+        ThemeResources.Use(icon, ShapePath.StrokeProperty, id == "current" ? "SuccessBrush" : "BrandBrush");
         tile.Child = icon; Grid.SetRowSpan(tile, 2); _layout.Children.Add(tile);
         Grid.SetColumn(TitleText, 1); _layout.Children.Add(TitleText);
         _badge.Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { Indicator, BadgeText } };

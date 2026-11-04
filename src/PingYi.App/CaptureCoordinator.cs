@@ -220,23 +220,6 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
         catch (OperationCanceledException error) when (!operationToken.IsCancellationRequested)
         { throw new ProviderException(errorCode, timeoutMessage, error); }
     }
-    private static string BuildPrivacyDescription(AppSettings settings, ProviderMetadata ocr, ProviderMetadata translation)
-    {
-        var local = ProcessingModes.IsLocalEndpoint(settings);
-        if (ocr.Id == "local-vlm-ocr" && local && (translation.Location == ProviderExecutionLocation.Local || translation.Id == "custom-chat"))
-            return UiText.T("图片与文字发送到本机大模型服务 · 内容不离开设备");
-        if (ocr.Location == ProviderExecutionLocation.Local && translation.Location == ProviderExecutionLocation.Local)
-            return UiText.T("全程本地处理 · 内容不离开设备");
-        var destination = !local && (ocr.Location == ProviderExecutionLocation.Configurable || translation.Location == ProviderExecutionLocation.Configurable)
-            ? $"\n{settings.CustomTranslationEndpoint}\n{settings.CustomTranslationModel}" : "";
-        if (ocr.UploadsImage)
-            return (UiText.IsEnglish
-                ? $"The selected image is sent to {UiText.ProviderName(ocr.Id, ocr.DisplayName)}; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
-                : $"所选图片将发送给 {ocr.DisplayName}；文字将发送给 {translation.DisplayName}") + destination;
-        return (UiText.IsEnglish
-            ? $"The image is recognized locally; text is sent to {UiText.ProviderName(translation.Id, translation.DisplayName)}"
-            : $"图片在本地识别；文字将发送给 {translation.DisplayName}") + destination;
-    }
     private sealed class OperationContext(long id, CancellationTokenSource cancellation)
     {
         public long Id { get; } = id;

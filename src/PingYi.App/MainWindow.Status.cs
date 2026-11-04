@@ -63,23 +63,7 @@ public partial class MainWindow
         }
         catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
     }
-    internal static ModeReadiness TaskReadiness(RuntimeStatusSnapshot snapshot, string task)
-    {
-        try
-        {
-            var route = ConfigurationRouting.Resolve(snapshot.Settings, task);
-            var settings = route.Settings;
-            var providerId = task == ModelTasks.Ocr ? settings.OcrProviderId : settings.TranslationProviderId;
-            if (providerId == "local-paddle") return ModeReadinessPolicy.Lightweight(snapshot.PaddleReady, snapshot.PaddleReady);
-            if (providerId == "local-argos") return ModeReadinessPolicy.Lightweight(snapshot.ArgosReady, snapshot.ArgosReady);
-            if (route.IsManaged) return snapshot.Basic;
-            if (route.IsExplicit)
-                return new(ModeReadinessState.Unverified, ProcessingModes.IsLocalEndpoint(settings) ? "local-vision-unverified" : "cloud-unverified");
-            return providerId is "local-vlm-ocr" or "custom-chat"
-                ? ProcessingModes.IsLocalEndpoint(settings) ? snapshot.Basic : snapshot.Cloud : snapshot.Cloud;
-        }
-        catch (ProviderException) { return new(ModeReadinessState.NeedsAttention, "cloud-incomplete"); }
-    }
+    internal static ModeReadiness TaskReadiness(RuntimeStatusSnapshot snapshot, string task) => snapshot.Current;
     private void RenderPipelineStatus(RuntimeStatusSnapshot snapshot)
     {
         var ocr = TaskReadiness(snapshot, ModelTasks.Ocr);

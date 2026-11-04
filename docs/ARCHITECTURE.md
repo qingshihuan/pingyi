@@ -1,0 +1,55 @@
+# Unified multimodal model architecture (schema 16)
+
+This document describes unreleased main. Earlier release notes are historical.
+
+## Request flow
+
+```mermaid
+flowchart TD
+    Capture[Screen capture] --> QR[Local QR decode]
+    QR -->|decoded| Result[QR result]
+    QR -->|no code| Selection[One current model]
+    Text[Browser text] --> Selection
+    Image[Description / prompt reconstruction] --> Selection
+    Selection --> Gate[Verified image input + text output]
+    Gate --> Local[Local model / app-owned runtime]
+    Gate --> Cloud[Cloud API / explicit consent]
+```
+
+`ModelConfiguration.CurrentModel` contains one service ID and one model ID. There are no independent task bindings or processing modes. `ModelTasks` identifies request types only. `ConfigurationRouting.Resolve` validates capabilities and returns the same endpoint, model, protocol and credential scope for recognition, translation, description and prompt reconstruction. Factories capture an immutable settings snapshot; a later settings edit cannot redirect an in-flight request.
+
+`ModelCatalogEntry` records separate text and vision test evidence. Discovery does not set either flag. Text verification requires an actual nonempty text response. Vision verification renders a random challenge in a synthetic PNG and checks that the output contains its answer; the answer is never included in the request text. Changing the endpoint, protocol or credential invalidates evidence in the editor. Unverified and text-only entries cannot be saved as current or routed at runtime.
+
+## Configuration boundaries
+
+| Section | Responsibilities |
+| --- | --- |
+| Current model | One verified model for all tasks; translation language |
+| Cloud APIs | HTTPS services, per-service keys, protocol, catalogs and tests |
+| Local models | Loopback service connections; app-owned model download, runtime installation, GPU selection, start/stop and backend switching |
+| Hotkeys | Record/edit shortcut, conflict handling and platform guidance |
+| General | Interface language, startup and explicit update checks |
+
+`Services` contains cloud profiles; `LocalServices` contains loopback profiles. They share transport adapters but are edited separately. App-owned llama.cpp state is independent of cloud selection, so switching to a cloud model does not erase local installation preferences. External Ollama/LM Studio instances retain ownership of their processes and model lifecycle; the app only connects and tests them.
+
+## Layers
+
+- `PingYi.Core`: configuration, migration conversion, capability rules, routing, capture purposes, runtime policy and contracts.
+- `PingYi.Infrastructure`: compatible Chat Completions / Responses adapters, QR decoding, local settings and secret storage, model/runtime downloads and process ownership, desktop capture and browser bridge.
+- `PingYi.App`: five-page draft editor, explicit capability tests, capture consent, cancellation, result windows and runtime controls.
+
+PaddleOCR, ONNX Runtime, Baidu OCR/translation, Google Vision/translation, Python/Argos/CTranslate2 and all traditional OCR installers are removed. No Python inference host or lightweight mode remains. The `IOcrProvider` interface now represents multimodal transcription only. No failures trigger another model or traditional engine. Automatic capture uses local QR evidence only; other images go to the current multimodal model for recognition and translation.
+
+## Persistence and migration
+
+`JsonSettingsStore` loads older settings without rewriting them. `ConfigurationMigration` splits local/cloud profiles while preserving service IDs (and therefore credential references). An unambiguous previously verified shared model may remain selected; conflicting or unverified routes become a pending suggestion. Removed settings remain recoverable in the original backup. Invalid/future files fail explicitly instead of being silently replaced.
+
+Before the first schema 16 save, the original bytes are copied to `settings.json.pre-v16.bak` if that backup does not already exist. Saves use a temporary file and atomic replacement. Configuration changes and scoped secret writes are serialized; a failed settings write restores the previous key values. Legacy shared keys are copied only to the matching original destination, never overwrite a scoped key, and remain available for rollback. Migration does not delete old model files or secrets.
+
+Windows DPAPI and the existing Linux Secret Service/memory fallback remain unchanged. API keys are not serialized into model configuration. Runtime request adapters receive only the selected service's key; app-owned loopback inference receives no cloud key. Private settings, secrets and backups are ignored and audited before commits, pushes and packaging.
+
+## Verification and limits
+
+Core tests cover routing identity, capability rejection, protocol payloads, credential isolation and rollback, cancellation, backups, migration, runtime downloads/process ownership and capture. Avalonia tests exercise settings navigation, credential drafts, capability selection, hotkeys, cancellation, themes and viewport layouts. Python checks cover packaging/licenses, secret audits and UI/resource consistency. Native Linux/X11 and screenshot portal checks run in CI.
+
+Capability tests demonstrate connectivity and synthetic image reading, not real-world OCR accuracy or speed. Provider catalogs, actual cloud permissions and GPU inference require testing on the chosen account/device. No release is published by this refactor.

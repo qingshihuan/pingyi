@@ -26,24 +26,19 @@ public class NativeFinishingTests
         try
         {
             C<TextBlock>(window, "GlobalStatusText").Text = WorkspaceText.Preview;
-            Choice(window, "OcrProviderCombo", "PaddleOCR · ONNX");
-            Choice(window, "TranslationProviderCombo", "Argos · Offline");
             Choice(window, "TargetLanguageCombo", UiText.IsEnglish ? "Auto (Chinese / English)" : "自动 · 中英互译");
             window.Show();
             window.UpdateLayout();
-            foreach (var name in new[] { "OcrProviderCombo", "TranslationProviderCombo", "TargetLanguageCombo", "SaveSettingsButton" })
+            foreach (var name in new[] { "CurrentModelCombo", "TargetLanguageCombo", "SaveSettingsButton" })
                 AssertInWindow(window, C<Control>(window, name));
-            var check = window.GetVisualDescendants().OfType<Button>()
-                .Single(b => AutomationProperties.GetName(b) == UiText.T("检查处理引擎状态"));
-            AssertInScrollViewport(check);
             Assert.DoesNotContain(C<Button>(window, "SaveSettingsButton").GetVisualAncestors(), c => c is ScrollViewer);
-            C<ComboBox>(window, "CustomModelCombo").Text = "unsaved-example";
+            window.ConfigurationCenter.ModelEditor.Text = "unsaved-example";
             var tabs = C<TabControl>(window, "SettingsTabs");
             for (var i = 0; i < 5; i++)
             {
                 tabs.SelectedIndex = i;
                 window.UpdateLayout();
-                Assert.Equal("unsaved-example", C<ComboBox>(window, "CustomModelCombo").Text);
+                Assert.Equal("unsaved-example", window.ConfigurationCenter.ModelEditor.Text);
             }
             tabs.SelectedIndex = 0;
             Frame(window, $"polished-settings-{language}-{dark}");
@@ -118,6 +113,6 @@ public class NativeFinishingTests
         if (string.IsNullOrWhiteSpace(dir)) return;
         Directory.CreateDirectory(dir);
         using var frame = w.CaptureRenderedFrame();
-        Assert.NotNull(frame); frame.Save(Path.Combine(dir, name + ".png"));
+        Assert.NotNull(frame); frame.Save(Path.Combine(dir, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

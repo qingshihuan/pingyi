@@ -12,7 +12,7 @@ public static class BrowserWire
     public const int MaxResponseBytes = 1024 * 1024 - 1;
     public static string PipeName(string edition) => "pingyi.browser.v1." + edition + "." +
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            Environment.UserName + "|" + Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))))[..16];
+            Environment.UserName + "|" + Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))))[..16] + ConfigurationInstanceScope.Current;
 
     public static async Task<byte[]?> ReadAsync(Stream stream, int limit, CancellationToken token)
     {

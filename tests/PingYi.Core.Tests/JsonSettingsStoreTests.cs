@@ -15,7 +15,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
     {
         var settings = await new JsonSettingsStore(SettingsFile).LoadAsync();
 
-        Assert.Equal(new AppSettings().CustomTranslationModel, settings.CustomTranslationModel);
+        Assert.Equal(new AppSettings().Hotkey, settings.Hotkey);
         Assert.False(Directory.Exists(_directory));
     }
 
@@ -23,9 +23,9 @@ public sealed class JsonSettingsStoreTests : IDisposable
     public async Task SaveAndLoad_RoundTripUnicodeSettings()
     {
         var store = new JsonSettingsStore(SettingsFile);
-        await store.SaveAsync(new AppSettings { CustomTranslationModel = "本地模型-v1" });
+        await store.SaveAsync(new AppSettings { Hotkey = "本地模型-v1" });
 
-        Assert.Equal("本地模型-v1", (await store.LoadAsync()).CustomTranslationModel);
+        Assert.Equal("本地模型-v1", (await store.LoadAsync()).Hotkey);
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
     }
 
@@ -35,11 +35,11 @@ public sealed class JsonSettingsStoreTests : IDisposable
         var store = new JsonSettingsStore(SettingsFile);
         var saves = Enumerable.Range(0, 32).Select(index => Task.Run(async () =>
         {
-            await store.SaveAsync(new AppSettings { CustomTranslationModel = "model-" + index });
+            await store.SaveAsync(new AppSettings { Hotkey = "model-" + index });
         }));
         await Task.WhenAll(saves).WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.StartsWith("model-", (await store.LoadAsync()).CustomTranslationModel);
+        Assert.StartsWith("model-", (await store.LoadAsync()).Hotkey);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(SettingsFile));
         Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
@@ -48,7 +48,7 @@ public sealed class JsonSettingsStoreTests : IDisposable
     [Fact]
     public async Task IndependentStores_CanReadWhileReplacingSettings()
     {
-        await new JsonSettingsStore(SettingsFile).SaveAsync(new AppSettings { CustomTranslationModel = "model-initial" });
+        await new JsonSettingsStore(SettingsFile).SaveAsync(new AppSettings { Hotkey = "model-initial" });
         var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var workers = Enumerable.Range(0, 12).Select(index => Task.Run(async () =>
         {
@@ -56,8 +56,8 @@ public sealed class JsonSettingsStoreTests : IDisposable
             await start.Task;
             for (var attempt = 0; attempt < 4; attempt++)
             {
-                await store.SaveAsync(new AppSettings { CustomTranslationModel = $"model-{index}-{attempt}" });
-                Assert.StartsWith("model-", (await store.LoadAsync()).CustomTranslationModel);
+                await store.SaveAsync(new AppSettings { Hotkey = $"model-{index}-{attempt}" });
+                Assert.StartsWith("model-", (await store.LoadAsync()).Hotkey);
             }
         })).ToArray();
         start.SetResult(true);
@@ -70,13 +70,13 @@ public sealed class JsonSettingsStoreTests : IDisposable
     public async Task PreCanceledSave_PreservesExistingSettings()
     {
         var store = new JsonSettingsStore(SettingsFile);
-        await store.SaveAsync(new AppSettings { CustomTranslationModel = "original" });
+        await store.SaveAsync(new AppSettings { Hotkey = "original" });
         var original = await File.ReadAllTextAsync(SettingsFile);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            store.SaveAsync(new AppSettings { CustomTranslationModel = "replacement" }, cancellation.Token));
+            store.SaveAsync(new AppSettings { Hotkey = "replacement" }, cancellation.Token));
 
         Assert.Equal(original, await File.ReadAllTextAsync(SettingsFile));
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
@@ -86,14 +86,14 @@ public sealed class JsonSettingsStoreTests : IDisposable
     public async Task CanceledQueuedSave_DoesNotPublishOrBlockLaterSaves()
     {
         var store = new JsonSettingsStore(SettingsFile);
-        await store.SaveAsync(new AppSettings { CustomTranslationModel = "original" });
+        await store.SaveAsync(new AppSettings { Hotkey = "original" });
         var gate = Assert.IsType<SemaphoreSlim>(typeof(JsonSettingsStore)
             .GetField("_gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(store));
         await gate.WaitAsync();
         using var cancellation = new CancellationTokenSource();
         try
         {
-            var pending = store.SaveAsync(new AppSettings { CustomTranslationModel = "canceled" }, cancellation.Token);
+            var pending = store.SaveAsync(new AppSettings { Hotkey = "canceled" }, cancellation.Token);
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
         }
@@ -102,9 +102,9 @@ public sealed class JsonSettingsStoreTests : IDisposable
             gate.Release();
         }
 
-        Assert.Equal("original", (await store.LoadAsync()).CustomTranslationModel);
-        await store.SaveAsync(new AppSettings { CustomTranslationModel = "next" });
-        Assert.Equal("next", (await store.LoadAsync()).CustomTranslationModel);
+        Assert.Equal("original", (await store.LoadAsync()).Hotkey);
+        await store.SaveAsync(new AppSettings { Hotkey = "next" });
+        Assert.Equal("next", (await store.LoadAsync()).Hotkey);
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
     }
 
@@ -131,15 +131,15 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task MalformedSettings_ReturnDefaultsAndCanBeRepaired()
+    public async Task MalformedSettings_AreNeverSilentlyReplaced()
     {
         Directory.CreateDirectory(_directory);
         await File.WriteAllTextAsync(SettingsFile, "{invalid json");
         var store = new JsonSettingsStore(SettingsFile);
 
-        Assert.Equal(new AppSettings().CustomTranslationModel, (await store.LoadAsync()).CustomTranslationModel);
-        await store.SaveAsync(new AppSettings { CustomTranslationModel = "repaired" });
-        Assert.Equal("repaired", (await store.LoadAsync()).CustomTranslationModel);
+        await Assert.ThrowsAsync<ProviderException>(() => store.LoadAsync());
+        await Assert.ThrowsAsync<ProviderException>(() => store.SaveAsync(new AppSettings()));
+        Assert.Equal("{invalid json", await File.ReadAllTextAsync(SettingsFile));
     }
 
     public void Dispose()

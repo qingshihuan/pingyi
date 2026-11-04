@@ -14,18 +14,41 @@ namespace PingYi.App.Tests;
 public sealed class ConfigurationCenterUiTests
 {
     private static ModelServiceProfile A => new() { Id = "test-local", Name = "本机视觉 / Local vision",
-        Endpoint = "http://127.0.0.1:8080/v1/chat/completions", DefaultModel = "local-vision",
+        Endpoint = "https://vision.example/v1/chat/completions", DefaultModel = "local-vision",
         Models = [new("local-vision", true, true)] };
     private static ModelServiceProfile B => new() { Id = "test-api", Name = "示例 API / Example API",
         Endpoint = "https://example.test/v1/chat/completions", Protocol = ModelApiProtocols.Responses,
         DefaultModel = "example-text", Models = [new("example-text"), new("example-vision")] };
-    private static AppSettings Sample => new() { ModelConfiguration = new() { Services = [A, B], Tasks = new()
-        { Ocr = new(A.Id), Translation = new(B.Id), Description = new(B.Id, "example-vision", false), Prompt = new(A.Id, "local-vision", false) } } };
+    private static AppSettings Sample => new() { ModelConfiguration = new() { Services = [A, B], CurrentModel = new(A.Id, "local-vision") } };
     private static void Flush(Window window) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
     // A TabControl can expose the same control through Items and selected content. Count instances, not traversal paths.
     private static IEnumerable<T> Controls<T>(Control view) where T : Control => view.GetLogicalDescendants().OfType<T>().Distinct();
     private static Button FindButton(Control view, string content) => Controls<Button>(view).Single(b => Equals(b.Content, content));
+
+    [AvaloniaFact]
+    public void Current_selector_excludes_text_only_and_unverified_models_and_shares_one_selection()
+    {
+        var window = new SettingsWindow();
+        try
+        {
+            var local = A with { Id = "on-device", Endpoint = "http://127.0.0.1:11434/v1/chat/completions" };
+            var textOnly = B with { Models = [new("example-text", true, false), new("unknown")] };
+            window.LoadSettings(new() { ModelConfiguration = new() { Services = [A, textOnly], LocalServices = [local], CurrentModel = new(A.Id, "local-vision") } });
+            var combo = window.FindControl<ComboBox>("CurrentModelCombo")!;
+            Assert.Equal(3, combo.Items.Count); // No selection + two verified multimodal models.
+            Assert.DoesNotContain(combo.Items, item => item!.ToString()!.Contains("example-text"));
+            Assert.DoesNotContain(combo.Items, item => item!.ToString()!.Contains("unknown"));
+            combo.SelectedIndex = 2;
+            var config = window.BuildModelConfiguration();
+            Assert.Equal(local.Id, config.CurrentModel!.ServiceId);
+            var settings = new AppSettings { ModelConfiguration = config };
+            Assert.Single(ModelTasks.All.Select(task => ConfigurationRouting.Fingerprint(settings, task)).Distinct());
+            window.LocalModelEditor.EndpointEditor.Text = "https://remote.example/v1";
+            Assert.Equal("service_location_invalid", Assert.Throws<ProviderException>(() => window.BuildModelConfiguration()).Code);
+        }
+        finally { window.Close(); }
+    }
 
     [AvaloniaFact]
     public void Loading_navigating_and_changing_language_never_send_requests_or_discard_drafts()
@@ -37,13 +60,13 @@ public sealed class ConfigurationCenterUiTests
             var view = window.ConfigurationCenter; view.Load(Sample);
             view.Discover = (_, _, _) => throw new InvalidOperationException("No network allowed");
             view.Verify = (_, _, _, _, _) => throw new InvalidOperationException("No inference allowed");
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1;
             window.Show(); Flush(window);
             view.ModelEditor.Text = "unsaved-模型";
             view.KeyEditor.Text = "synthetic-key";
             UiText.Configure("en-US"); Flush(window);
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 5; Flush(window);
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3; Flush(window);
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 4; Flush(window);
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1; Flush(window);
             Assert.Equal("synthetic-key", view.KeyEditor.Text);
             Assert.Equal('●', view.KeyEditor.PasswordChar);
             var draft = view.BuildDraft();
@@ -61,7 +84,7 @@ public sealed class ConfigurationCenterUiTests
         try
         {
             var view = window.ConfigurationCenter; view.Load(Sample);
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1;
             window.Show(); Flush(window);
             view.KeyEditor.Text = "old-endpoint-test-key";
             view.BuildDraft(); Assert.NotEmpty(view.PendingKeys);
@@ -88,13 +111,13 @@ public sealed class ConfigurationCenterUiTests
                 calls++; Assert.Equal(A.Id, profile.Id); Assert.Equal("new-test-key", key);
                 return Task.FromResult<IReadOnlyList<string>>(["new-model", "another-model"]);
             };
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1;
             window.Show(); Flush(window);
             view.KeyEditor.Text = "new-test-key";
             Click(FindButton(view, "获取模型列表")); await view.OperationTask; Flush(window);
             Assert.Equal(1, calls);
             var draft = view.BuildDraft();
-            Assert.Equal(2, draft.Services[0].Models.Length);
+            Assert.Equal(3, draft.Services[0].Models.Length);
             Assert.All(draft.Services[0].Models, m => { Assert.False(m.TextVerified); Assert.False(m.VisionVerified); });
             Assert.Equal("local-vision", view.ModelEditor.Text);
             Assert.Single(Sample.ModelConfiguration!.Services[0].Models);
@@ -116,7 +139,7 @@ public sealed class ConfigurationCenterUiTests
             catch (OperationCanceledException) { cancelled = true; throw; }
             return [];
         };
-        window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
+        window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1;
         window.Show(); Flush(window); view.KeyEditor.Text = "never-persist";
         Click(FindButton(view, "获取模型列表")); await started.Task;
         window.Close(); await view.OperationTask;
@@ -124,54 +147,11 @@ public sealed class ConfigurationCenterUiTests
     }
 
     [AvaloniaFact]
-    public void Bound_profiles_cannot_be_deleted_and_per_task_model_choices_are_persisted_in_draft()
+    public void Current_profile_cannot_be_deleted_until_another_model_is_selected_and_saved()
     {
-        UiText.Configure("zh-CN"); var window = new SettingsWindow();
-        try
-        {
-            var view = window.ConfigurationCenter; view.Load(Sample);
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
-            window.Show(); Flush(window);
-            Click(FindButton(view, "删除服务")); Click(FindButton(view, "删除服务"));
-            Assert.Equal(2, view.BuildDraft().Services.Length);
-            var tabs = Controls<TabControl>(view).Single();
-            tabs.SelectedIndex = 2; Flush(window);
-            var service = Controls<ComboBox>(view).Single(c => c.Name == "RouteService-translation");
-            service.SelectedItem = service.Items.Cast<object>().Single(i => i.ToString() == A.Name);
-            var model = Controls<ComboBox>(view).Single(c => c.Name == "RouteModel-translation");
-            model.Text = "local-text-override";
-            var draft = view.BuildDraft();
-            Assert.Equal(A.Id, draft.Tasks.Translation.ServiceId);
-            Assert.Equal("local-text-override", draft.Tasks.Translation.ModelId);
-            Assert.Equal(B.Id, draft.Tasks.Description.ServiceId);
-        }
-        finally { window.Close(); }
-    }
-
-    [AvaloniaTheory]
-    [InlineData(false)] [InlineData(true)]
-    public async Task Api_and_hybrid_onboarding_open_configuration_without_a_download(bool hybrid)
-    {
-        UiText.Configure("zh-CN"); var choices = new List<InitialSetupChoice>();
-        var setup = new FirstRunSetupWindow(false, (_, _, _, _) => throw new InvalidOperationException("Must not download"),
-            (choice, _) => { choices.Add(choice); return Task.CompletedTask; });
-        setup.Show();
-        Click(hybrid ? setup.HybridButton : setup.ApiButton); await setup.OperationTask;
-        Assert.Equal([InitialSetupChoice.ConfigureExisting], choices);
-        setup.Close();
-    }
-
-    [Fact]
-    public void Homepage_readiness_tracks_the_actual_task_route_without_claiming_online_verification()
-    {
-        var snapshot = RuntimeStatusSnapshot.Unknown with { Settings = Sample, PaddleReady = true, ArgosReady = true,
-            Basic = new(ModeReadinessState.Available, "basic-running") };
-        Assert.Equal(ModeReadinessState.Unverified, MainWindow.TaskReadiness(snapshot, ModelTasks.Translation).State);
-        Assert.Equal(ModeReadinessState.Unverified, MainWindow.TaskReadiness(snapshot, ModelTasks.Ocr).State);
-        Assert.True(ModeReadinessPolicy.HasRemoteEndpoint(Sample));
-        var broken = Sample with { ModelConfiguration = Sample.ModelConfiguration! with { Tasks = new() { Translation = new("missing") } } };
-        Assert.Equal(ModeReadinessState.NeedsAttention,
-            MainWindow.TaskReadiness(snapshot with { Settings = broken }, ModelTasks.Translation).State);
+        UiText.Configure("zh-CN"); var view = new ConfigurationCenterView(); view.Load(Sample);
+        Click(FindButton(view, "删除服务")); Click(FindButton(view, "删除服务"));
+        Assert.Equal(2, view.BuildDraft().Services.Length);
     }
 
     [AvaloniaTheory]
@@ -185,21 +165,21 @@ public sealed class ConfigurationCenterUiTests
         try
         {
             window.ConfigurationCenter.Load(Sample);
-            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
+            window.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 1;
             window.Show(); Flush(window);
             var save = window.FindControl<Button>("SaveSettingsButton")!;
             var point = save.TranslatePoint(default, window);
             Assert.NotNull(point); Assert.True(point.Value.Y >= 0 && point.Value.Y + save.Bounds.Height <= window.ClientSize.Height + 1);
             var directory = Environment.GetEnvironmentVariable("PINGYI_UI_ARTIFACTS");
-            var tabs = Controls<TabControl>(window.ConfigurationCenter).Single();
-            for (var page = 0; page < 4; page++)
+            var tabs = window.FindControl<TabControl>("SettingsTabs")!;
+            for (var page = 0; page < 5; page++)
             {
                 tabs.SelectedIndex = page; Flush(window);
                 Assert.True(window.ConfigurationCenter.Bounds.Width > 100);
                 if (string.IsNullOrEmpty(directory)) continue;
                 Directory.CreateDirectory(directory);
                 using var frame = window.CaptureRenderedFrame(); Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"configuration-{page}-{width}-{language}-{dark}.png"));
+                frame.Save(Path.Combine(directory, $"configuration-{page}-{width}-{language}-{dark}.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
             }
         }
         finally { window.Close(); }

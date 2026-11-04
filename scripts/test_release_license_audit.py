@@ -42,62 +42,14 @@ class ReleaseLicenseAuditTests(unittest.TestCase):
 
             self.assertEqual(sha256_text_file(lf_file), sha256_text_file(crlf_file))
 
-    def test_pinned_onednn_license_files_remain_unchanged(self) -> None:
-        # SHA-256 digests of the upstream oneDNN v3.1.1 files.
-        expected = {
-            "oneDNN-3.1.1-LICENSE.txt": "dd12452e1ae11e3282271aa5895d8175296b83e936a027209f9399d26a407d0f",
-            "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e",
-        }
-        for name, digest in expected.items():
-            self.assertEqual(digest, sha256_text_file(collector.CURATED_ROOT / name), name)
 
-    def test_collector_distinguishes_gnu_llvm_and_intel_openmp(self) -> None:
-        class FakeIntelDistribution:
-            version = "2025.3.0"
-            files = (Path("LICENSE.txt"), Path("third-party-programs.txt"))
 
-            def __init__(self, license_path: Path) -> None:
-                self._license_path = license_path
-
-            def locate_file(self, entry: Path) -> Path:
-                return self._license_path.parent / entry.name
-
+    def test_retired_engines_are_rejected_from_release(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            publish = root / "publish"
-            output = publish / "licenses"
-            publish.mkdir()
-            output.mkdir()
-            (publish / "libgomp-test.so.1").write_bytes(b"gnu")
-            (publish / "libomp-test.so").write_bytes(b"llvm")
-            (publish / "libiomp5md.dll").write_bytes(b"intel")
-            (publish / "ctranslate2.dll").write_bytes(b"ctranslate2")
-            intel_license = root / "LICENSE.txt"
-            intel_license.write_text("Intel license terms\n" * 20, encoding="utf-8")
-            (root / "third-party-programs.txt").write_text(
-                "Intel OpenMP third-party notices\n" * 20,
-                encoding="utf-8",
-            )
-
-            with mock.patch.object(collector.metadata, "distribution") as distribution:
-                distribution.side_effect = lambda name: FakeIntelDistribution(intel_license)
-                components = collector.collect_native_runtimes(publish, output)
-
-            self.assertTrue(
-                {
-                    "GNU OpenMP runtime",
-                    "LLVM OpenMP runtime",
-                    "Intel OpenMP runtime",
-                    "Intel oneMKL runtime",
-                    "oneDNN",
-                }.issubset({component["name"] for component in components})
-            )
-            self.assertTrue((output / "native" / "GNU-OpenMP-runtime" / "GPL-3.0.txt").is_file())
-            self.assertTrue((output / "native" / "LLVM-OpenMP-runtime" / "LLVM-exception.txt").is_file())
-            self.assertTrue((output / "native" / "Intel-OpenMP-runtime" / "LICENSE.txt").is_file())
-            self.assertTrue(
-                (output / "native" / "Intel-OpenMP-runtime" / "third-party-programs.txt").is_file()
-            )
+            for relative in ("engine-host/runtime.exe", "Microsoft.ML.OnnxRuntime.dll", "offline-models/model.bin"):
+                p = root / relative; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(b"test")
+            self.assertEqual(3, len(audit.find_forbidden_files(root)))
 
     def test_rejects_missing_license_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -151,27 +103,6 @@ class ReleaseLicenseAuditTests(unittest.TestCase):
                 audit.validate_licenses(root),
             )
 
-    def test_rejects_bundled_intel_openmp_without_license_entry(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            licenses = root / "licenses"
-            licenses.mkdir()
-            (licenses / "README.txt").write_text("release license summary\n" * 8, encoding="utf-8")
-            components = []
-            for index, name in enumerate(sorted(audit.REQUIRED_LICENSE_COMPONENTS)):
-                relative = f"component-{index}.txt"
-                (licenses / relative).write_text("complete license text\n" * 8, encoding="utf-8")
-                components.append({"name": name, "licenseFiles": [relative]})
-            (licenses / "manifest.json").write_text(
-                json.dumps({"schemaVersion": 1, "components": components}),
-                encoding="utf-8",
-            )
-            (root / "libiomp5md.dll").write_bytes(b"test runtime")
-
-            self.assertIn(
-                "Intel OpenMP runtime is missing the Intel EULA and third-party notices",
-                audit.validate_licenses(root),
-            )
 
 
 if __name__ == "__main__":

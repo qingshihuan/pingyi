@@ -1,18 +1,65 @@
-<p align="center"><img src="src/PingYi.App/Assets/screen-insight-icon-512.png" width="96" height="96" alt="Screen Insight icon"></p>
-<h1 align="center">Screen Insight</h1>
-<p align="center"><strong>One capture. Understand the content.</strong></p>
-<p align="center">Automatic translation, image description or QR decoding · Local models first · Windows / Ubuntu</p>
-<p align="center"><a href="README.md">简体中文</a> · <a href="README.en.md">English</a></p>
-<p align="center">
-  <a href="https://github.com/qingshihuan/pingyi/releases/latest"><img src="https://img.shields.io/github/v/release/qingshihuan/pingyi?display_name=tag" alt="Latest stable release"></a>
-  <a href="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml"><img src="https://github.com/qingshihuan/pingyi/actions/workflows/ci.yml/badge.svg?branch=main" alt="Main branch CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0f766e" alt="MIT License"></a>
-</p>
-<p align="center"><a href="https://github.com/qingshihuan/pingyi/releases/latest"><strong>Download</strong></a> · <a href="#quick-start">Quick start</a> · <a href="#docs">Documentation</a> · <a href="https://github.com/qingshihuan/pingyi/issues">Report an issue</a></p>
+# Screen Insight
 
-Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot recognition tool. Select **Smart capture** and a screen region. Local text and QR probes recommend translation, image description or QR decoding. Uncertain or mixed content asks for your choice; manual actions remain available on the same image without another capture.
+[简体中文](README.md) · English
 
-**Version 0.7.0 includes automatic tasks, Basic / Lightweight modes and first-run model setup. Installed-package features depend on the corresponding Release notes.** Routing is a content-based heuristic, not a guarantee of user intent or recognition accuracy. [Rules, migration and verification limits](docs/AUTOMATIC_CAPTURE.md)
+A Windows / Ubuntu desktop tool for screenshot recognition, translation, image description and local QR decoding. **Recognition and translation share one current multimodal model.** Image description and prompt reconstruction use the same selection.
+
+This README describes the unreleased `main` branch. [Existing releases](https://github.com/qingshihuan/pingyi/releases) retain the behavior documented for their version. This refactor does not publish a new version.
+
+## Current model architecture
+
+Only a model verified for **image input and text output** can be selected. A model appearing in an API catalog is not evidence of vision support. Text-only and unverified models remain manageable but cannot become the current model. Requests never silently fall back to another model or cloud service.
+
+PaddleOCR, Baidu Cloud OCR, Google Cloud Vision, traditional OCR configuration and dependencies, the Python/Argos translation engine, and lightweight mode have been removed. There is no traditional OCR pre-pass, correction chain or offline translation fallback. Existing downloaded files are left on disk for rollback; new packages do not include them.
+
+## Setup
+
+1. Open Settings → **Cloud APIs** to add an HTTPS compatible service, or **Local models** to connect a loopback service such as Ollama / LM Studio. Each service has a separate key and model catalog.
+2. Fetch model IDs or enter one manually. Run **Test text** and **Test vision**. Tests send synthetic content only; a remote service may charge for them. The vision challenge is random and its answer appears only in the image.
+3. Select the verified model under **Current model**, then **Save and apply**. The same selection serves all model tasks.
+4. Alternatively, explicitly download and set up an app-owned model under **Local models**. Runtime installation, GPU selection, start/stop and backend switching are separate from cloud API credentials. External applications manage their own downloads and process lifecycle.
+
+Settings has five sections: **Current model, Cloud APIs, Local models, Hotkeys, General**. Loading settings or fetching a model list does not select a model or start inference. App-owned setup verifies both capabilities before making the model current.
+
+## Capture and privacy
+
+Use the main capture button, `Ctrl+Alt+D` on Windows, or `Ctrl+Shift+D` on Linux X11. Hotkeys can be recorded or edited under Hotkeys. Wayland uses the system screenshot portal and requires a desktop-managed global shortcut; see [Linux capture](docs/LINUX_CAPTURE.md).
+
+Automatic capture first attempts local QR decoding. A decoded QR stays local; otherwise the current model recognizes and translates the image. Image description and prompt reconstruction remain explicit actions in the result window. Remote image/text requests require consent for that destination. QR decoding works without a configured model; other tasks explain when a current model is missing.
+
+Screenshots and results stay in memory. Cloud requests send the selected content to the chosen service, which may charge and apply its own retention policy. Local inference sends content only to the configured loopback service. Downloads and explicit update checks require networking; normal local inference does not require a cloud API.
+
+## Configuration and API keys
+
+The existing local storage mechanism is retained: Windows uses existing DPAPI files; Linux uses the existing Secret Service integration with its memory-only fallback. No new mandatory credential manager is introduced. Private configuration, secret directories and migration backups are ignored by Git. Keys are never embedded in README examples, release artifacts or request error messages.
+
+Schema 16 preserves service IDs, destination-scoped keys, language and shortcuts. Before the first save, the original file is copied once to `settings.json.pre-v16.bak`; an existing backup is never overwritten. Conflicting or unverified legacy routes require explicit model selection. No local key, external server or downloaded model is deleted automatically. See [migration and rollback](docs/CONFIGURATION_MIGRATION.md).
+
+The current Complete edition retains its existing data directories (`%LOCALAPPDATA%/PingYiComplete` or XDG `pingyi-complete`); historical Standard data stays in its separate directory and is not automatically merged. Back up configuration and secrets before testing an unreleased build. `PINGYI_CONFIG_DIR` can isolate a test session without using your normal configuration.
+
+## Build and verify
+
+.NET 10 SDK is required. Python is needed only for development/release checks, not application inference.
+
+```powershell
+dotnet restore PingYi.slnx
+dotnet build PingYi.slnx -c Release
+dotnet test PingYi.slnx -c Release
+python -m unittest discover -s scripts -p "test_*.py"
+python scripts/audit-secrets.py
+```
+
+The last command audits actual staged bytes. After committing, run `python scripts/audit-secrets.py --ref HEAD` before pushing. Release scripts audit unpacked output and reject retired engines, traditional OCR libraries and private configuration. Bundled .NET, llama.cpp CPU/Vulkan and license files remain; model weights are downloaded only on explicit request.
+
+Windows packaging: prepare llama.cpp with `python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64`, then run `scripts/publish.ps1 -Version <version> -LlamaRuntimeSource artifacts/llama-runtime/win-x64`. Linux packaging uses `PINGYI_LLAMA_RUNTIME_SOURCE` and `bash scripts/publish.sh <version>`. These commands create local artifacts, not GitHub releases.
+
+## Documentation
+
+[Architecture](docs/ARCHITECTURE.md) · [Settings guide](docs/CONFIGURATION_CENTER.md) · [API protocols](docs/THIRD_PARTY_API.md) · [Migration](docs/CONFIGURATION_MIGRATION.md) · [Changelog](CHANGELOG.md) · [Backend management](docs/RUNTIME_SWITCHING.md) · [Browser extension](docs/BROWSER_EXTENSION.md) · [Third-party licenses](THIRD_PARTY_NOTICES.md)
+
+## Historical videos
+
+The following v0.7.0 videos are retained as historical material. Their mode choices, settings layout and traditional OCR behavior do not describe the current architecture.
 
 <!-- screen-insight-videos:start -->
 ## Download the product and setup videos
@@ -29,188 +76,3 @@ Screen Insight (截屏释义, formerly PingYi) is a desktop screenshot recogniti
 Made with Remotion: 1080p/30fps, Chinese captions and an original instrumental score, no voiceover. Native v0.7.0 UI with authored synthetic examples; process animations are not performance measurements. [Downloads, playback instructions and source](docs/videos/README.md) · [Windows upgrade and restart guidance](docs/WINDOWS_UPGRADE.md)
 
 <!-- screen-insight-videos:end -->
-
-<a id="download"></a>
-## Download and install
-
-Open **[the latest stable GitHub Release](https://github.com/qingshihuan/pingyi/releases/latest)** and expand **Assets**. Download an application package, not GitHub's generated `Source code` archive.
-
-Since v0.6.0, Complete is the only distributed edition, using the `PingYi-Complete-` prefix. Windows 10/11 x64 has an installer and portable ZIP; Ubuntu 22.04+ x64 has DEB and tar.gz. Four packages are accompanied by `SHA256SUMS.txt`. Installing missing Linux system libraries may require internet access.
-
-Packages include the application runtimes, lightweight Chinese/English OCR and translation models, and llama.cpp CPU / Vulkan runtimes; separate Python or .NET installation is unnecessary. **LLM weights are not bundled.** Basic and Lightweight are in-app processing modes, not separate installers, and do not change Complete's data directories. Legacy Standard data is neither migrated nor deleted automatically.
-
-> Download only from this repository's Releases and verify SHA-256 checksums. Unsigned Windows builds may trigger SmartScreen; checksums verify file integrity, not code signing.
-
-<a id="quick-start"></a>
-## Switch and uninstall runtimes (v0.8.1)
-
-Vulkan is the default. In **Settings → Local models → GPU and inference runtime**, choose a backend/device and select **Install and switch to selected backend**. Installation and device checks precede activation; an already-configured model must pass OCR/translation verification before preferences are saved. Failures retain the previous settings and attempt to restore its server. Model weights are reused.
-
-After switching, select the old backend and confirm **Uninstall selected downloaded backend** with a second click. Active backends are protected; bundled Vulkan/CPU, models, settings, drivers and external services are retained. Only downloaded backend versions and unshared caches are removed. Bundled files do not consume VRAM when unused. See [runtime management](docs/RUNTIME_SWITCHING.md).
-
-## First run
-
-1. **Choose a mode.** The first-run guide offers an explicit one-click Basic model download, an existing local service, or **Skip download · use Lightweight**. Opening the app alone does not download a large model.
-2. **Capture a region.** Select Smart capture or use the capture shortcut. Text is routed to translation, decoded QR content can be shown locally, and mixed or uncertain content asks you to choose.
-3. **Read or override.** Switch to translation, description, QR decoding or manual prompt reconstruction using the same image. Switching cancels the previous operation and prevents its late result from replacing your choice. Closing the result ends that screenshot session.
-
-| Mode | OCR and translation | Requirements |
-| --- | --- | --- |
-| **Basic — new-install default** | Local custom vision OCR → local custom model translation | A local image-capable model with vision components; one-click setup is available |
-| **Lightweight** | PaddleOCR → Argos Translate | Bundled Chinese/English baseline models; no LLM download or discrete GPU needed |
-| **Other combinations** | PaddleOCR with LLM translation, Baidu, or custom providers | Configure the chosen model or credentials; remote services are not labelled local Basic |
-
-The **PaddleOCR + model correction** provider and **Visual correction** mode are removed. **Basic transcribes the screenshot directly with a vision model; it does not send a PaddleOCR draft for correction.** Automatic task detection can still use local PaddleOCR to inspect text; that is routing, not a correction pass. Image description still requires a vision model when Lightweight is selected.
-
-The setup guide shows download size, license, source and hardware guidance. Only clicking Download fetches and verifies weights from ModelScope, starts the local runtime, and checks OCR / translation using a fixed synthetic image and short phrase. Settings are committed after success. Failed or cancelled setup is not marked complete; retry or choose Lightweight. Partial downloads are retained for resuming. These connection checks are not a real-world OCR accuracy or hardware benchmark.
-
-Upgrades preserve the selected providers, endpoint, model, language and shortcut. The removed correction OCR ID migrates to direct vision OCR; unrelated preferences are not overwritten. **Model setup** on the home screen reopens the guide.
-
-### Capture shortcuts
-
-| Desktop | Default entry |
-| --- | --- |
-| Windows | `Ctrl+Alt+D` or the capture button |
-| Linux X11 | `Ctrl+Shift+D` or the capture button |
-| Linux Wayland | Capture button; bind the provided command in desktop keyboard settings |
-
-Turn **Auto task** off to make the main button / default shortcut perform text translation. Manual Translate, Describe, Prompt and QR actions remain available.
-
-Under **Settings → Appearance & startup**, type a combination or choose **Record shortcut…**. Enter confirms, Escape cancels, and **Save and apply** activates the choice. Restore default also requires saving. Supported combinations contain Ctrl / Alt / Shift and one A–Z or top-row 0–9 key, not Super, function or keypad keys. Recording suspends the app's native binding and restores the saved combination afterwards. Registration conflicts are reported and attempt to restore the previous binding.
-
-### Ubuntu Wayland
-
-Wayland uses the public XDG Screenshot portal, not the XWayland root window. It requires `xdg-desktop-portal` and a matching backend, typically `xdg-desktop-portal-gnome` on Ubuntu GNOME. Saving a preferred key inside the app is not system registration. Copy the capture command into desktop **Keyboard → Custom Shortcuts**; Screen Insight does not overwrite desktop bindings. Other applications and personal settings can use the same combination. [Linux dependencies and troubleshooting](docs/LINUX_CAPTURE.md)
-
-<a id="features"></a>
-## Desktop capabilities
-
-**Automatic tasks, manual correction.** One region can be translated, described or decoded. Multiple QR results are selectable. QR decoding needs neither OCR nor a model / API; URLs are opened only after an explicit click. [QR details](docs/DESKTOP_QR.md)
-
-**Direct vision OCR and translation.** Connect llama.cpp, Ollama, LM Studio, vLLM or compatible Chat Completions services. Basic requires a loopback endpoint; remote endpoints remain custom combinations. Language coverage and recognition quality depend on the model. Lightweight retains the offline Chinese/English fallback.
-
-**Image description and prompts.** An `image_url`-capable model is required; a text-only model cannot substitute. Prompt reconstruction is manual, creating a reference for a similar scene rather than recovering the original prompt, seed or generation settings. [Image analysis](docs/IMAGE_ANALYSIS.md)
-
-**Desktop controls.** English / Chinese UI, light / dark themes, separate categorized settings, tray controls and reusable result cards. Multi-monitor selection is supported, but specific mixed-DPI, input-method and desktop combinations require real-device validation.
-
-<details>
-<summary>Early workflow demo</summary>
-
-<p align="center"><img src="docs/demo.gif" width="800" alt="An earlier screenshot OCR and translation workflow"></p>
-
-This older demo does not represent the current layout, processing modes or Linux default shortcut. Follow the instructions above.
-
-</details>
-
-<a id="models"></a>
-## Models and cloud services
-
-**Managed local models:** use the first-run guide or **Settings → Local models**. Bundled Vulkan is the default; CUDA/ROCm or CPU can be selected manually. Explicit Vulkan does not automatically fall back. Consult the catalog's size and hardware guidance and test your own device; model speed and memory needs are not guaranteed.
-
-**Existing services:** configure your compatible endpoint, model and credentials under **Settings → Custom endpoint**, and ensure the model can accept images. Configured managed models load on demand. Toggling automatic task selection does not itself start an LLM.
-
-**Optional cloud providers:** configure your Google Cloud or Baidu credentials under **Cloud services** and select OCR and translation providers independently. Fees, quotas and terms belong to your account. Non-loopback custom endpoints require HTTPS.
-
-<a id="privacy"></a>
-## Data boundaries
-
-| Operation | Where data goes |
-| --- | --- |
-| Automatic probes, QR, Lightweight OCR / translation | On-device processing; probing neither contacts cloud providers nor downloads models |
-| Basic / local model | Relevant text or image goes to the configured local service; an independent server controls its own logging and network behavior |
-| Automatically selected remote OCR or translation | Explicit confirmation of this request's data destination before execution; refusal sends nothing |
-| Remote description / prompt reconstruction | Each request and retry confirms endpoint and model, independently of text-translation permission |
-
-Screenshots, OCR text, translations, analysis and QR payloads are not written to history or logs. Probe reuse is confined to the in-memory screenshot session. Credentials use Windows DPAPI or Linux Secret Service, not ordinary settings JSON. Automatic update checks default off; explicit model downloads, update checks and remote services use the network.
-
-The operating system and external services have their own retention boundaries. Wayland portals may create screenshot files; the app cleans temporary-directory copies but does not guarantee deletion of files saved elsewhere by the desktop. Independently configured local and remote servers may retain requests.
-
-## Browser extension: development frozen
-
-Existing Chrome / Edge functionality and the Native Messaging / current-user named-pipe bridge remain available, without new extension features, store submission work or a TCP listener. The extension and native host still need separate building / registration; the desktop installer does not install them. API keys are not copied to the browser and remote OCR requires per-image approval. Existing page, selection and hover translation features and webpage restrictions are documented in [the extension guide](browser-extension/README.md). This change does not alter its protocol.
-
-<a id="docs"></a>
-## Documentation and development
-
-[Automatic capture and onboarding](docs/AUTOMATIC_CAPTURE.md) · [Linux capture](docs/LINUX_CAPTURE.md) · [QR decoding](docs/DESKTOP_QR.md) · [Image analysis](docs/IMAGE_ANALYSIS.md) · [Performance](docs/PERFORMANCE.md) · [Quality baseline](docs/QUALITY_BASELINE.md) · [Release notes](docs/releases)
-
-Official platform scope is Windows 10/11 x64 and Ubuntu 22.04+ x64, not macOS, ARM or every Linux distribution. Live translation overlays, batch PDF / image processing, specialized table / formula recognition and persistent history are not included. Routing, OCR and model output can be wrong; use manual selection and check results.
-
-Development requires .NET 10 SDK; the standalone Argos engine needs Python 3.13. Run from the repository root:
-
-```sh
-dotnet restore PingYi.slnx
-dotnet build PingYi.slnx
-dotnet run --project src/PingYi.App/PingYi.App.csproj
-```
-
-Source builds need models, the translation engine and llama.cpp prepared separately. Without bundled llama.cpp, the guide disables managed downloads while keeping existing-service and Lightweight choices. `--settings` opens Settings; `--capture` starts capture on first launch or forwards it to the running instance.
-
-<details>
-<summary>Tests and packaging</summary>
-
-Prepare the translation environment with `scripts/setup-engine.ps1` on Windows or `scripts/setup-engine.sh` on Linux. PaddleOCR does not need Python but does need models.
-
-```sh
-dotnet test PingYi.slnx
-python -m unittest discover -s engine_host -p "test_*.py"
-python -m unittest discover -s scripts -p "test_*.py"
-python scripts/download-offline-models.py --destination artifacts/model-source
-```
-
-Model preparation uses the network. A configured Windows `py -3` launcher can replace `python`. Complete packaging example in PowerShell:
-
-```powershell
-$version = (Get-Content .github/release-version.txt -Raw).Trim()
-.\scripts\setup-engine.ps1
-python scripts/prepare-llama-runtime.py --runtime win-x64 --destination artifacts/llama-runtime/win-x64
-.\scripts\publish.ps1 -Runtime win-x64 -Version $version -Edition Complete `
-  -OfflineModelSource artifacts/model-source `
-  -LlamaRuntimeSource artifacts/llama-runtime/win-x64 -BuildInstaller
-```
-
-Use `-InnoCompiler` for a non-default Inno Setup path. Quality checks use `scripts/run-quality-baseline.ps1 -ModelDirectory <model-directory>`. Optional signing parameters are `-SigningCertificateThumbprint` / `-TimestampUrl`; CI secret names are `PINGYI_SIGNING_CERTIFICATE_BASE64` / `PINGYI_SIGNING_CERTIFICATE_PASSWORD`. Never commit models, screenshots, credentials or certificates.
-
-Publishing is triggered by a version tag or a main-branch change to `.github/release-version.txt`, after cross-platform builds, tests, four Complete package checks and license auditing. Existing tags pointing at another commit are not replaced. This feature work does not itself change the release version. [Release workflow](.github/workflows/release.yml)
-
-</details>
-
-Automation includes pure routing, migrations, synthetic model responses, UI and isolated Xvfb / D-Bus checks; **it is not real-model accuracy, physical GNOME / Wayland, multi-monitor or GPU certification**.
-
-## Contributing and license
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before reporting issues or submitting changes. Do not upload private screenshots, text or credentials. Source is [MIT licensed](LICENSE); models and dependencies retain their own terms, documented in [third-party notices](THIRD_PARTY_NOTICES.md) and each package's `licenses/` manifest.
-
-## Quit and release resources
-
-Use **Quit and release resources** in the main-window footer or tray to stop the app and its owned
-model backends and wait for their exit. Closing the window still hides it to the tray. External
-Ollama / LM Studio services are not killed; models and settings are retained. Backend allocations
-are reclaimed by the OS/driver, not by resetting the entire GPU. See [shutdown and ownership](docs/RUNTIME_SHUTDOWN.md).
-These are source changes; installed behavior depends on the corresponding Release.
-
-## GPU and inference runtimes (current source)
-
-First-run setup and Settings → Local models expose hardware detection, backend-native GPU selection and explicit runtime installation/update. Auto considers NVIDIA architecture/driver for CUDA 12/13 and probes AMD ROCm/HIP; Vulkan/CPU remain available. Manual choices do not silently switch to another device or backend.
-
-Only an explicit download/configure action contacts upstream release metadata. An embedded trusted catalogue is used when GitHub metadata is unavailable, without calling it the latest. Optional third-party relays require opt-in; all executable archives must match official size and SHA-256. Drivers are not installed, and normal capture does not check runtime updates.
-
-Inference no longer inherits the generic 30-second HTTP timeout. Primary translation and offline fallback have independent deadlines; failed translation retries can reuse session-only OCR. Installed-package availability depends on Releases. See [runtime details and validation limits](docs/RUNTIME_ACCELERATION.md).
-
-## Mode runtime status
-
-Home now shows separate Lightweight, Basic and Cloud cards. Green means local readiness or configured on-demand loading; red means not configured/needs attention; gray means not checked/unverified. Text accompanies every indicator. View details opens the new Runtime status Settings category for mode, runtime, GPU and model information and configuration links.
-
-Refresh never downloads, starts a vision model, runs inference or changes the scheme. Only loopback services may be probed. Managed-model file presence/sizes are inspected; full integrity verification remains at startup. Saved cloud credentials are not proof of connectivity, quota or successful authentication. Cloud validation stays an explicit user action. Download connectivity and an active GPU are never fabricated.
-
-## Third-party model APIs
-
-Open **Settings → Custom endpoint** and choose OpenAI, DeepSeek, SiliconFlow, OpenRouter, Alibaba Cloud Model Studio (DashScope), or Zhipu BigModel to fill an OpenAI-compatible Chat Completions URL. Enter the API Key and save; refresh the account's available model list and choose an ID from the editable dropdown. If the provider does not expose a model-list endpoint, a model ID can still be typed manually. Remote API mode automatically disables local service presets; they are re-enabled when switching back to a loopback endpoint. Applying a preset does not send a request. Other compatible endpoints can be entered manually.
-
-The OpenAI preset defaults to the Responses API for text translation and `input_image` vision OCR, image description and prompt reconstruction; requests explicitly set `store:false`. You can switch to Chat Completions manually. DeepSeek, SiliconFlow, OpenRouter, DashScope, Zhipu and local llama.cpp/Ollama/LM Studio continue to default to Chat Completions. Remote services require HTTPS. API keys are stored in the OS secure store. Remote translation sends recognized text; vision tasks send the selected screenshot, and provider charges may apply. Replace the shared API key when switching providers. Native Anthropic Messages and proprietary signed APIs are not supported by this adapter.
-
-[Third-party API setup, endpoints, privacy and troubleshooting](docs/THIRD_PARTY_API.md).
-
-## Configuration center (development branch)
-
-The configuration-center branch adds independent service credentials, per-task model routing, a draft overview and explicit sample tests. Legacy settings are migrated with a backup. Saving does not preload a model, and there is no silent cross-cloud fallback. This is not in the v0.8.4 installer. See [Configuration center usage and migration](docs/CONFIGURATION_CENTER.md).

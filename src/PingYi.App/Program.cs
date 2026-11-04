@@ -22,8 +22,8 @@ class Program
                 Console.Error.WriteLine("Initialization diagnostic: NullReferenceException");
                 foreach (var frame in new StackTrace(e.Exception, false).GetFrames().Take(12))
                 {
-                    var method = frame.GetMethod();
-                    Console.Error.WriteLine($"  {method?.DeclaringType?.FullName}.{method?.Name}");
+                    var method = DiagnosticMethodInfo.Create(frame);
+                    Console.Error.WriteLine($"  {method?.DeclaringTypeName}.{method?.Name}");
                 }
             };
             AppDomain.CurrentDomain.FirstChanceException += diagnostic;

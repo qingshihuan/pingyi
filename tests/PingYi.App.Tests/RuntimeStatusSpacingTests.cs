@@ -114,6 +114,6 @@ public sealed class RuntimeStatusSpacingTests
         home.FindControl<TextBlock>("LiveStatusDetailText")!.Text = WorkspaceText.Preview;
         Settle(home);
         using var frame = home.CaptureRenderedFrame(); Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, name + ".png"));
+        frame.Save(Path.Combine(directory, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

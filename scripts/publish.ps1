@@ -3,7 +3,6 @@ param(
     [string]$Runtime = "win-x64",
     [string]$Configuration = "Release",
     [string]$Version = "0.1.0",
-    [string]$OfflineModelSource,
     [ValidateSet("Complete")]
     [string]$Edition = "Complete",
     [string]$LlamaRuntimeSource,
@@ -11,7 +10,7 @@ param(
     [string]$SignTool,
     [string]$SigningCertificateThumbprint,
     [string]$TimestampUrl = "https://timestamp.digicert.com",
-    [switch]$SkipEngine,
+    [string]$Python = "python",
     [switch]$BuildInstaller
 )
 
@@ -26,29 +25,6 @@ if ([string]::IsNullOrWhiteSpace($LlamaRuntimeSource) -or
     throw "Publishing requires -LlamaRuntimeSource with prepared Vulkan and CPU runtimes."
 }
 $output = Join-Path $projectRoot "artifacts\publish\$Runtime-$Version$editionSuffix"
-$engineOutput = Join-Path $projectRoot "artifacts\engine-host\$Runtime"
-$engineVenv = Join-Path $projectRoot ".venv-engine"
-$engineExecutable = if ($Runtime -eq "win-x64") {
-    Join-Path $engineOutput "pingyi-engine\pingyi-engine.exe"
-} else {
-    Join-Path $engineOutput "pingyi-engine\pingyi-engine"
-}
-
-if (-not $SkipEngine) {
-    if ($Runtime -ne "win-x64") {
-        throw "Build the Linux engine on Ubuntu with scripts/build-engine.sh before publishing linux-x64."
-    }
-    & (Join-Path $PSScriptRoot "build-engine.ps1")
-    if ($LASTEXITCODE -ne 0) { throw "Failed to build the local engine." }
-}
-elseif (-not (Test-Path $engineExecutable)) {
-    throw "The local engine is missing. Remove -SkipEngine or build it first."
-}
-if (-not (Test-Path -LiteralPath (Join-Path $engineVenv "Scripts\python.exe") -PathType Leaf)) {
-    & (Join-Path $PSScriptRoot "setup-engine.ps1")
-    if ($LASTEXITCODE -ne 0) { throw "Failed to prepare the local engine license environment." }
-}
-
 $artifactsRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "artifacts"))
 $outputFullPath = [IO.Path]::GetFullPath($output)
 $artifactsPrefix = $artifactsRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
@@ -72,23 +48,6 @@ if ($LASTEXITCODE -ne 0) { throw "Failed to publish PingYi." }
 
 Get-ChildItem -LiteralPath $output -Recurse -File -Filter "*.pdb" | Remove-Item -Force
 
-if (Test-Path $engineExecutable) {
-    $engineTarget = Join-Path $output "engine-host"
-    if (Test-Path $engineTarget) { Remove-Item -LiteralPath $engineTarget -Recurse -Force }
-    New-Item -ItemType Directory -Path $engineTarget | Out-Null
-    Copy-Item (Join-Path (Split-Path -Parent $engineExecutable) "*") $engineTarget -Recurse -Force
-}
-
-$offlineModelTarget = Join-Path $output "offline-models"
-if ([string]::IsNullOrWhiteSpace($OfflineModelSource)) {
-    & (Join-Path $PSScriptRoot "prepare-offline-models.ps1") -Destination $offlineModelTarget
-} else {
-    & (Join-Path $PSScriptRoot "prepare-offline-models.ps1") `
-        -Source $OfflineModelSource `
-        -Destination $offlineModelTarget
-}
-if ($LASTEXITCODE -ne 0) { throw "Failed to prepare offline baseline models." }
-
 if ($Edition -eq "Complete") {
     if ([string]::IsNullOrWhiteSpace($LlamaRuntimeSource) -or
         -not (Test-Path -LiteralPath $LlamaRuntimeSource -PathType Container)) {
@@ -105,12 +64,14 @@ if ($Edition -eq "Complete") {
 
 Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE") -Destination $output -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $output -Force
-& (Join-Path $engineVenv "Scripts\python.exe") `
+& $Python `
     (Join-Path $PSScriptRoot "collect-release-licenses.py") $output
 if ($LASTEXITCODE -ne 0) { throw "Failed to collect the release license bundle." }
-& (Join-Path $engineVenv "Scripts\python.exe") `
+& $Python `
     (Join-Path $PSScriptRoot "audit-release-dependencies.py") --require-licenses $output
 if ($LASTEXITCODE -ne 0) { throw "The release dependency audit failed." }
+& $Python (Join-Path $PSScriptRoot "audit-secrets.py") --directory $output
+if ($LASTEXITCODE -ne 0) { throw "The release secret audit failed." }
 
 function Get-CodeSignTool {
     if ([string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) { return $null }
@@ -154,10 +115,7 @@ function Invoke-CodeSign([string]$TargetPath, $Signing) {
 $signing = Get-CodeSignTool
 if ($signing) {
     Invoke-CodeSign (Join-Path $output "PingYi.App.exe") $signing
-    $engineExe = Join-Path $output "engine-host\pingyi-engine.exe"
-    if (Test-Path -LiteralPath $engineExe -PathType Leaf) {
-        Invoke-CodeSign $engineExe $signing
-    }
+
 }
 
 $archivePrefix = "PingYi-Complete"

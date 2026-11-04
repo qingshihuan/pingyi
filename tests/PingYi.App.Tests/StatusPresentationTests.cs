@@ -41,25 +41,6 @@ public class StatusPresentationTests
         finally { settings.Close(); result.ClosePermanently(); }
     }
 
-    [AvaloniaTheory]
-    [InlineData("zh-CN", false)]
-    [InlineData("en-US", true)]
-    public void Mode_picker_default_and_scrolled_previews_use_real_controls(string language, bool dark)
-    {
-        UiText.Configure(language);
-        var window = new ModePickerWindow { RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
-        try
-        {
-            window.Show(); window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
-            Frame(window, $"fixed-mode-comparison-{language}");
-            var scroll = window.FindControl<ScrollViewer>("ModesScroll")!;
-            scroll.Offset = new Vector(0, scroll.Extent.Height);
-            Frame(window, $"fixed-mode-comparison-bottom-{language}");
-            Assert.True(scroll.Offset.Y > 0);
-        }
-        finally { window.Close(); }
-    }
-
     private static void AssertBrush(Window window, string name, string key)
     {
         window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
@@ -76,6 +57,6 @@ public class StatusPresentationTests
         if (string.IsNullOrWhiteSpace(directory)) return;
         Directory.CreateDirectory(directory);
         using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame); frame.Save(Path.Combine(directory, name + ".png"));
+        Assert.NotNull(frame); frame.Save(Path.Combine(directory, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

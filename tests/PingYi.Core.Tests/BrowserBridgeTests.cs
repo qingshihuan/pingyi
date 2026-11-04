@@ -12,7 +12,7 @@ public sealed class BrowserBridgeTests
     {
         public int Calls;
         public TranslationRequest? Request;
-        public ProviderMetadata Metadata { get; } = new("local-argos", "Test translator", location, false, false, ["zh", "en"]);
+        public ProviderMetadata Metadata { get; } = new("test-model", "Test translator", location, false, false, ["zh", "en"]);
         public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(ProviderAvailability.Available);
         public Task<TranslationResult> TranslateAsync(TranslationRequest request, CancellationToken cancellationToken = default)
         {
@@ -23,43 +23,49 @@ public sealed class BrowserBridgeTests
     private sealed class Ocr(ProviderExecutionLocation location = ProviderExecutionLocation.Local) : IOcrProvider
     {
         public int Calls;
-        public ProviderMetadata Metadata { get; } = new("local-paddle", "Test OCR", location, true, false, ["en"]);
+        public ProviderMetadata Metadata { get; } = new("test-vision", "Test OCR", location, true, false, ["en"]);
         public ValueTask<ProviderAvailability> GetAvailabilityAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(ProviderAvailability.Available);
         public Task<OcrResult> RecognizeAsync(ImageFrame image, OcrOptions options, CancellationToken cancellationToken = default)
         { Calls++; return Task.FromResult(new OcrResult([], "Hello world", "en")); }
     }
     private static BrowserTranslationService Service(Translator translator, Ocr? ocr = null) =>
-        new(new ProviderRegistry([ocr ?? new Ocr()], [translator]), _ => Task.CompletedTask);
+        new(_ => Task.CompletedTask, _ => translator, _ => ocr ?? new Ocr());
+    private static AppSettings Configured(string endpoint = "http://127.0.0.1:8080/v1")
+    {
+        var profile = new ModelServiceProfile { Id = "test", Endpoint = endpoint, Models = [new("vision", true, true)] };
+        return new() { ModelConfiguration = new() { Services = profile.IsRemote ? [profile] : [],
+            LocalServices = profile.IsRemote ? [] : [profile], CurrentModel = new(profile.Id, "vision") } };
+    }
     private static BrowserRequest Request(BrowserTranslationService service, AppSettings settings) => new()
         { Operation = "translate", Text = "Hello world", RouteKey = service.GetStatus(settings).RouteKey };
 
     [Fact]
     public async Task OfflineRouteDetectsLanguageAndReusesConfiguredProvider()
     {
-        var translator = new Translator(); var service = Service(translator); var settings = new AppSettings();
+        var translator = new Translator(); var service = Service(translator); var settings = Configured();
         var response = await service.HandleAsync(Request(service, settings), settings, default);
         Assert.True(response.Ok); Assert.Equal("你好，世界。", response.Translation);
-        Assert.Equal("en", translator.Request!.SourceLanguage); Assert.Equal("zh", translator.Request.TargetLanguage);
+        Assert.Equal("auto", translator.Request!.SourceLanguage); Assert.Equal("zh", translator.Request.TargetLanguage);
         Assert.False(service.GetStatus(settings).RemoteText);
     }
 
     [Fact]
     public async Task CloudRequiresConsentAndChangingEndpointInvalidatesConsent()
     {
-        var translator = new Translator(ProviderExecutionLocation.Cloud); var service = Service(translator); var settings = new AppSettings();
+        var translator = new Translator(ProviderExecutionLocation.Cloud); var service = Service(translator); var settings = Configured();
         var request = Request(service, settings);
         Assert.Equal("remote_text_consent_required", (await service.HandleAsync(request, settings, default)).Error);
         Assert.Equal(0, translator.Calls);
         Assert.True((await service.HandleAsync(request with { AllowRemoteText = true }, settings, default)).Ok);
         Assert.Equal("settings_changed", (await service.HandleAsync(request with { AllowRemoteText = true },
-            settings with { CustomTranslationEndpoint = "https://example.org/v1/chat/completions" }, default)).Error);
+            Configured("https://example.org/v1/chat/completions"), default)).Error);
         Assert.Equal(1, translator.Calls);
     }
 
     [Fact]
     public async Task ImageConsentIsSeparateAndCheckedBeforeDecodingOrProviderCalls()
     {
-        var translator = new Translator(); var ocr = new Ocr(ProviderExecutionLocation.Cloud); var service = Service(translator, ocr); var settings = new AppSettings();
+        var translator = new Translator(); var ocr = new Ocr(ProviderExecutionLocation.Cloud); var service = Service(translator, ocr); var settings = Configured();
         var request = Request(service, settings) with { Operation = "ocr", Image = "not an image", AllowRemoteText = true };
         Assert.Equal("remote_image_consent_required", (await service.HandleAsync(request, settings, default)).Error);
         Assert.Equal("invalid_image", (await service.HandleAsync(request with { AllowRemoteImage = true }, settings, default)).Error);
@@ -72,7 +78,7 @@ public sealed class BrowserBridgeTests
         using var bitmap = new SkiaSharp.SKBitmap(20, 10);
         using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
         using var png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
-        var translator = new Translator(); var ocr = new Ocr(); var service = Service(translator, ocr); var settings = new AppSettings();
+        var translator = new Translator(); var ocr = new Ocr(); var service = Service(translator, ocr); var settings = Configured();
         var response = await service.HandleAsync(Request(service, settings) with
             { Operation = "ocr", Image = Convert.ToBase64String(png.ToArray()) }, settings, default);
         Assert.True(response.Ok); Assert.Equal(1, ocr.Calls); Assert.Equal(1, translator.Calls);
@@ -82,7 +88,7 @@ public sealed class BrowserBridgeTests
     [Fact]
     public async Task RejectsOversizedTextAndInvalidLanguageBeforeInference()
     {
-        var translator = new Translator(); var service = Service(translator); var settings = new AppSettings();
+        var translator = new Translator(); var service = Service(translator); var settings = Configured();
         Assert.Equal("invalid_text", (await service.HandleAsync(Request(service, settings) with { Text = new('a', 12001) }, settings, default)).Error);
         Assert.Equal("invalid_language", (await service.HandleAsync(Request(service, settings) with { TargetLanguage = "invalid" }, settings, default)).Error);
         Assert.Equal(0, translator.Calls);
@@ -91,7 +97,7 @@ public sealed class BrowserBridgeTests
     [Fact]
     public async Task SameLanguageDoesNotCallTranslationService()
     {
-        var translator = new Translator(); var service = Service(translator); var settings = new AppSettings();
+        var translator = new Translator(); var service = Service(translator); var settings = Configured();
         var result = await service.HandleAsync(Request(service, settings) with { TargetLanguage = "en" }, settings, default);
         Assert.True(result.Ok); Assert.Equal("Hello world", result.Translation); Assert.Equal(0, translator.Calls);
     }
@@ -103,7 +109,7 @@ public sealed class BrowserBridgeTests
     public void CustomProviderRemoteClassificationFollowsConfiguredEndpoint(string endpoint, bool remote)
     {
         var service = Service(new Translator(ProviderExecutionLocation.Configurable));
-        Assert.Equal(remote, service.GetStatus(new AppSettings { CustomTranslationEndpoint = endpoint }).RemoteText);
+        Assert.Equal(remote, service.GetStatus(Configured(endpoint)).RemoteText);
     }
 
     [Fact]

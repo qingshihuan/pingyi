@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 15;
+    public const int CurrentSchemaVersion = 16;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -12,17 +14,15 @@ public sealed record AppSettings
     public const string ManagedModelEndpoint = "http://127.0.0.1:18080/v1/chat/completions";
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
-    public ModelConfiguration? ModelConfiguration { get; init; }
+    public ModelConfiguration? ModelConfiguration { get; init; } = new();
     public string Hotkey { get; init; } = DefaultHotkey;
-    public string OcrProviderId { get; init; } = "local-vlm-ocr";
-    public string TranslationProviderId { get; init; } = "custom-chat";
     public bool InitialSetupCompleted { get; init; }
     public bool AutomaticCaptureEnabled { get; init; } = true;
     public string SourceLanguage { get; init; } = "auto";
     public string TargetLanguage { get; init; } = "auto-opposite";
-    public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
-    public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
-    public string CustomTranslationApiProtocol { get; init; } = ModelApiProtocols.ChatCompletions;
+    [JsonIgnore] public string CustomTranslationEndpoint { get; init; } = DefaultCustomTranslationEndpoint;
+    [JsonIgnore] public string CustomTranslationModel { get; init; } = DefaultCustomTranslationModel;
+    [JsonIgnore] public string CustomTranslationApiProtocol { get; init; } = ModelApiProtocols.ChatCompletions;
     public string ManagedModelPackageId { get; init; } = string.Empty;
     public string ManagedRuntimeBackend { get; init; } = ManagedRuntimeBackends.Default.Id;
     public string ManagedRuntimeDevice { get; init; } = RuntimeDeviceChoice.Automatic;
@@ -59,10 +59,6 @@ public sealed record AppSettings
         {
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
-            OcrProviderId = OcrProviderId == "local-vlm-corrected" ? "local-vlm-ocr"
-                : string.IsNullOrWhiteSpace(OcrProviderId) ? (SchemaVersion < 11 ? "local-paddle" : "local-vlm-ocr") : OcrProviderId,
-            TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId)
-                ? (SchemaVersion < 11 ? "local-argos" : "custom-chat") : TranslationProviderId,
             InitialSetupCompleted = InitialSetupCompleted || SchemaVersion < 11,
             SourceLanguage = LanguageCatalog.NormalizeSource(SourceLanguage),
             TargetLanguage = LanguageCatalog.NormalizeTarget(TargetLanguage),
@@ -80,10 +76,7 @@ public sealed record AppSettings
                     ? ManagedRuntimeBackends.Default.Id : ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
             ManagedRuntimeDevice = RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice),
             RuntimeMirrorPrefixes = RuntimeMirrorPrefixes?.Trim() ?? string.Empty,
-            ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
-                ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
-                (string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) ||
-                 ModelConfiguration?.Tasks is { } routes && ModelTasks.All.Any(t => routes.Get(t)?.ServiceId == PingYi.Core.ModelConfiguration.Managed)),
+            ManagedRuntimeEnabled = ManagedRuntimeEnabled && ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _),
             CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
             UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
@@ -114,10 +107,5 @@ public sealed record AppSettings
 
 public static class SecretKeys
 {
-    public const string BaiduOcrApiKey = "baidu-ocr-api-key";
-    public const string BaiduOcrSecretKey = "baidu-ocr-secret-key";
-    public const string BaiduTranslateAppId = "baidu-translate-app-id";
-    public const string BaiduTranslateSecret = "baidu-translate-secret";
-    public const string GoogleCloudApiKey = "google-cloud-api-key";
     public const string CustomTranslationApiKey = "custom-translation-api-key";
 }

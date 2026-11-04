@@ -13,7 +13,7 @@ Thanks for helping improve PingYi.
 Requirements:
 
 - .NET 10 SDK
-- Python 3.13 when working on the Argos translation engine
+- Python 3.13 for repository and packaging checks
 
 Build and test:
 
@@ -21,10 +21,12 @@ Build and test:
 dotnet restore PingYi.slnx
 dotnet build PingYi.slnx
 dotnet test PingYi.slnx
-py -3 -m unittest discover -s engine_host -p "test_*.py"
+python -m unittest discover -s scripts -p "test_*.py"
+python scripts/audit-secrets.py
+python scripts/audit-secrets.py --ref HEAD
 ```
 
-See `README.md` for local engine and release packaging commands.
+See `README.md` for multimodal model setup and release packaging commands.
 
 ## Pull requests
 

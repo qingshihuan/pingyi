@@ -44,7 +44,6 @@ class VisionContracts(unittest.TestCase):
     def test_automatic_probe_uses_local_services_and_never_a_remote_model(self):
         code = (APP / 'CaptureCoordinator.Automatic.cs').read_text(encoding='utf8')
         self.assertIn('services.QrCodeDecoder.DecodeAsync', code)
-        self.assertIn('services.PaddleProvider.RecognizeAsync', code)
         for forbidden in ('GetOcrProvider', 'CreateImageAnalyzer', 'DownloadAsync', 'HttpClient', 'OpenWebLinkAsync'):
             self.assertNotIn(forbidden, code)
         text = (APP / 'CaptureCoordinator.Text.cs').read_text(encoding='utf8')

@@ -25,7 +25,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             var root = document.RootElement;
-            if (root.ValueKind == JsonValueKind.Null) return new AppSettings();
+            if (root.ValueKind != JsonValueKind.Object) throw new JsonException("Expected a settings object.");
+            if (root.TryGetProperty("schemaVersion", out var schemaValue) && (schemaValue.ValueKind != JsonValueKind.Number || !schemaValue.TryGetInt32(out _))) throw new JsonException();
             var schema = root.TryGetProperty("schemaVersion", out var version) && version.TryGetInt32(out var value) ? value : 0;
             if (schema > AppSettings.CurrentSchemaVersion)
                 throw new ProviderException("settings_future_schema", "配置来自更新版本，请勿用旧程序覆盖。 / Configuration belongs to a newer version; refusing to overwrite it.");
@@ -35,28 +36,21 @@ public sealed class JsonSettingsStore : ISettingsStore
                 SchemaVersion = schema,
                 AutomaticCaptureEnabled = !root.TryGetProperty("automaticCaptureEnabled", out _) || settings.AutomaticCaptureEnabled
             };
-            if (schema < 11)
-            {
-                settings = settings with
-                {
-                    OcrProviderId = root.TryGetProperty("ocrProviderId", out _) ? settings.OcrProviderId : "local-paddle",
-                    TranslationProviderId = root.TryGetProperty("translationProviderId", out _) ? settings.TranslationProviderId : "local-argos"
-                };
-            }
-            var upgraded = ConfigurationMigration.Upgrade(settings.Normalize());
+            var upgraded = ConfigurationMigration.Upgrade(settings, root).Normalize();
             upgraded.ModelConfiguration?.Validate();
             return upgraded;
         }
-        catch (Exception error) when (error is JsonException or FileNotFoundException or DirectoryNotFoundException)
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
         {
             return new AppSettings();
         }
+        catch (JsonException) { throw new ProviderException("settings_invalid", "配置损坏，已保留原文件，请从备份恢复。 / Invalid settings; original file preserved. Restore a backup."); }
         finally { _gate.Release(); }
     }
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var normalized = ConfigurationMigration.Upgrade(settings.Normalize());
+        var normalized = ConfigurationMigration.Upgrade(settings).Normalize();
         normalized.ModelConfiguration!.Validate();
         await _gate.WaitAsync(cancellationToken);
         string? temporaryPath = null;
@@ -70,15 +64,16 @@ public sealed class JsonSettingsStore : ISettingsStore
                 try
                 {
                     using var old = JsonDocument.Parse(await File.ReadAllTextAsync(_settingsFile, cancellationToken));
-                    if (old.RootElement.ValueKind == JsonValueKind.Object && old.RootElement.TryGetProperty("schemaVersion", out var v))
-                        v.TryGetInt32(out previousSchema);
+                    if (old.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException();
+                    if (old.RootElement.TryGetProperty("schemaVersion", out var v) &&
+                        (v.ValueKind != JsonValueKind.Number || !v.TryGetInt32(out previousSchema))) throw new JsonException();
                 }
-                catch (JsonException) { }
+                catch (JsonException) { throw new ProviderException("settings_invalid", "拒绝覆盖损坏配置，请先恢复备份。 / Refusing to overwrite invalid settings; restore a backup first."); }
                 if (previousSchema > AppSettings.CurrentSchemaVersion)
                     throw new ProviderException("settings_future_schema", "拒绝覆盖更新版本配置。 / Refusing to overwrite a newer configuration.");
                 // First migration keeps the original bytes. Never replace an earlier backup.
-                if (previousSchema < 15 && !File.Exists(_settingsFile + ".pre-v15.bak"))
-                    File.Copy(_settingsFile, _settingsFile + ".pre-v15.bak", overwrite: false);
+                if (previousSchema < 16 && !File.Exists(_settingsFile + ".pre-v16.bak"))
+                    File.Copy(_settingsFile, _settingsFile + ".pre-v16.bak", overwrite: false);
             }
             temporaryPath = _settingsFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
             await using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write,

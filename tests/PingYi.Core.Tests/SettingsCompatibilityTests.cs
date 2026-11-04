@@ -26,8 +26,6 @@ public sealed class SettingsCompatibilityTests
             Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
             Assert.Equal(AppSettings.DefaultCustomTranslationModel, settings.CustomTranslationModel);
             Assert.Equal(AppSettings.DefaultCustomTranslationEndpoint, settings.CustomTranslationEndpoint);
-            Assert.Equal("local-paddle", settings.OcrProviderId);
-            Assert.Equal("local-argos", settings.TranslationProviderId);
             Assert.Equal("auto", settings.SourceLanguage);
             Assert.Equal("auto-opposite", settings.TargetLanguage);
             Assert.Equal("vulkan", settings.ManagedRuntimeBackend);
@@ -74,9 +72,8 @@ public sealed class SettingsCompatibilityTests
             var store = new JsonSettingsStore(file);
             var settings = await store.LoadAsync(cancellationToken);
 
-            Assert.Equal(string.Empty, settings.CustomTranslationModel);
-            Assert.Equal("https://example.com/v1/chat/completions", settings.CustomTranslationEndpoint);
-            Assert.Equal("custom-chat", settings.TranslationProviderId);
+            Assert.Equal(string.Empty, Assert.Single(settings.ModelConfiguration!.Services).DefaultModel);
+            Assert.Equal("https://example.com/v1/chat/completions", Assert.Single(settings.ModelConfiguration!.Services).Endpoint);
             Assert.Equal("Ctrl+Alt+G", settings.Hotkey);
             Assert.Equal("en-US", settings.UiLanguage);
             Assert.True(settings.StartMinimized);

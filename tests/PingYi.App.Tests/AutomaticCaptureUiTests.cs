@@ -23,7 +23,7 @@ public sealed class AutomaticCaptureUiTests
         {
             window.Show();
             window.BeginPurpose(CapturePurpose.Auto);
-            window.SetAutomaticDecision(new(null, CaptureDecisionReason.MixedContent, 2));
+            window.SetAutomaticDecision(new(null, CaptureDecisionReason.UseCurrentModel, 2));
             window.SetLoading(CaptureUiText.Preparing, CaptureUiText.LocalProbePrivacy);
             Assert.Equal(CapturePurpose.Auto, window.Purpose);
             Assert.Equal(CapturePurpose.Auto, window.RequestedPurpose);
@@ -47,7 +47,7 @@ public sealed class AutomaticCaptureUiTests
     [AvaloniaTheory]
     [InlineData("zh-CN", false)]
     [InlineData("en-US", true)]
-    public async Task First_run_requires_an_explicit_choice_and_lightweight_does_not_download(string language, bool hasRuntime)
+    public async Task First_run_requires_an_explicit_choice_and_api_setup_does_not_download(string language, bool hasRuntime)
     {
         UiText.Configure(language);
         var downloads = 0;
@@ -64,13 +64,13 @@ public sealed class AutomaticCaptureUiTests
             Assert.False(selection.IsCompleted);
             Assert.Equal(0, downloads);
             Assert.Null(saved);
-            Assert.Equal(hasRuntime, dialog.DownloadButton.IsEnabled);
-            Assert.True(dialog.LightweightButton.IsEnabled);
+            Assert.True(dialog.DownloadButton.IsEnabled);
+            Assert.True(dialog.ApiButton.IsEnabled);
             Frame(dialog, "first-run-" + language);
-            dialog.LightweightButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            dialog.ApiButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await dialog.OperationTask;
-            Assert.Equal(InitialSetupChoice.Ready, await selection);
-            Assert.Equal(InitialSetupChoice.Ready, saved);
+            Assert.Equal(InitialSetupChoice.ConfigureExisting, await selection);
+            Assert.Equal(InitialSetupChoice.ConfigureExisting, saved);
             Assert.Equal(0, downloads);
         }
         finally { dialog.Close(); owner.Close(); }
@@ -91,11 +91,11 @@ public sealed class AutomaticCaptureUiTests
             var selection = dialog.ShowDialog<InitialSetupChoice>(owner);
             dialog.DownloadButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.True(started);
-            Assert.False(dialog.LightweightButton.IsEnabled);
+            Assert.False(dialog.ApiButton.IsEnabled);
             dialog.CancelButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await dialog.OperationTask;
             Assert.False(selection.IsCompleted);
-            Assert.True(dialog.LightweightButton.IsEnabled);
+            Assert.True(dialog.ApiButton.IsEnabled);
             Assert.Equal(0, saves);
         }
         finally { dialog.Close(); owner.Close(); }
@@ -153,6 +153,6 @@ public sealed class AutomaticCaptureUiTests
         Directory.CreateDirectory(path);
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(path, name + ".png"));
+        frame.Save(Path.Combine(path, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

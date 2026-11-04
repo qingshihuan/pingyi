@@ -21,7 +21,7 @@ public class UsabilityRegressionTests
         UiText.Configure(UiText.Chinese);
         var directory = Path.Combine(Path.GetTempPath(), "pingyi-language-" + Guid.NewGuid().ToString("N"));
         var store = new JsonSettingsStore(Path.Combine(directory, "settings.json"));
-        var persisted = new AppSettings { UiLanguage = UiText.Chinese, CustomTranslationModel = "stored-model" };
+        var persisted = new AppSettings { UiLanguage = UiText.Chinese, Hotkey = "Ctrl+Alt+H" };
         await store.SaveAsync(persisted);
         var settings = new SettingsWindow(async language =>
         {
@@ -35,12 +35,12 @@ public class UsabilityRegressionTests
         {
             home.Show(); settings.Show(); result.Show(); help.Show();
             C<TabControl>(settings, "SettingsTabs").SelectedIndex = 4;
-            C<ComboBox>(settings, "CustomModelCombo").Text = "unsaved-model-模型";
+            settings.ConfigurationCenter.ModelEditor.Text = "unsaved-model-模型";
             C<TextBox>(settings, "HotkeyBox").Text = "Ctrl+Alt+G";
-            C<TextBox>(settings, "CustomApiKeyBox").Text = "unsaved-test-key";
+            settings.ConfigurationCenter.KeyEditor.Text = "unsaved-test-key";
             C<TextBox>(result, "SourceTextBox").Text = "开始截图";
             C<TextBox>(result, "TranslationTextBox").Text = "保存并应用";
-            var input = C<ComboBox>(settings, "CustomModelCombo");
+            var input = settings.ConfigurationCenter.ModelEditor;
             C<ComboBox>(settings, "UiLanguageCombo").SelectedIndex = 2;
             await settings.LanguageChangeTask;
             settings.UpdateLayout(); home.UpdateLayout(); help.UpdateLayout();
@@ -48,11 +48,11 @@ public class UsabilityRegressionTests
             Assert.Equal("Screen Insight", Application.Current!.Resources["String.AppName"]);
             Assert.Equal("Save and apply", C<Button>(settings, "SaveSettingsButton").Content);
             Assert.Equal("Help & About", C<Button>(home, "HelpButton").Content);
-            Assert.Contains(settings.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Appearance & startup");
+            Assert.Contains(settings.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "Interface language");
             Assert.Equal(4, C<TabControl>(settings, "SettingsTabs").SelectedIndex);
-            Assert.Same(input, C<ComboBox>(settings, "CustomModelCombo"));
+            Assert.Same(input, settings.ConfigurationCenter.ModelEditor);
             Assert.Equal("unsaved-model-模型", input.Text);
-            Assert.Equal("unsaved-test-key", C<TextBox>(settings, "CustomApiKeyBox").Text);
+            Assert.Equal("unsaved-test-key", settings.ConfigurationCenter.KeyEditor.Text);
             Assert.Equal("Ctrl+Alt+G", C<TextBox>(settings, "HotkeyBox").Text);
             Assert.Equal("开始截图", C<TextBox>(result, "SourceTextBox").Text);
             Assert.Equal("保存并应用", C<TextBox>(result, "TranslationTextBox").Text);
@@ -64,7 +64,7 @@ public class UsabilityRegressionTests
             Assert.Equal("保存并应用", C<Button>(settings, "SaveSettingsButton").Content);
             Assert.Equal("帮助与关于", C<Button>(home, "HelpButton").Content);
             Assert.Equal("unsaved-model-模型", input.Text);
-            Assert.Equal("stored-model", (await store.LoadAsync()).CustomTranslationModel);
+            Assert.Equal("Ctrl+Alt+H", (await store.LoadAsync()).Hotkey);
         }
         finally
         {
@@ -98,7 +98,7 @@ public class UsabilityRegressionTests
         var theme = dark ? ThemeVariant.Dark : ThemeVariant.Light;
         var home = new MainWindow { RequestedThemeVariant = theme };
         var settings = new SettingsWindow { RequestedThemeVariant = theme };
-        var help = new HelpAboutWindow(() => new AppSettings { OcrProviderId = "google-vision-ocr", TranslationProviderId = "google-translate" })
+        var help = new HelpAboutWindow(() => new AppSettings())
         { RequestedThemeVariant = theme };
         try
         {
@@ -109,52 +109,11 @@ public class UsabilityRegressionTests
             Assert.Null(settings.FindControl<Button>("CaptureButton"));
             Assert.Null(home.FindControl<TextBlock>("PrivacySummaryText"));
             Assert.NotNull(home.FindControl<Button>("HelpButton"));
-            Assert.Contains("Google Cloud Vision", C<TextBlock>(help, "PrivacySummaryText").Text);
-            Assert.Contains("Google Cloud Translation", C<TextBlock>(help, "PrivacySummaryText").Text);
             C<TextBlock>(home, "LiveStatusDetailText").Text = WorkspaceText.Preview;
             Frame(home, $"fixed-home-{language}");
             Frame(help, $"fixed-help-{language}");
         }
         finally { home.Close(); settings.Close(); help.Close(); }
-    }
-    [AvaloniaTheory]
-    [InlineData("zh-CN", false)]
-    [InlineData("en-US", true)]
-    public void Mode_cards_wrap_instead_of_clipping_and_apply_stays_visible(string language, bool dark)
-    {
-        UiText.Configure(language);
-        var window = new ModePickerWindow(new AppSettings { CustomTranslationEndpoint = "https://example.com/v1/chat/completions" })
-        { Width = 620, Height = 460, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
-        try
-        {
-            window.Show(); window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
-            var choices = C<StackPanel>(window, "ModeChoices");
-            Assert.Equal(5, choices.Children.Count);
-            foreach (var radio in choices.Children.Cast<RadioButton>())
-            {
-                var texts = ((StackPanel)radio.Content!).Children.Cast<TextBlock>().ToArray();
-                Assert.Equal(4, texts.Length);
-                Assert.All(texts, t =>
-                {
-                    Assert.False(string.IsNullOrWhiteSpace(t.Text));
-                    Assert.Equal(Avalonia.Media.TextWrapping.Wrap, t.TextWrapping);
-                    var point = t.TranslatePoint(default, window)!.Value;
-                    Assert.True(point.X >= 0 && point.X + t.Bounds.Width <= window.ClientSize.Width + 1);
-                });
-            }
-            Assert.DoesNotContain(choices.Children, control => control.Name == "Mode_vision");
-            Assert.Contains(UiText.Get("String.RemoteLlmData"), ModePickerWindow.Requirements("llm", new AppSettings { CustomTranslationEndpoint = "https://example.com/v1" }));
-            var apply = C<Button>(window, "ApplyModeButton");
-            Assert.DoesNotContain(apply.GetVisualAncestors(), p => p is ScrollViewer);
-            var position = apply.TranslatePoint(default, window)!.Value;
-            Assert.True(position.Y >= 0 && position.Y + apply.Bounds.Height <= window.ClientSize.Height + 1);
-            ((RadioButton)choices.Children[0]).IsChecked = true;
-            Assert.Equal("basic", window.SelectedModeId);
-            ((RadioButton)choices.Children[1]).IsChecked = true;
-            Assert.Equal("lite", window.SelectedModeId);
-            Frame(window, $"fixed-modes-{language}");
-        }
-        finally { window.Close(); }
     }
     [AvaloniaTheory]
     [InlineData(false)]
@@ -221,6 +180,6 @@ public class UsabilityRegressionTests
         if (string.IsNullOrWhiteSpace(path)) return;
         Directory.CreateDirectory(path);
         using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame); frame.Save(Path.Combine(path, name + ".png"));
+        Assert.NotNull(frame); frame.Save(Path.Combine(path, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

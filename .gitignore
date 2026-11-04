@@ -26,3 +26,14 @@ engine_host/.venv/
 
 .performance-baseline/
 performance-source.zip
+
+# Private application configuration, credentials and migration backups
+**/settings.json
+**/settings.json.*
+**/secrets/
+**/local-settings*.json
+**/config.local.*
+**/*.pre-v*.bak
+**/PingYiComplete/
+**/pingyi-complete/
+**/PingYi-refactor-backups/

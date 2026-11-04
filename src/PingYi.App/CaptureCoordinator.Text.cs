@@ -10,12 +10,10 @@ public sealed partial class CaptureCoordinator
         var settings = services.Settings;
         var ocr = services.TaskOcr(settings);
         var translator = services.TaskTranslator(settings);
-        var privacy = settings.ModelConfiguration?.HasOverrides == true
-            ? (UiText.IsEnglish ? $"OCR: {ocr.Metadata.DisplayName}\nTranslation: {translator.Metadata.DisplayName}\nRemote routes send content to the named service and may incur charges."
-                : $"文字识别：{ocr.Metadata.DisplayName}\n文字翻译：{translator.Metadata.DisplayName}\n远程路由会向上述服务发送内容，可能计费。")
-            : BuildPrivacyDescription(settings, ocr.Metadata, translator.Metadata);
+        var privacy = UiText.IsEnglish ? $"Current model: {ocr.Metadata.DisplayName}\nRemote requests send the selected image and recognized text to this service."
+            : $"当前模型：{ocr.Metadata.DisplayName}\n远程请求会向此服务发送所选图片与识别文字。";
         var label = ocr.Metadata.DisplayName;
-        if ((window.RequestedPurpose == CapturePurpose.Auto || settings.ModelConfiguration?.HasOverrides == true) && HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
+        if (HasRemoteProvider(settings, ocr.Metadata, translator.Metadata))
         {
             if (!await AutomaticConsentWindow.ConfirmAsync(window, privacy, operation.Token))
             {
@@ -50,38 +48,12 @@ public sealed partial class CaptureCoordinator
                 operation.Token, "ocr_availability_timeout", "OCR 引擎状态检查超时。");
             EnsureCurrent(operation);
             if (!availability.IsAvailable) throw new ProviderException("ocr_unavailable", availability.Message ?? "OCR 引擎不可用。");
-            result = ReferenceEquals(ocr, services.PaddleProvider) && TryGetPaddleProbe(image, settings.SourceLanguage, out var cached)
-                ? cached
-                : await WithTimeoutAsync(token => ocr.RecognizeAsync(image, new OcrOptions(settings.SourceLanguage), token),
-                    OcrTimeout, operation.Token, "ocr_timeout", "文字识别超时，请缩小截图范围后重试。");
+            result = await WithTimeoutAsync(token => ocr.RecognizeAsync(image, new OcrOptions(settings.SourceLanguage), token),
+                OcrTimeout, operation.Token, "ocr_timeout", "文字识别超时，请缩小截图范围后重试。");
             EnsureCurrent(operation);
             if (string.IsNullOrWhiteSpace(result.PlainText)) throw new ProviderException("no_text", "所选区域中没有识别到文字。");
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception primary) when (!ReferenceEquals(ocr, services.PaddleProvider) && ConfigurationRouting.AllowOfflineFallback(settings, ModelTasks.Ocr))
-        {
-            try
-            {
-                var availability = await WithTimeoutAsync(token => services.PaddleProvider.GetAvailabilityAsync(token).AsTask(),
-                    AvailabilityTimeout, operation.Token, "ocr_fallback_availability_timeout", "本地 PaddleOCR 状态检查超时。");
-                EnsureCurrent(operation);
-                if (!availability.IsAvailable) throw new ProviderException("ocr_fallback_unavailable", availability.Message ?? "本地 PaddleOCR 回退不可用。");
-                result = TryGetPaddleProbe(image, settings.SourceLanguage, out var cached) ? cached
-                    : await WithTimeoutAsync(token => services.PaddleProvider.RecognizeAsync(image, new OcrOptions(settings.SourceLanguage), token),
-                        OcrTimeout, operation.Token, "ocr_fallback_timeout", "本地 PaddleOCR 回退识别超时。");
-                EnsureCurrent(operation);
-                if (string.IsNullOrWhiteSpace(result.PlainText)) throw new ProviderException("no_text", "PaddleOCR 回退也没有识别到文字。");
-                label = UiText.IsEnglish ? "PaddleOCR (selected OCR unavailable; lightweight fallback)" : "PaddleOCR（所选 OCR 不可用，轻量回退）";
-            }
-            catch (OperationCanceledException) { throw; }
-            catch (Exception fallback)
-            {
-                EnsureCurrent(operation);
-                window.SetError(UiText.Error(new ProviderException("ocr_primary_and_fallback_failed",
-                    $"{primary.Message}；本地 OCR 回退也不可用：{fallback.Message}", primary)));
-                return;
-            }
-        }
         catch (Exception error) { EnsureCurrent(operation); window.SetError(UiText.Error(error)); return; }
         EnsureCurrent(operation);
         window.SetSource(result, label);
@@ -91,14 +63,12 @@ public sealed partial class CaptureCoordinator
             var route = TextProcessing.ResolveTranslationLanguages(settings.SourceLanguage, settings.TargetLanguage,
                 result.DetectedLanguage, result.PlainText, translator.Metadata.SupportedLanguages.Count > 2);
             var request = new TranslationRequest(result.PlainText, route.SourceLanguage, route.TargetLanguage);
-            var execution = await TranslationFallback.ExecuteAsync(translator,
-                ConfigurationRouting.AllowOfflineFallback(settings, ModelTasks.Translation) ? services.ArgosProvider : translator, request,
-                operation.Token, primaryTimeout: TranslationTimeout, fallbackTimeout: TranslationTimeout);
+            var translated = await WithTimeoutAsync(token => translator.TranslateAsync(request, token), TranslationTimeout,
+                operation.Token, "translation_timeout", "翻译等待超时，请重试。");
             EnsureCurrent(operation);
             _ocrRetryCache.MarkTranslationComplete(image);
-            var name = execution.Provider.DisplayName;
-            window.SetTranslation(execution.Result, execution.UsedFallback
-                ? UiText.IsEnglish ? $"{name} (lightweight fallback)" : $"{name}（轻量回退）" : name);
+            window.SetTranslation(translated, translator.Metadata.DisplayName);
+
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception error) { EnsureCurrent(operation); window.SetError(UiText.Error(error), keepSource: true); }
@@ -106,5 +76,5 @@ public sealed partial class CaptureCoordinator
 
     internal static bool HasRemoteProvider(AppSettings settings, params ProviderMetadata[] providers) =>
         providers.Any(provider => provider.Location == ProviderExecutionLocation.Cloud ||
-            (provider.Location == ProviderExecutionLocation.Configurable && !ProcessingModes.IsLocalEndpoint(settings)));
+            (provider.Location == ProviderExecutionLocation.Configurable && !new Uri(ConfigurationRouting.Resolve(settings, ModelTasks.Ocr).Settings.CustomTranslationEndpoint).IsLoopback));
 }

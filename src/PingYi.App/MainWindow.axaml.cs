@@ -14,7 +14,6 @@ public partial class MainWindow : Window, IMainWindowShell
     private CaptureCoordinator? _captureCoordinator;
     private Func<Task>? _openSettings;
     private bool _isRefreshing;
-    private ModePickerWindow? _modePicker;
     private HelpAboutWindow? _helpWindow;
     private readonly PassiveRefreshPolicy _passiveRefresh = new(TimeSpan.FromSeconds(30));
 
@@ -59,19 +58,14 @@ public partial class MainWindow : Window, IMainWindowShell
         {
             var ocr = _services.TaskOcr(settings).Metadata;
             var translation = _services.TaskTranslator(settings).Metadata;
-            var ocrExplicit = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr).IsExplicit;
-            var translationExplicit = ConfigurationRouting.Resolve(settings, ModelTasks.Translation).IsExplicit;
-            ModeSummaryText.Text = ocrExplicit || translationExplicit
-                ? ModeStatusText.Pick("独立任务配置 · 本地 / API", "Per-task configuration · Local / API")
-                : ModePickerWindow.NameFor(ProcessingModes.Match(settings).Id);
-            OcrSummaryText.Text = ocrExplicit ? ocr.DisplayName : UiText.ProviderName(ocr.Id, ocr.DisplayName);
-            var translationLabel = translationExplicit ? translation.DisplayName : UiText.ProviderName(translation.Id, translation.DisplayName);
-            TranslationSummaryText.Text = $"{translationLabel} · → {UiText.LanguageName(settings.TargetLanguage)}";
+            ModeSummaryText.Text = CaptureUiText.Pick("当前多模态模型", "Current multimodal model");
+            OcrSummaryText.Text = ocr.DisplayName;
+            TranslationSummaryText.Text = $"{translation.DisplayName} · → {UiText.LanguageName(settings.TargetLanguage)}";
         }
         catch (ProviderException error)
         {
-            ModeSummaryText.Text = ModeStatusText.Pick("任务配置需要处理", "Task configuration needs attention");
-            OcrSummaryText.Text = TranslationSummaryText.Text = ModeStatusText.Pick("请检查配置中心的任务绑定", "Check task bindings in Configuration center");
+            ModeSummaryText.Text = ModeStatusText.Pick("请选择当前模型", "Select a current model");
+            OcrSummaryText.Text = TranslationSummaryText.Text = ModeStatusText.Pick("请在设置中验证并选择多模态模型", "Verify and select a multimodal model in Settings");
             SetGlobalStatus(UiText.Error(error), true);
         }
     }
@@ -113,29 +107,7 @@ public partial class MainWindow : Window, IMainWindowShell
     }
     private void OnLanguageChanged(object? sender, EventArgs e) { UpdateProductTitle(); LoadSettings(); RefreshModeStatusLanguage(); }
     private void UpdateProductTitle() => Title = UiText.IsEnglish ? "Screen Insight Complete" : AppEdition.ProductName;
-    private async void ChooseMode_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_modePicker is not null) { _modePicker.Activate(); return; }
-        var picker = new ModePickerWindow(_services?.Settings ?? new AppSettings());
-        _modePicker = picker;
-        try
-        {
-            var selected = await picker.SelectAsync(this);
-            if (selected is null) return;
-            if (selected == "custom") { await OpenSettingsWindowAsync(); return; }
-            if (_services is null) return;
-            if (selected == "basic" && (!ProcessingModes.IsLocalEndpoint(_services.Settings) || !_services.Settings.InitialSetupCompleted))
-            { await ShowInitialSetupAsync(force: true); return; }
-            var settings = ProcessingModes.Apply(_services.Settings, selected);
-            var supported = _services.Providers.GetTranslationProvider(settings.TranslationProviderId).Metadata.SupportedLanguages;
-            if (settings.TargetLanguage != LanguageCatalog.AutoOpposite && !supported.Contains(settings.TargetLanguage, StringComparer.OrdinalIgnoreCase))
-                settings = settings with { TargetLanguage = LanguageCatalog.AutoOpposite };
-            await _services.SaveSettingsAsync(settings);
-            LoadSettings(); await RefreshDashboardAsync();
-        }
-        catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
-        finally { _modePicker = null; }
-    }
+    private async void ChooseMode_OnClick(object? sender, RoutedEventArgs e) => await OpenSettingsWindowAsync();
     private void OpenHelp_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_helpWindow is not null) { _helpWindow.Show(); _helpWindow.Activate(); return; }

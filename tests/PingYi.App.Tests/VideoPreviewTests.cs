@@ -21,7 +21,6 @@ public sealed class VideoPreviewTests
             (_, _, _, _) => { calls++; return Task.CompletedTask; },
             (_, _) => { calls++; return Task.CompletedTask; }) { RequestedThemeVariant = ThemeVariant.Light };
         var home = new MainWindow { Width = 1040, Height = 720, RequestedThemeVariant = ThemeVariant.Light };
-        var modes = new ModePickerWindow(new AppSettings()) { Width = 740, Height = 680, RequestedThemeVariant = ThemeVariant.Light };
         var settings = new SettingsWindow { Width = 1040, Height = 760, RequestedThemeVariant = ThemeVariant.Light };
         var result = new ResultWindow { Width = 780, Height = 640, RequestedThemeVariant = ThemeVariant.Light };
         try
@@ -43,13 +42,12 @@ public sealed class VideoPreviewTests
             Text(home, "LiveStatusDetailText", "合成界面预览 · 无真实截图、凭据或模型推理");
             Text(home, "CaptureHotkeyText", "Ctrl Alt D");
             Save(home, "home");
-            modes.Show(); Save(modes, "modes");
             settings.Show();
             settings.FindControl<TabControl>("SettingsTabs")!.SelectedIndex = 3;
             Save(settings, "custom-service");
             result.Show();
             result.BeginPurpose(CapturePurpose.Auto);
-            result.SetAutomaticDecision(new(null, CaptureDecisionReason.MixedContent, 1));
+            result.SetAutomaticDecision(new(null, CaptureDecisionReason.UseCurrentModel, 1));
             result.SetLoading("演示：请选择如何处理同一张截图", "合成数据，不进行截图或网络访问");
             Save(result, "manual-choice");
             result.BeginPurpose(CapturePurpose.DecodeQrCode);
@@ -59,7 +57,6 @@ public sealed class VideoPreviewTests
         }
         finally
         {
-            firstRun.Close(); home.Close(); modes.Close(); settings.Close(); result.ClosePermanently();
         }
     }
     private static void Text(Window window, string name, string value) => window.FindControl<TextBlock>(name)!.Text = value;
@@ -71,6 +68,6 @@ public sealed class VideoPreviewTests
         Directory.CreateDirectory(folder);
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(folder, name + ".png"));
+        frame.Save(Path.Combine(folder, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

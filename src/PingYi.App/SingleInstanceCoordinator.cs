@@ -34,7 +34,7 @@ internal sealed class SingleInstanceCoordinator : IDisposable
     public static SingleInstanceCoordinator Create(bool completeEdition)
     {
         var edition = completeEdition ? "complete" : "standard";
-        var userScope = GetUserScope();
+        var userScope = GetUserScope() + PingYi.Core.ConfigurationInstanceScope.Current;
         var mutex = new Mutex(
             initiallyOwned: false,
             $"qingshihuan.pingyi.{edition}.{userScope}.singleton.v2");

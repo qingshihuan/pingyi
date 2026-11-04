@@ -35,10 +35,10 @@ public static class ConfigurationSecrets
     {
         var configuration = settings.ModelConfiguration;
         if (configuration is not { LegacyCredentialPending: true }) return settings;
-        var imported = configuration.Services.SingleOrDefault(s => s.Id == ModelConfiguration.Imported);
+        var imported = configuration.AllServices.SingleOrDefault(s => s.Id == ModelConfiguration.Imported);
         // Never move an old key to a destination edited after migration.
         if (imported is not null && ModelServiceProfile.CanonicalEndpoint(imported.Endpoint) ==
-            ModelServiceProfile.CanonicalEndpoint(settings.CustomTranslationEndpoint))
+            ModelServiceProfile.CanonicalEndpoint(configuration.LegacyCredentialEndpoint))
         {
             var existing = await store.GetAsync(imported.CredentialRef, token);
             if (string.IsNullOrEmpty(existing))
@@ -56,12 +56,12 @@ public static class ConfigurationSecrets
         CancellationToken token = default)
     {
         after.ModelConfiguration?.Validate();
-        var liveRefs = (after.ModelConfiguration?.Services ?? []).Select(s => s.CredentialRef).ToHashSet(StringComparer.Ordinal);
+        var liveRefs = (after.ModelConfiguration?.AllServices ?? []).Select(s => s.CredentialRef).ToHashSet(StringComparer.Ordinal);
         if (editedKeys.Keys.Any(key => !liveRefs.Contains(key)))
             throw new ProviderException("profile_secret_scope", "密钥写入不属于当前服务配置。 / Credential write is outside the configured services.");
         var writes = new Dictionary<string, string?>(StringComparer.Ordinal);
         foreach (var pair in editedKeys) writes[pair.Key] = ProfileSecretStore.ValidateKey(pair.Value);
-        foreach (var profile in before.ModelConfiguration?.Services ?? [])
+        foreach (var profile in before.ModelConfiguration?.AllServices ?? [])
             if (!liveRefs.Contains(profile.CredentialRef)) writes[profile.CredentialRef] = null;
         var restore = new Dictionary<string, string?>(StringComparer.Ordinal);
         try

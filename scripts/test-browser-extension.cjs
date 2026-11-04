@@ -17,7 +17,7 @@ const mock = () => {
   Element.prototype.attachShadow = function(options) { const value = nativeAttach.call(this, options); if (this.tagName === 'DIV') window.__pingyiRoot = value; return value; };
   window.testPrefs = { mode:'bilingual',sourceLanguage:'auto',targetLanguage:'zh',edition:'standard',hover:true,selection:true };
   window.calls = []; window.chromeListeners = []; window.storageListeners = [];
-  window.route = { translationProvider:'本地 Argos',ocrProvider:'本地 PaddleOCR',remoteText:false,remoteImage:false,routeKey:'test-route',languages:[{code:'en',displayName:'英语'},{code:'zh',displayName:'简体中文'}] };
+  window.route = { translationProvider:'当前多模态模型',ocrProvider:'当前多模态模型',remoteText:false,remoteImage:false,routeKey:'test-route',languages:[{code:'en',displayName:'英语'},{code:'zh',displayName:'简体中文'}] };
   window.chrome = { runtime: { id:'test-extension', onMessage:{addListener(fn){window.chromeListeners.push(fn);}}, async sendMessage(m) {
     if (m.type === 'preferences') return {ok:true,preferences:window.testPrefs};
     if (m.type === 'status') return {ok:true,preferences:window.testPrefs,status:window.route};

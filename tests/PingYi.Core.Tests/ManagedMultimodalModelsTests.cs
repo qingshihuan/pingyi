@@ -47,7 +47,7 @@ public sealed class ManagedMultimodalModelsTests
     }
 
     [Fact]
-    public void Settings_PreserveValidManagedRuntimeAndDisableItForAnotherEndpoint()
+    public void Settings_PreserveLocalRuntimeIndependentlyOfCloudSelection()
     {
         var configured = new AppSettings
         {
@@ -65,6 +65,7 @@ public sealed class ManagedMultimodalModelsTests
         {
             CustomTranslationEndpoint = "http://127.0.0.1:8080/v1/chat/completions"
         };
-        Assert.False(external.Normalize().ManagedRuntimeEnabled);
+        Assert.True(external.Normalize().ManagedRuntimeEnabled);
+        Assert.False(RuntimePolicy.UsesManagedRuntime(external));
     }
 }

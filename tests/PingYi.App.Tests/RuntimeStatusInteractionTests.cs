@@ -19,7 +19,7 @@ public sealed class RuntimeStatusInteractionTests
         try
         {
             settings.Show();
-            var endpoint = settings.FindControl<TextBox>("CustomEndpointBox")!;
+            var endpoint = settings.ConfigurationCenter.EndpointEditor;
             endpoint.Text = "http://127.0.0.1:7654/v1";
             settings.SelectRuntimeStatus();
             var page = settings.FindControl<RuntimeStatusView>("RuntimeStatusPage")!;
@@ -31,10 +31,10 @@ public sealed class RuntimeStatusInteractionTests
             var manage = page.GetLogicalDescendants().OfType<Button>().Distinct()
                 .Single(button => Equals(button.Content, "Manage runtime"));
             manage.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal(1, settings.FindControl<TabControl>("SettingsTabs")!.SelectedIndex);
+            Assert.Equal(2, settings.FindControl<TabControl>("SettingsTabs")!.SelectedIndex);
             Assert.Equal("http://127.0.0.1:7654/v1", endpoint.Text);
             settings.SelectRuntimeStatus();
-            Assert.Equal(5, settings.FindControl<TabControl>("SettingsTabs")!.SelectedIndex);
+            Assert.Equal(2, settings.FindControl<TabControl>("SettingsTabs")!.SelectedIndex);
         }
         finally { settings.Close(); }
     }

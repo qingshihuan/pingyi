@@ -5,30 +5,24 @@ namespace PingYi.App;
 public partial class SettingsWindow
 {
     private readonly CancellationTokenSource _runtimeStatusLifetime = new();
-    private bool _runtimeStatusBusy, _runtimeStatusClosed, _statusOpenedWithoutProviders;
+    private bool _runtimeStatusBusy, _runtimeStatusClosed;
     private void InitializeRuntimeStatusPage()
     {
-        RefreshRuntimeStatusLanguage();
         RuntimeStatusPage.RefreshRequested += async (_, _) => await RefreshRuntimeStatusAsync(true);
         RuntimeStatusPage.NavigateRequested += tab => SettingsTabs.SelectedIndex = tab;
         SettingsTabs.SelectionChanged += async (_, _) =>
         {
             if (_runtimeStatusClosed || _services is null) return;
-            if (RuntimeStatusSettingsTab.IsSelected) await RefreshRuntimeStatusAsync();
-            else if (_statusOpenedWithoutProviders)
-            {
-                _statusOpenedWithoutProviders = false;
-                await RefreshCredentialStatusAsync();
-                await RefreshLocalModelStatusAsync();
-                await RefreshManagedModelStatusAsync(attemptConfiguredStart: false);
-            }
+            if (LocalSettingsTab.IsSelected) await RefreshRuntimeStatusAsync();
         };
-        Activated += async (_, _) => { if (RuntimeStatusSettingsTab.IsSelected) await RefreshRuntimeStatusAsync(); };
+        Activated += async (_, _) => { if (LocalSettingsTab.IsSelected) await RefreshRuntimeStatusAsync(); };
         Closed += (_, _) => { _runtimeStatusClosed = true; _runtimeStatusLifetime.Cancel(); };
     }
-    private void RefreshRuntimeStatusLanguage() =>
-        RuntimeStatusNavText.Text = ModeStatusText.Pick("运行状态", "Runtime status");
-    internal void SelectRuntimeStatus() => SettingsTabs.SelectedItem = RuntimeStatusSettingsTab;
+    internal void SelectRuntimeStatus()
+    {
+        SettingsTabs.SelectedItem = LocalSettingsTab;
+        if (RuntimeStatusPage.Parent is Expander expander) expander.IsExpanded = true;
+    }
     private async Task RefreshRuntimeStatusAsync(bool force = false)
     {
         if (_services is null || _runtimeStatusBusy || _runtimeStatusClosed) return;

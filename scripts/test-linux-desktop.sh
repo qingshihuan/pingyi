@@ -4,7 +4,6 @@ set -euo pipefail
 app="$PWD/src/PingYi.App/bin/Release/net10.0/PingYi.App.dll"
 root="$(mktemp -d)"
 export XDG_CONFIG_HOME="$root/config" XDG_DATA_HOME="$root/data" XDG_SESSION_TYPE=x11
-export PINGYI_MODEL_DIR="$root/models" PINGYI_BUNDLED_MODEL_DIR="$root/no-bundled-models"
 mkdir -p "$XDG_CONFIG_HOME/pingyi-complete" "$PWD/artifacts/ui"
 # Omit the new automatic-task flag too: migrate the legacy default, retaining other preferences.
 cat > "$XDG_CONFIG_HOME/pingyi-complete/settings.json" <<'JSON'

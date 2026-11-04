@@ -105,6 +105,6 @@ public class QrCodeUiTests
         if (string.IsNullOrWhiteSpace(directory)) return;
         Directory.CreateDirectory(directory);
         using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame); frame.Save(Path.Combine(directory, name + ".png"));
+        Assert.NotNull(frame); frame.Save(Path.Combine(directory, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

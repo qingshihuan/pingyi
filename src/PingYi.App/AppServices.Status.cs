@@ -3,19 +3,17 @@ using PingYi.Infrastructure;
 
 namespace PingYi.App;
 
-internal sealed record RuntimeStatusSnapshot(AppSettings Settings, ModeReadiness Lightweight,
-    ModeReadiness Basic, ModeReadiness Cloud, bool? PaddleReady, bool? ArgosReady,
-    PassiveModelStatus? Model, InstalledRuntime? Runtime, DateTimeOffset? CheckedAt)
+internal sealed record RuntimeStatusSnapshot(AppSettings Settings, ModeReadiness Current,
+    ModeReadiness Basic, ModeReadiness Cloud, PassiveModelStatus? Model, InstalledRuntime? Runtime, DateTimeOffset? CheckedAt)
 {
     public static RuntimeStatusSnapshot Unknown { get; } = new(new AppSettings(), ModeReadiness.Unknown,
-        ModeReadiness.Unknown, ModeReadiness.Unknown, null, null, null, null, null);
+        ModeReadiness.Unknown, ModeReadiness.Unknown, null, null, null);
 }
 
 public sealed partial class AppServices
 {
     private readonly SemaphoreSlim _statusReadGate = new(1, 1);
     private RuntimeStatusSnapshot? _lastStatus;
-
     internal async Task<RuntimeStatusSnapshot> ReadRuntimeStatusAsync(CancellationToken token, bool force = false)
     {
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
@@ -26,71 +24,26 @@ public sealed partial class AppServices
             var settings = Settings;
             if (!force && _lastStatus is { CheckedAt: { } checkedAt } cached && cached.Settings == settings &&
                 DateTimeOffset.UtcNow - checkedAt < TimeSpan.FromSeconds(5)) return cached;
-            var paddle = ProbeAsync(ct => PaddleProvider.GetAvailabilityAsync(ct).AsTask(), token);
-            var argos = ProbeAsync(ct => ArgosProvider.GetAvailabilityAsync(ct).AsTask(), token);
-            var cloud = ReadCloudStateAsync(settings, SecretStore, token);
-            var managed = RuntimePolicy.HasConfiguredManagedRuntime(settings);
-            var localConfigured = ModeReadinessPolicy.HasLocalConfiguration(settings);
-            var local = ProbeLocalServiceAsync(settings, managed,
-                ct => new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => settings)
-                    .GetAvailabilityAsync(ct).AsTask(), token);
             var model = ManagedModels.InspectForStatus(settings);
             InstalledRuntime? runtime = null;
+            try { runtime = await ManagedModels.Runtimes.RecommendedInstalledAsync(settings.ManagedRuntimeBackend, settings.ManagedRuntimeDevice, token); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception) { }
+            var local = ModeReadinessPolicy.Basic(new(ModeReadinessPolicy.HasLocalConfiguration(settings),
+                RuntimePolicy.HasConfiguredManagedRuntime(settings), model.FilesPresent, runtime is not null, model.Running, null));
+            var cloud = new ModeReadiness(ModeReadinessPolicy.HasRemoteEndpoint(settings) ? ModeReadinessState.Unverified : ModeReadinessState.Unconfigured,
+                ModeReadinessPolicy.HasRemoteEndpoint(settings) ? "cloud-unverified" : "cloud-unconfigured");
+            ModeReadiness current;
             try
             {
-                runtime = await ManagedModels.Runtimes.RecommendedInstalledAsync(settings.ManagedRuntimeBackend,
-                    settings.ManagedRuntimeDevice, token);
+                var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
+                current = route.IsManaged ? local : new(ModeReadinessState.Unverified, "current-tested");
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception) { } // One broken backend must not hide lightweight/cloud state.
-            await Task.WhenAll(paddle, argos, cloud, local);
-            token.ThrowIfCancellationRequested();
-            var snapshot = new RuntimeStatusSnapshot(settings,
-                ModeReadinessPolicy.Lightweight(await paddle, await argos),
-                ModeReadinessPolicy.Basic(new(localConfigured, managed, model.FilesPresent,
-                    runtime is not null, model.Running, await local)),
-                await cloud, await paddle, await argos, model, runtime, DateTimeOffset.UtcNow);
+            catch (ProviderException) { current = new(ModeReadinessState.Unconfigured, "current-unconfigured"); }
+            var snapshot = new RuntimeStatusSnapshot(settings, current, local, cloud, model, runtime, DateTimeOffset.UtcNow);
             if (Settings == settings) _lastStatus = snapshot;
             return snapshot;
         }
         finally { _statusReadGate.Release(); }
-    }
-
-    internal static Task<bool?> ProbeLocalServiceAsync(AppSettings settings, bool managed,
-        Func<CancellationToken, Task<ProviderAvailability>> probe, CancellationToken token) =>
-        !managed && ModeReadinessPolicy.HasLocalConfiguration(settings)
-            ? ProbeAsync(probe, token) : Task.FromResult<bool?>(null);
-
-    private static async Task<bool?> ProbeAsync(Func<CancellationToken, Task<ProviderAvailability>> probe, CancellationToken token)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(6));
-        try { return (await probe(timeout.Token)).IsAvailable; }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (Exception) { return false; } // No dependency output or user content is retained.
-    }
-
-    internal static async Task<ModeReadiness> ReadCloudStateAsync(AppSettings settings, ISecretStore store, CancellationToken token)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(6));
-        try
-        {
-            // Read only presence; never return, log or persist credential values in a status snapshot.
-            async Task<bool> Has(string key) => !string.IsNullOrWhiteSpace(await store.GetAsync(key, timeout.Token));
-            var google = await Has(SecretKeys.GoogleCloudApiKey);
-            var ocrKey = await Has(SecretKeys.BaiduOcrApiKey);
-            var ocrSecret = await Has(SecretKeys.BaiduOcrSecretKey);
-            var appId = await Has(SecretKeys.BaiduTranslateAppId);
-            var translationSecret = await Has(SecretKeys.BaiduTranslateSecret);
-            return ModeReadinessPolicy.Cloud(new(true, google, ocrKey, ocrSecret, appId, translationSecret,
-                ModeReadinessPolicy.HasRemoteEndpoint(settings)));
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (Exception)
-        {
-            return ModeReadinessPolicy.Cloud(new(false, false, false, false, false, false,
-                ModeReadinessPolicy.HasRemoteEndpoint(settings)));
-        }
     }
 }

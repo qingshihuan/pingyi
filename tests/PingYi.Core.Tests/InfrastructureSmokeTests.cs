@@ -33,48 +33,6 @@ public sealed class InfrastructureSmokeTests
     }
 
     [Fact]
-    public async Task EngineHost_AnswersHealthRequestWithoutLoadingModels()
-    {
-        await using var client = new EngineProcessClient(new AppDataPaths());
-
-        var result = await client.CallAsync("health");
-
-        Assert.True(result.TryGetProperty("paddleocr", out _));
-        Assert.True(result.TryGetProperty("argos", out _));
-        Assert.True(result.TryGetProperty("translationModelsReady", out _));
-    }
-
-    [Fact]
-    public async Task EngineHost_HonorsPreCanceledRequest()
-    {
-        await using var client = new EngineProcessClient(new AppDataPaths());
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => client.CallAsync("health", cancellationToken: cancellation.Token));
-    }
-
-    [Fact]
-    public async Task EngineHost_ReportsRequestTimeoutWithStableErrorCode()
-    {
-        await using var client = new EngineProcessClient(
-            new AppDataPaths(),
-            TimeSpan.FromTicks(1));
-
-        var exception = await Assert.ThrowsAsync<ProviderException>(
-            () => client.CallAsync("health"));
-
-        Assert.Equal("engine_timeout", exception.Code);
-    }
-
-    [Fact]
-    public async Task EngineHost_CanceledInFlightRequestDoesNotPoisonNextRequest()
-    {
-        await EngineCancellationFixture.AssertInFlightCancellationAndRecoveryAsync();
-    }
-
-    [Fact]
     public async Task ManagedModelService_DisposeCancelsOperationWaitingForGate()
     {
         var service = new ManagedModelService(new AppDataPaths());
@@ -101,30 +59,6 @@ public sealed class InfrastructureSmokeTests
     }
 
     [Fact]
-    public async Task PaddleOcrProvider_DisposeWaitsForActiveNativeInferenceGate()
-    {
-        var provider = new PaddleOcrProvider(new AppDataPaths());
-        var gate = Assert.IsType<SemaphoreSlim>(
-            typeof(PaddleOcrProvider)
-                .GetField("_inferenceGate", System.Reflection.BindingFlags.Instance |
-                                            System.Reflection.BindingFlags.NonPublic)!
-                .GetValue(provider));
-        await gate.WaitAsync();
-
-        var dispose = provider.DisposeAsync().AsTask();
-        Assert.False(dispose.IsCompleted);
-
-        gate.Release();
-        await dispose.WaitAsync(TimeSpan.FromSeconds(2));
-        await provider.DisposeAsync();
-
-        await Assert.ThrowsAsync<ObjectDisposedException>(
-            () => provider.RecognizeAsync(
-                new ImageFrame([], 0, 0, new PixelRect(0, 0, 0, 0)),
-                new OcrOptions("auto")));
-    }
-
-    [Fact]
     public async Task ScreenCaptureAndCrop_ReturnValidInMemoryPng()
     {
         if (!OperatingSystem.IsWindows())
@@ -144,54 +78,6 @@ public sealed class InfrastructureSmokeTests
         Assert.Equal(cropWidth, cropped.Width);
         Assert.Equal(cropHeight, cropped.Height);
         Assert.Equal(new byte[] { 137, 80, 78, 71 }, cropped.PngBytes[..4]);
-    }
-
-    [Fact]
-    [Trait("Category", "LocalModels")]
-    public async Task LocalModels_RecognizeAndTranslateFixedBilingualImage()
-    {
-        if (!string.Equals(
-                Environment.GetEnvironmentVariable("PINGYI_RUN_MODEL_TESTS"),
-                "1",
-                StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        using var bitmap = new SKBitmap(1000, 260);
-        using var canvas = new SKCanvas(bitmap);
-        canvas.Clear(SKColors.White);
-        using var paint = new SKPaint
-        {
-            Color = SKColors.Black,
-            IsAntialias = true
-        };
-        using var typeface = SKTypeface.FromFamilyName("Microsoft YaHei", SKFontStyle.Bold);
-        using var font = new SKFont(typeface, 64);
-        canvas.DrawText("PingYi OCR 2026", 38, 90, SKTextAlign.Left, font, paint);
-        canvas.DrawText("屏幕截图翻译", 38, 200, SKTextAlign.Left, font, paint);
-
-        using var image = SKImage.FromBitmap(bitmap);
-        using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
-        var frame = new ImageFrame(
-            encoded.ToArray(),
-            bitmap.Width,
-            bitmap.Height,
-            new PixelRect(0, 0, bitmap.Width, bitmap.Height));
-
-        await using var engine = new EngineProcessClient(new AppDataPaths());
-        using var ocrProvider = new PaddleOcrProvider(new AppDataPaths());
-        var ocr = await ocrProvider.RecognizeAsync(frame, new OcrOptions("auto"));
-
-        var expected = "PingYi OCR 2026屏幕截图翻译";
-        var similarity = NormalizedSimilarity(expected, ocr.PlainText);
-        Assert.True(
-            similarity >= 0.95,
-            $"OCR normalized similarity was {similarity:P2}. Actual: {ocr.PlainText}");
-
-        var translation = await new ArgosTranslationProvider(engine).TranslateAsync(
-            new TranslationRequest("屏幕截图翻译", "zh", "en"));
-        Assert.False(string.IsNullOrWhiteSpace(translation.Text));
     }
 
     private static double NormalizedSimilarity(string expected, string actual)

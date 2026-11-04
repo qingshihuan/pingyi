@@ -12,8 +12,6 @@ public sealed class AppSettingsTests
         {
             SchemaVersion = 0,
             Hotkey = " ",
-            OcrProviderId = "",
-            TranslationProviderId = "",
             SourceLanguage = "not-a-language",
             TargetLanguage = "xx",
             CustomTranslationEndpoint = "not a uri",
@@ -24,8 +22,6 @@ public sealed class AppSettingsTests
 
         Assert.Equal(AppSettings.CurrentSchemaVersion, normalized.SchemaVersion);
         Assert.Equal(AppSettings.DefaultHotkey, normalized.Hotkey);
-        Assert.Equal("local-paddle", normalized.OcrProviderId);
-        Assert.Equal("local-argos", normalized.TranslationProviderId);
         Assert.Equal("auto", normalized.SourceLanguage);
         Assert.Equal("auto-opposite", normalized.TargetLanguage);
         Assert.Equal("model-name", normalized.CustomTranslationModel);
@@ -104,8 +100,7 @@ public sealed class AppSettingsTests
             Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
             Assert.Equal("en-US", settings.UiLanguage);
             Assert.Equal("Ctrl+Alt+G", settings.Hotkey);
-            Assert.Equal("kept-model", settings.CustomTranslationModel);
-            Assert.Equal("custom-chat", settings.TranslationProviderId);
+            Assert.Equal("kept-model", settings.ModelConfiguration!.AllServices.Single().DefaultModel);
             Assert.True(settings.CheckForUpdates);
             await store.SaveAsync(settings);
             Assert.DoesNotContain("interfaceStyle", await File.ReadAllTextAsync(file));
@@ -130,7 +125,7 @@ public sealed class AppSettingsTests
             Assert.Equal(AppSettings.DefaultHotkey, migrated.Hotkey);
             Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.SchemaVersion);
             Assert.True(migrated.StartMinimized);
-            Assert.Equal("kept-model", migrated.CustomTranslationModel);
+            Assert.Equal("kept-model", migrated.ModelConfiguration!.AllServices.Single().DefaultModel);
             await store.SaveAsync(migrated);
             Assert.Equal(migrated, await store.LoadAsync());
         }
@@ -267,45 +262,4 @@ public sealed class AppSettingsTests
         Assert.Equal(expected, AppSettings.IsChatCompletionsTransportAllowed(endpoint));
     }
 
-    [Theory]
-    [InlineData("local-paddle")]
-    [InlineData("local-vlm-corrected")]
-    public void ApplyLocalMode_ReplacesRemoteEndpointAndModelAtomically(string ocrProviderId)
-    {
-        var remoteSettings = new AppSettings
-        {
-            OcrProviderId = "baidu-ocr",
-            TranslationProviderId = "custom-chat",
-            CustomTranslationEndpoint = "https://api.example.com/v1/chat/completions",
-            CustomTranslationModel = "remote-model",
-            ManagedRuntimeEnabled = true
-        };
-
-        var localSettings = LocalLlmPresets.ApplyLocalMode(remoteSettings, ocrProviderId);
-
-        Assert.Equal(ocrProviderId, localSettings.OcrProviderId);
-        Assert.Equal("custom-chat", localSettings.TranslationProviderId);
-        Assert.Equal(AppSettings.DefaultCustomTranslationEndpoint, localSettings.CustomTranslationEndpoint);
-        Assert.Equal(AppSettings.DefaultCustomTranslationModel, localSettings.CustomTranslationModel);
-        Assert.False(localSettings.ManagedRuntimeEnabled);
-        Assert.True(AppSettings.TryParseChatCompletionsEndpoint(localSettings.CustomTranslationEndpoint, out var endpoint));
-        Assert.True(endpoint.IsLoopback);
-    }
-
-    [Fact]
-    public void ApplyLocalMode_PreservesExistingLoopbackServiceAndManagedRuntime()
-    {
-        var settings = new AppSettings
-        {
-            CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint,
-            CustomTranslationModel = "managed-model",
-            ManagedRuntimeEnabled = true
-        };
-
-        var localSettings = LocalLlmPresets.ApplyLocalMode(settings, "local-vlm-corrected");
-
-        Assert.Equal(AppSettings.ManagedModelEndpoint, localSettings.CustomTranslationEndpoint);
-        Assert.Equal("managed-model", localSettings.CustomTranslationModel);
-        Assert.True(localSettings.ManagedRuntimeEnabled);
-    }
 }

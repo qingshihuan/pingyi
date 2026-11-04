@@ -35,15 +35,12 @@ public class ApplePolishTests
             home.Show();
             SaveFrame(home, $"refined-home-{suffix}");
 
-            C<TextBlock>(settings, "WindowHeadingText").Text = WorkspaceText.Settings;
+            C<TextBlock>(settings, "CurrentModelTitle").Text = WorkspaceText.Settings;
             C<TextBlock>(settings, "GlobalStatusText").Text = WorkspaceText.Preview;
-            SetChoices(settings, "OcrProviderCombo", "PaddleOCR · ONNX");
-            SetChoices(settings, "TranslationProviderCombo", "Argos · Offline");
             SetChoices(settings, "TargetLanguageCombo", UiText.IsEnglish ? "Auto (Chinese / English)" : "自动 · 中英互译");
             SetChoices(settings, "UiLanguageCombo", UiText.IsEnglish ? "English" : "简体中文");
-            SetChoices(settings, "LocalServicePresetCombo", "llama.cpp");
             C<TextBox>(settings, "HotkeyBox").Text = "Ctrl+Alt+D";
-            C<TextBox>(settings, "CustomEndpointBox").Text = "http://127.0.0.1:8080/v1/chat/completions";
+            settings.ConfigurationCenter.EndpointEditor.Text = "http://127.0.0.1:8080/v1/chat/completions";
             settings.Show();
             var tabs = C<TabControl>(settings, "SettingsTabs");
             for (var i = 0; i < 5; i++)
@@ -94,7 +91,7 @@ public class ApplePolishTests
         {
             window.Show();
             window.UpdateLayout();
-            var first = C<TabItem>(window, "GeneralSettingsTab");
+            var first = C<TabItem>(window, "CurrentModelSettingsTab");
             Assert.True(first.Focus());
             window.KeyPress(Key.Down, RawInputModifiers.None, default, null);
             window.KeyRelease(Key.Down, RawInputModifiers.None, default, null);
@@ -134,6 +131,6 @@ public class ApplePolishTests
         Directory.CreateDirectory(directory);
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, name + ".png"));
+        frame.Save(Path.Combine(directory, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

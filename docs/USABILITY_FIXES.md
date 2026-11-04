@@ -1,3 +1,5 @@
+> 历史记录：本文描述早期版本。schema 16 已移除传统 OCR、轻量模式和逐任务模型组合；当前行为以 [架构](ARCHITECTURE.md) 和 [设置说明](CONFIGURATION_CENTER.md) 为准。
+
 # v0.4.0 后续：五项易用性修复
 
 ## 实现范围

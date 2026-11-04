@@ -1,6 +1,5 @@
 using PingYi.Core;
 using PingYi.Infrastructure;
-using System.Text.Json.Nodes;
 
 namespace PingYi.App;
 
@@ -12,8 +11,7 @@ public sealed partial class AppServices : IAsyncDisposable
     private readonly HttpClient _imageAnalysisClient = new(new HttpClientHandler { AllowAutoRedirect = false })
         { Timeout = Timeout.InfiniteTimeSpan };
     private ManagedModelProgress? _managedProgress;
-    public IImageAnalysisProvider CreateImageAnalyzer(AppSettings snapshot) =>
-        new ChatCompatibleImageAnalysisProvider(_imageAnalysisClient, SecretStore, snapshot);
+    public IImageAnalysisProvider CreateImageAnalyzer(AppSettings snapshot) => TaskImageAnalyzer(snapshot, CapturePurpose.DescribeImage);
     private readonly CancellationTokenSource _lifetime = new();
     private readonly object _managedRuntimeLock = new();
     private readonly SemaphoreSlim _settingsTransitionGate = new(1, 1);
@@ -27,7 +25,7 @@ public sealed partial class AppServices : IAsyncDisposable
     public void StartBrowserBridge()
     {
         if (_browserBridge is not null) return;
-        var handler = new BrowserTranslationService(Providers, async token => { await WaitForManagedRuntimeAsync(token); }, TaskTranslator, TaskOcr);
+        var handler = new BrowserTranslationService( async token => { await WaitForManagedRuntimeAsync(token); }, TaskTranslator, TaskOcr);
         _browserBridge = new BrowserBridgeServer(BrowserWire.PipeName(AppEdition.IsComplete ? "complete" : "standard"),
             async (request, token) =>
             {
@@ -39,25 +37,15 @@ public sealed partial class AppServices : IAsyncDisposable
     }
 
     private AppServices(AppDataPaths paths, ISettingsStore settingsStore, ISecretStore secretStore,
-        AppSettings settings, EngineProcessClient engine, IGlobalHotkeyService hotkeyService,
+        AppSettings settings, IGlobalHotkeyService hotkeyService,
         IScreenCaptureService screenCaptureService, IImageCropper imageCropper, HttpClient httpClient)
     {
         Paths = paths; SettingsStore = settingsStore; SecretStore = secretStore; Settings = settings;
-        Engine = engine; HotkeyService = hotkeyService; ScreenCaptureService = screenCaptureService;
+        HotkeyService = hotkeyService; ScreenCaptureService = screenCaptureService;
         ImageCropper = imageCropper; _httpClient = httpClient;
         ManagedModels = new ManagedModelService(paths);
         UpdateService = new GitHubReleaseUpdateService(httpClient);
-        PaddleProvider = new PaddleOcrProvider(paths);
-        ArgosProvider = new ArgosTranslationProvider(engine);
-        BaiduOcrProvider = new BaiduOcrProvider(httpClient, secretStore);
-        BaiduTranslationProvider = new BaiduTranslationProvider(httpClient, secretStore);
-        GoogleOcrProvider = new GoogleCloudVisionOcrProvider(httpClient, secretStore);
-        GoogleTranslationProvider = new GoogleCloudTranslationProvider(httpClient, secretStore);
-        CustomTranslationProvider = new ChatCompatibleTranslationProvider(_inferenceClient, secretStore, () => Settings);
-        LocalVlmOcrProvider = new ChatCompatibleOcrProvider(_inferenceClient, secretStore, () => Settings, CustomTranslationProvider);
-        Providers = new ProviderRegistry(
-            [LocalVlmOcrProvider, PaddleProvider, BaiduOcrProvider, GoogleOcrProvider],
-            [CustomTranslationProvider, ArgosProvider, BaiduTranslationProvider, GoogleTranslationProvider]);
+
     }
 
     public bool IsShuttingDown => Volatile.Read(ref _disposeState) != 0;
@@ -66,22 +54,12 @@ public sealed partial class AppServices : IAsyncDisposable
     public ISecretStore SecretStore { get; }
     public AppSettings Settings { get; private set; }
     public string? ConfigurationCredentialWarning { get; private set; }
-    public EngineProcessClient Engine { get; }
     public IGlobalHotkeyService HotkeyService { get; }
     public IScreenCaptureService ScreenCaptureService { get; }
     public IImageCropper ImageCropper { get; }
     public IQrCodeDecoder QrCodeDecoder { get; } = new ZxingQrCodeDecoder();
-    public ProviderRegistry Providers { get; }
     public ManagedModelService ManagedModels { get; }
     public GitHubReleaseUpdateService UpdateService { get; }
-    public PaddleOcrProvider PaddleProvider { get; }
-    public ArgosTranslationProvider ArgosProvider { get; }
-    public BaiduOcrProvider BaiduOcrProvider { get; }
-    public BaiduTranslationProvider BaiduTranslationProvider { get; }
-    public GoogleCloudVisionOcrProvider GoogleOcrProvider { get; }
-    public GoogleCloudTranslationProvider GoogleTranslationProvider { get; }
-    public ChatCompatibleTranslationProvider CustomTranslationProvider { get; }
-    public ChatCompatibleOcrProvider LocalVlmOcrProvider { get; }
     public Task<ProviderAvailability> ManagedRuntimeStartupTask
     {
         get { lock (_managedRuntimeLock) return _managedRuntimeStartupTask; }
@@ -89,9 +67,6 @@ public sealed partial class AppServices : IAsyncDisposable
 
     public ITranslationProvider CaptureTranslator(AppSettings snapshot) => TaskTranslator(snapshot);
     public IOcrProvider CaptureOcr(AppSettings snapshot) => TaskOcr(snapshot);
-
-    public Task ClearDownloadedTranslationModelsAsync(CancellationToken cancellationToken = default) =>
-        Engine.CallAsync("delete_models", new JsonObject { ["scope"] = "translation" }, cancellationToken);
 
     public static async Task<AppServices> CreateAsync(CancellationToken cancellationToken = default)
     {
@@ -107,10 +82,9 @@ public sealed partial class AppServices : IAsyncDisposable
             // Retain the pending flag and legacy key; a temporarily locked vault must not prevent startup.
             credentialWarning = "独立服务密钥迁移未完成；旧配置保留，请解锁安全存储后重启，或在配置中心重新填写密钥。 / Service key migration is pending; unlock the OS vault and restart, or enter the key in Configuration center.";
         }
-        var engine = new EngineProcessClient(paths);
         var httpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PingYi/0.1");
-        return new AppServices(paths, settingsStore, secretStore, settings, engine,
+        return new AppServices(paths, settingsStore, secretStore, settings,
             GlobalHotkeyServiceFactory.Create(), ScreenCaptureServiceFactory.Create(), new SkiaImageCropper(), httpClient)
             { ConfigurationCredentialWarning = credentialWarning };
     }
@@ -119,11 +93,8 @@ public sealed partial class AppServices : IAsyncDisposable
     {
         if (Volatile.Read(ref _disposeState) != 0) return;
         if (IsRuntimeMaintenance) throw new ProviderException("runtime_maintenance", "正在切换／卸载后端，请完成后再保存设置。 / Finish runtime maintenance before saving settings.");
-        if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint))
-            throw new ProviderException("custom_endpoint_invalid", "OpenAI 兼容接口地址无效。");
-        if (!AppSettings.IsChatCompletionsTransportAllowed(endpoint))
-            throw new ProviderException("custom_endpoint_insecure_transport", "远程自定义服务必须使用 HTTPS；只有本机回环地址可以使用 HTTP。");
-        var normalized = settings.Normalize();
+        var normalized = ConfigurationMigration.Upgrade(settings).Normalize();
+        normalized.ModelConfiguration!.Validate();
         await _settingsTransitionGate.WaitAsync(cancellationToken);
         try
         {
@@ -264,8 +235,6 @@ public sealed partial class AppServices : IAsyncDisposable
                 },
                 () => _browserBridge?.DisposeAsync().AsTask() ?? Task.CompletedTask,
                 () => HotkeyService.DisposeAsync().AsTask(),
-                () => Engine.DisposeAsync().AsTask(),
-                () => PaddleProvider.DisposeAsync().AsTask(),
                 async () => { await _settingsTransitionGate.WaitAsync(); _settingsTransitionGate.Release(); },
                 async () => { await _initialModelGate.WaitAsync(); _initialModelGate.Release(); });
         }

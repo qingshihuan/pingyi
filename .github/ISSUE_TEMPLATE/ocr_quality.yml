@@ -13,20 +13,25 @@ body:
     id: version
     attributes:
       label: PingYi version / 屏译版本
-      placeholder: 0.3.0
+      placeholder: Version shown in Help / 帮助页面中的版本
     validations:
       required: true
   - type: dropdown
     id: provider
     attributes:
-      label: OCR provider / OCR 提供商
+      label: Current model location / 当前模型位置
       options:
-        - Local PaddleOCR
-        - PaddleOCR + local LLM correction
-        - Local multimodal LLM OCR
-        - Google Cloud Vision OCR
-        - Baidu Cloud OCR
+        - App-managed local multimodal model
+        - External local model (Ollama / LM Studio / compatible service)
+        - Cloud multimodal API
         - Other
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Current model ID / 当前模型 ID
+      description: Model ID only; do not paste API keys or private endpoint URLs.
     validations:
       required: true
   - type: dropdown

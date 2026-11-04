@@ -44,23 +44,13 @@ internal static class DataUseDescription
 {
     public static string For(AppSettings settings)
     {
-        var localEndpoint = AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var endpoint) && endpoint.IsLoopback;
-        var recognition = settings.OcrProviderId switch
+        try
         {
-            "local-paddle" => UiText.Get("String.OcrLocalData"),
-            "local-vlm-ocr" or "local-vlm-corrected" => UiText.Get(localEndpoint ? "String.OcrLoopbackData" : "String.OcrRemoteData"),
-            "baidu-ocr" => UiText.Get("String.OcrBaiduData"),
-            "google-vision-ocr" => UiText.Get("String.OcrGoogleData"),
-            _ => UiText.Get("String.UnknownDataRoute")
-        };
-        var translation = settings.TranslationProviderId switch
-        {
-            "local-argos" => UiText.Get("String.TranslationLocalData"),
-            "custom-chat" => UiText.Get(localEndpoint ? "String.TranslationLoopbackData" : "String.TranslationRemoteData"),
-            "baidu-translate" => UiText.Get("String.TranslationBaiduData"),
-            "google-translate" => UiText.Get("String.TranslationGoogleData"),
-            _ => UiText.Get("String.UnknownDataRoute")
-        };
-        return recognition + "\n" + translation;
+            var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
+            return new Uri(route.Settings.CustomTranslationEndpoint).IsLoopback
+                ? CaptureUiText.Pick("图片和文字只发送到本机模型服务。二维码在本机解析。", "Images and text go only to the local model service. QR decoding stays local.")
+                : CaptureUiText.Pick("图片和文字经确认后发送到当前模型：", "After confirmation, images and text go to the current model: ") + route.Label;
+        }
+        catch (ProviderException) { return CaptureUiText.Pick("尚未选择有效的当前模型；不会发送截图。", "No valid current model selected; screenshots are not sent."); }
     }
 }

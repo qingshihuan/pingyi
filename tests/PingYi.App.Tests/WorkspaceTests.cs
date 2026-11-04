@@ -62,12 +62,12 @@ public class WorkspaceTests
             RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         // Equivalent visual state to settingsMode, without creating real AppServices.
         var tabs = Required<TabControl>(window, "SettingsTabs");
-        var endpoint = Required<TextBox>(window, "CustomEndpointBox");
+        var endpoint = window.ConfigurationCenter.EndpointEditor;
         endpoint.Text = "http://127.0.0.1:8080/v1/chat/completions";
         try
         {
             window.Show();
-            Assert.Equal(6, tabs.Items.Count);
+            Assert.Equal(5, tabs.Items.Count);
             for (var index = 0; index < tabs.Items.Count; index++)
             {
                 tabs.SelectedIndex = index;
@@ -79,8 +79,6 @@ public class WorkspaceTests
                 Assert.Equal("http://127.0.0.1:8080/v1/chat/completions", endpoint.Text);
                 Capture(window, $"settings-{index}-{width}-{language}-{dark}");
             }
-            Assert.NotNull(Required<TextBox>(window, "BaiduOcrApiKeyBox"));
-            Assert.NotNull(Required<TextBox>(window, "GoogleCloudApiKeyBox"));
             Assert.NotNull(Required<ComboBox>(window, "ManagedModelCombo"));
             var key = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent,
                 Key = Key.S, KeyModifiers = KeyModifiers.Control };
@@ -100,7 +98,7 @@ public class WorkspaceTests
             window.Show(); window.UpdateLayout();
             Assert.Null(window.FindControl<Button>("CaptureButton"));
             Assert.Null(window.FindControl<ComboBox>("InterfaceStyleCombo"));
-            AssertVisibleWithinWindow(window, Required<TabItem>(window, "AppearanceSettingsTab"));
+            AssertVisibleWithinWindow(window, Required<TabItem>(window, "GeneralSettingsTab"));
             AssertVisibleWithinWindow(window, Required<Button>(window, "SaveSettingsButton"));
         }
         finally { window.Close(); }
@@ -129,6 +127,6 @@ public class WorkspaceTests
         Directory.CreateDirectory(directory);
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, name + ".png"));
+        frame.Save(Path.Combine(directory, name + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 }

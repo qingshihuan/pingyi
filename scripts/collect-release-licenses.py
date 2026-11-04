@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-from importlib import metadata
 import json
 import os
 from pathlib import Path
@@ -184,98 +183,6 @@ def collect_dotnet_runtime(publish_dir: Path, output: Path) -> dict[str, object]
     }
 
 
-def distribution_license_files(distribution: metadata.Distribution) -> list[Path]:
-    result: list[Path] = []
-    for entry in distribution.files or ():
-        source = Path(distribution.locate_file(entry))
-        if is_license_file(source):
-            result.append(source)
-    return sorted(set(result), key=lambda path: str(path).lower())
-
-
-def collect_python(output: Path) -> list[dict[str, object]]:
-    components: list[dict[str, object]] = []
-    python_license = Path(sys.base_prefix) / "LICENSE.txt"
-    if not python_license.is_file():
-        python_license = Path(sys.base_prefix) / "LICENSE"
-    if not python_license.is_file():
-        python_license = CURATED_ROOT / "Python-3.13.txt"
-    python_dir = output / "python" / f"Python-{sys.version_info.major}.{sys.version_info.minor}"
-    copied = copy_file(python_license, python_dir / python_license.name)
-    components.append(
-        {
-            "name": "Python",
-            "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-            "kind": "embedded runtime",
-            "licenseFiles": [str((python_dir / copied).relative_to(output))],
-        }
-    )
-
-    fallbacks = {
-        "argostranslate": ["MIT"],
-        "ctranslate2": ["MIT"],
-        "sentencepiece": ["Apache-2.0"],
-        "pyinstaller": [],
-    }
-    for package_name, extra_licenses in fallbacks.items():
-        try:
-            distribution = metadata.distribution(package_name)
-        except metadata.PackageNotFoundError as error:
-            raise RuntimeError(f"Python build dependency is missing: {package_name}") from error
-        component_dir = output / "python" / (
-            f"{safe_name(distribution.metadata.get('Name') or package_name)}-{safe_name(distribution.version)}"
-        )
-        files: list[str] = []
-        for source in distribution_license_files(distribution):
-            files.append(copy_file(source, component_dir / source.name))
-        for license_id in extra_licenses:
-            curated_name = CURATED_FILES[license_id]
-            if curated_name not in files:
-                files.append(copy_curated(license_id, component_dir))
-        if not files:
-            raise RuntimeError(f"No distributable license text found for Python package {package_name}")
-        components.append(
-            {
-                "name": distribution.metadata.get("Name") or package_name,
-                "version": distribution.version,
-                "kind": "embedded Python package/build runtime",
-                "licenseFiles": [str((component_dir / file).relative_to(output)) for file in files],
-            }
-        )
-    return components
-
-
-def collect_distribution_license_component(
-    package_name: str,
-    component_name: str,
-    output: Path,
-) -> dict[str, object]:
-    try:
-        distribution = metadata.distribution(package_name)
-    except metadata.PackageNotFoundError as error:
-        raise RuntimeError(
-            f"{component_name} is bundled, but the {package_name} license package is missing"
-        ) from error
-    sources = distribution_license_files(distribution)
-    if not sources:
-        raise RuntimeError(f"{package_name} does not contain distributable license texts")
-    component_dir = output / "native" / safe_name(component_name)
-    files: list[str] = []
-    for index, source in enumerate(sources):
-        destination_name = source.name
-        if (component_dir / destination_name).exists():
-            destination_name = f"{index}-{destination_name}"
-        files.append(copy_file(source, component_dir / destination_name))
-    return {
-        "name": component_name,
-        "version": distribution.version,
-        "kind": "statically linked/native runtime dependency",
-        "licenseFiles": [
-            str((component_dir / file).relative_to(output)) for file in files
-        ],
-    }
-
-
 def collect_native_runtimes(publish_dir: Path, output: Path) -> list[dict[str, object]]:
     names = {
         path.name.lower()
@@ -292,7 +199,7 @@ def collect_native_runtimes(publish_dir: Path, output: Path) -> list[dict[str, o
         components.append(
             {
                 "name": "GNU OpenMP runtime",
-                "version": "bundled by CTranslate2",
+                "version": "bundled native runtime",
                 "kind": "native runtime dependency",
                 "licenseFiles": [
                     str((component_dir / file).relative_to(output)) for file in files
@@ -315,51 +222,12 @@ def collect_native_runtimes(publish_dir: Path, output: Path) -> list[dict[str, o
                 ],
             }
         )
-    if any(name.startswith("libiomp") for name in names):
-        components.append(
-            collect_distribution_license_component(
-                "intel-openmp",
-                "Intel OpenMP runtime",
-                output,
-            )
-        )
-    if any(name.startswith(("ctranslate2", "libctranslate2")) for name in names):
-        components.append(
-            collect_distribution_license_component(
-                "onemkl-license",
-                "Intel oneMKL runtime",
-                output,
-            )
-        )
-        component_dir = output / "native" / "oneDNN"
-        files = [
-            copy_file(
-                CURATED_ROOT / "oneDNN-3.1.1-LICENSE.txt",
-                component_dir / "LICENSE.txt",
-            ),
-            copy_file(
-                CURATED_ROOT / "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
-                component_dir / "THIRD-PARTY-PROGRAMS.txt",
-            ),
-        ]
-        components.append(
-            {
-                "name": "oneDNN",
-                "version": "3.1.1 (statically linked by CTranslate2)",
-                "kind": "statically linked native dependency",
-                "licenseFiles": [
-                    str((component_dir / file).relative_to(output)) for file in files
-                ],
-            }
-        )
     return components
 
 
 def collect_models(output: Path, complete: bool) -> list[dict[str, object]]:
     components: list[dict[str, object]] = []
     model_licenses = (
-        ("PaddleOCR models", "PP-OCRv5 mobile", "Apache-2.0"),
-        ("Argos OPUS-MT model packages", "zh-en and en-zh", "CC-BY-4.0"),
         ("Inter font", "bundled by Avalonia.Fonts.Inter", "OFL-1.1"),
     )
     for name, version, license_id in model_licenses:
@@ -369,7 +237,7 @@ def collect_models(output: Path, complete: bool) -> list[dict[str, object]]:
             {
                 "name": name,
                 "version": version,
-                "kind": "offline model/font asset",
+                "kind": "font asset",
                 "licenseFiles": [str((component_dir / copied).relative_to(output))],
             }
         )
@@ -415,7 +283,6 @@ def main() -> int:
     complete = (publish_dir / "pingyi-complete.edition").is_file()
     components = collect_dotnet(publish_dir, output)
     components.append(collect_dotnet_runtime(publish_dir, output))
-    components.extend(collect_python(output))
     components.extend(collect_native_runtimes(publish_dir, output))
     components.extend(collect_models(output, complete))
     manifest = {

@@ -126,11 +126,10 @@ public sealed class ChatCompatibleTranslationProvider(
         }
         else
         {
-            var messages = new JsonArray
-            {
+            var messages = new JsonArray(
                 new JsonObject { ["role"] = "system", ["content"] = instruction },
                 new JsonObject { ["role"] = "user", ["content"] = request.Text }
-            };
+            );
             payload = new JsonObject
             {
                 ["model"] = settings.CustomTranslationModel,

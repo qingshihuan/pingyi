@@ -15,12 +15,7 @@ public sealed class OcrRetryCache
     }
     private static string Route(AppSettings settings)
     {
-        var resolved = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
-        var s = resolved.Settings;
-        return string.Join('|', s.OcrProviderId, s.SourceLanguage,
-            s.OcrProviderId == "local-vlm-ocr" ? s.CustomTranslationEndpoint : "",
-            s.OcrProviderId == "local-vlm-ocr" ? s.CustomTranslationModel : "",
-            s.OcrProviderId == "local-vlm-ocr" ? s.CustomTranslationApiProtocol : "", resolved.CredentialRef);
+        return settings.SourceLanguage + "|" + ConfigurationRouting.Fingerprint(settings, ModelTasks.Ocr);
     }
     public void Remember(ImageFrame image, AppSettings settings, OcrResult result, string label)
     {

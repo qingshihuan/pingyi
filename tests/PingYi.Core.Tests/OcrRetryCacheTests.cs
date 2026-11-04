@@ -8,12 +8,14 @@ public sealed class OcrRetryCacheTests
     {
         var cache = new OcrRetryCache();
         var image = new ImageFrame([1], 1, 1, new(0, 0, 1, 1));
-        var settings = new AppSettings { OcrProviderId = "local-vlm-ocr", CustomTranslationModel = "model-a" };
+        var config = new ModelConfiguration { Services = [new() { Id = "cloud", Endpoint = "https://example.test/v1",
+            Models = [new("model-a", true, true), new("model-b", true, true)] }], CurrentModel = new("cloud", "model-a") };
+        var settings = new AppSettings { ModelConfiguration = config };
         var result = new OcrResult([], "synthetic", "en");
         cache.Remember(image, settings, result, "vision");
         Assert.True(cache.TryGetForTranslationRetry(image, settings with { TargetLanguage = "ja" }, out var reused, out var label));
         Assert.Same(result, reused); Assert.Equal("vision", label);
-        Assert.False(cache.TryGetForTranslationRetry(image, settings with { CustomTranslationModel = "model-b" }, out _, out _));
+        Assert.False(cache.TryGetForTranslationRetry(image, settings with { ModelConfiguration = config with { CurrentModel = new("cloud", "model-b") } }, out _, out _));
         Assert.False(cache.TryGetForTranslationRetry(image with { PngBytes = [2] }, settings, out _, out _));
         cache.MarkTranslationComplete(image);
         Assert.False(cache.TryGetForTranslationRetry(image, settings, out _, out _));

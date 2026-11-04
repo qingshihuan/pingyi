@@ -5,17 +5,15 @@ namespace PingYi.Infrastructure;
 /// <summary>Resolve once per operation; neither an editor change nor a provider switch can redirect a request.</summary>
 public static class ConfiguredProviders
 {
-    public static ITranslationProvider Translation(HttpClient client, ISecretStore secrets, AppSettings settings, ProviderRegistry providers)
+    public static ITranslationProvider Translation(HttpClient client, ISecretStore secrets, AppSettings settings)
     {
         var route = ConfigurationRouting.Resolve(settings, ModelTasks.Translation);
-        if (route.Settings.TranslationProviderId != "custom-chat") return providers.GetTranslationProvider(route.Settings.TranslationProviderId);
         var provider = new ChatCompatibleTranslationProvider(client, new ProfileSecretStore(secrets, Credential(route)), () => route.Settings);
         return route.IsExplicit ? new RoutedTranslation(provider, Metadata(provider.Metadata, route)) : provider;
     }
-    public static IOcrProvider Ocr(HttpClient client, ISecretStore secrets, AppSettings settings, ProviderRegistry providers)
+    public static IOcrProvider Ocr(HttpClient client, ISecretStore secrets, AppSettings settings)
     {
         var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
-        if (route.Settings.OcrProviderId != "local-vlm-ocr") return providers.GetOcrProvider(route.Settings.OcrProviderId);
         var scoped = new ProfileSecretStore(secrets, Credential(route));
         var provider = new ChatCompatibleOcrProvider(client, scoped, () => route.Settings,
             new ChatCompatibleTranslationProvider(client, scoped, () => route.Settings));

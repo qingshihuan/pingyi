@@ -23,6 +23,12 @@ public partial class SettingsWindow
     private async Task RunManagedModelSetupAsync(Button button)
     {
         if (_services is null || _managedModelOperation is not null || _runtimeHardware?.IsBusy == true || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model) return;
+        try
+        {
+            if (BuildSettingsFromForm() != (_services.Settings with { InitialSetupCompleted = true }) || ConfigurationCenter.PendingKeys.Count > 0 || LocalModelEditor.PendingKeys.Count > 0)
+            { SetGlobalStatus(CaptureUiText.Pick("请先保存模型与 API 编辑，再配置托管模型。", "Save model and API edits before configuring a managed model."), true); return; }
+        }
+        catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); return; }
         _managedModelOperation = new CancellationTokenSource();
         BeginButtonOperation(button, "正在下载并配置…");
         SetManagedModelBusy(true);
@@ -31,7 +37,7 @@ public partial class SettingsWindow
         try
         {
             await ApplyAndStartManagedModelAsync(model, new Progress<ManagedModelProgress>(UpdateManagedModelProgress), _managedModelOperation.Token);
-            SetGlobalStatus(CaptureUiText.Pick("基础模式已配置：本机视觉 OCR 与本机模型翻译。", "Basic configured: local vision OCR and local model translation."), false);
+            SetGlobalStatus(CaptureUiText.Pick("当前模型已配置：本机多模态模型。", "Current model configured: local multimodal model."), false);
             FinishButtonOperation(button, "已安装并应用", true);
         }
         catch (OperationCanceledException)
@@ -72,26 +78,12 @@ public partial class SettingsWindow
         await _services.ConfigureInitialModelAsync(model, SelectedManagedRuntimeBackendId,
             _runtimeHardware?.SelectedDevice ?? "auto", _runtimeHardware?.AllowMirrors ?? false,
             _runtimeHardware?.MirrorPrefixes ?? "", progress, token);
-        _isLoadingSettings = true;
-        try
-        {
-            CustomEndpointBox.Text = AppSettings.ManagedModelEndpoint;
-            CustomModelCombo.Text = model.ModelAlias;
-            SelectOcrProvider("local-vlm-ocr");
-            SelectTranslationProvider("custom-chat");
-        }
-        finally { _isLoadingSettings = false; }
+        LoadSettings(_services.Settings);
         SetInlineStatus(ManagedModelStatusText, CaptureUiText.Pick("模型已校验，直接视觉 OCR 与翻译测试通过。", "Model verified; direct vision OCR and translation checks passed."), "SuccessTextBrush");
     }
     private async Task RefreshManagedModelStatusAsync(bool attemptConfiguredStart)
     {
         if (_services is null || !ManagedModelExpander.IsVisible || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel selected) return;
-        if (!_services.ManagedModels.HasBundledRuntime)
-        {
-            SetInlineStatus(ManagedModelStatusText, "完全版 llama.cpp 运行时缺失，请重新安装完全版。", "DangerTextBrush");
-            ManagedModelInstallButton.IsEnabled = ManagedModelStartButton.IsEnabled = false;
-            return;
-        }
         SetInlineStatus(ManagedModelStatusText, "正在校验已下载模型…", "SecondaryTextBrush");
         try
         {
@@ -139,84 +131,4 @@ public partial class SettingsWindow
         if (!busy) ManagedModelProgressBar.IsIndeterminate = false;
     }
     private static string FormatGiB(long bytes) => $"{bytes / 1073741824d:0.00} GiB";
-    private async void InstallOcrModelsButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_services is null) return;
-        var button = sender as Button;
-        BeginButtonOperation(button, "正在下载…");
-        SetInlineStatus(OcrModelStatusText, "OCR 模型：正在下载并校验…", "SecondaryTextBrush");
-        try
-        {
-            await _services.PaddleProvider.InstallModelsAsync();
-            await RefreshLocalModelStatusAsync();
-            SetGlobalStatus("中英离线 OCR 模型安装完成并已校验。", false);
-            FinishButtonOperation(button, "下载完成", true, isEnabledAfterResult: false);
-        }
-        catch (Exception error)
-        {
-            SetInlineStatus(OcrModelStatusText, $"OCR 模型：{UiText.Error(error)}", "DangerTextBrush");
-            SetGlobalStatus(UiText.Error(error), true); FinishButtonOperation(button, "下载失败", false);
-        }
-    }
-    private async void InstallTranslationModelsButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_services is null) return;
-        var button = sender as Button;
-        BeginButtonOperation(button, "正在下载…");
-        SetInlineStatus(TranslationModelStatusText, "翻译模型：正在下载并校验…", "SecondaryTextBrush");
-        try
-        {
-            await _services.ArgosProvider.InstallModelsAsync();
-            await RefreshLocalModelStatusAsync();
-            SetGlobalStatus("中英离线翻译模型安装完成并已校验。", false);
-            FinishButtonOperation(button, "下载完成", true, isEnabledAfterResult: false);
-        }
-        catch (Exception error)
-        {
-            SetInlineStatus(TranslationModelStatusText, $"翻译模型：{UiText.Error(error)}", "DangerTextBrush");
-            SetGlobalStatus(UiText.Error(error), true); FinishButtonOperation(button, "下载失败", false);
-        }
-    }
-    private async void DeleteModelsButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_services is null) return;
-        if (DateTimeOffset.UtcNow > _deleteConfirmationExpiresAt)
-        {
-            _deleteConfirmationExpiresAt = DateTimeOffset.UtcNow.AddSeconds(8);
-            DeleteModelsButton.Content = "确认清理下载模型";
-            SetGlobalStatus("再次点击可清理用户下载的翻译模型；安装包内离线基础模型、凭据和设置都会保留。", false);
-            _ = ResetDeleteConfirmationAsync(_deleteConfirmationExpiresAt); return;
-        }
-        try
-        {
-            DeleteModelsButton.IsEnabled = false;
-            await _services.ClearDownloadedTranslationModelsAsync();
-            await RefreshLocalModelStatusAsync();
-            SetGlobalStatus("用户下载模型已清理，安装包内离线基础模型仍可使用。", false);
-        }
-        catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
-        finally { DeleteModelsButton.IsEnabled = true; _deleteConfirmationExpiresAt = default; DeleteModelsButton.Content = _deleteModelsDefaultContent; }
-    }
-    private async Task ResetDeleteConfirmationAsync(DateTimeOffset expiresAt)
-    {
-        await Task.Delay(TimeSpan.FromSeconds(8));
-        if (_deleteConfirmationExpiresAt != expiresAt || DateTimeOffset.UtcNow < expiresAt) return;
-        _deleteConfirmationExpiresAt = default;
-        DeleteModelsButton.Content = _deleteModelsDefaultContent;
-        SetGlobalStatus("删除操作已取消。", false);
-    }
-    private async Task RefreshLocalModelStatusAsync()
-    {
-        if (_services is null) return;
-        SetInlineStatus(OcrModelStatusText, "OCR 模型：正在检查…", "SecondaryTextBrush");
-        SetInlineStatus(TranslationModelStatusText, "翻译模型：正在检查…", "SecondaryTextBrush");
-        var ocr = await _services.PaddleProvider.GetAvailabilityAsync();
-        SetInlineStatus(OcrModelStatusText, ocr.IsAvailable ? "OCR 模型：已安装，可离线使用" : $"OCR 模型：{ocr.Message ?? "不可用"}", ocr.IsAvailable ? "SuccessTextBrush" : "WarningTextBrush");
-        SetModelInstallButtonState(InstallOcrModelsButton, OcrModelButtonText, OcrModelDownloadIcon, OcrModelInstalledIcon,
-            ocr.IsAvailable, "下载中英 OCR 模型", "中英 OCR 模型已安装");
-        var translation = await _services.ArgosProvider.GetAvailabilityAsync();
-        SetInlineStatus(TranslationModelStatusText, translation.IsAvailable ? "翻译模型：已安装，可离线使用" : $"翻译模型：{translation.Message ?? "不可用"}", translation.IsAvailable ? "SuccessTextBrush" : "WarningTextBrush");
-        SetModelInstallButtonState(InstallTranslationModelsButton, TranslationModelButtonText, TranslationModelDownloadIcon, TranslationModelInstalledIcon,
-            translation.IsAvailable, "下载中英翻译模型", "中英翻译模型已安装");
-    }
 }

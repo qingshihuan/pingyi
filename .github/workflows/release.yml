@@ -72,8 +72,6 @@ jobs:
           dotnet restore PingYi.slnx
           dotnet build PingYi.slnx -c Release --no-restore
           dotnet test PingYi.slnx -c Release --no-build
-          python -m py_compile engine_host/main.py
-          python -m unittest discover -s engine_host -p "test_*.py"
           python -m unittest discover -s scripts -p "test_*.py"
       - name: Import optional Authenticode certificate
         id: signing
@@ -113,12 +111,6 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($signingThumbprint)) {
             $signingArguments.SigningCertificateThumbprint = $signingThumbprint
           }
-          ./scripts/setup-engine.ps1 -Python python
-          python ./scripts/download-offline-models.py --destination ./artifacts/model-source
-          ./scripts/prepare-offline-models.ps1 `
-            -Source ./artifacts/model-source `
-            -Destination ./artifacts/quality-models
-          ./scripts/run-quality-baseline.ps1 -ModelDirectory ./artifacts/quality-models
           choco install innosetup --version 6.7.1 --yes --no-progress
           $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
           python ./scripts/prepare-llama-runtime.py `
@@ -161,20 +153,15 @@ jobs:
           dotnet restore PingYi.slnx
           dotnet build PingYi.slnx -c Release --no-restore
           dotnet test PingYi.slnx -c Release --no-build
-          python -m py_compile engine_host/main.py
-          python -m unittest discover -s engine_host -p "test_*.py"
           python -m unittest discover -s scripts -p "test_*.py"
       - name: Install packaging tools
-        run: sudo apt-get update && sudo apt-get install -y python3-venv dpkg-dev
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev
       - name: Build Linux release
         env:
           RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: |
           chmod +x scripts/*.sh
           version="$RELEASE_VERSION"
-          ./scripts/setup-engine.sh
-          python scripts/download-offline-models.py --destination artifacts/model-source
-          ./scripts/build-engine.sh
           python scripts/prepare-llama-runtime.py \
             --runtime linux-x64 --destination artifacts/llama-runtime/linux-x64
           for backend in cpu vulkan; do

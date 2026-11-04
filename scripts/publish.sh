@@ -19,16 +19,7 @@ if [[ -z "$runtime_source" || ! -d "$runtime_source" ]]; then
   exit 1
 fi
 publish_dir="$project_root/artifacts/publish/linux-x64$edition_suffix"
-engine_dir="$project_root/artifacts/engine-host/linux-x64/pingyi-engine"
-engine_python="$project_root/.venv-engine/bin/python"
 deb_root="$project_root/artifacts/deb-root$edition_suffix"
-
-if [[ ! -x "$engine_dir/pingyi-engine" ]]; then
-  "$project_root/scripts/build-engine.sh"
-fi
-if [[ ! -x "$engine_python" ]]; then
-  "$project_root/scripts/setup-engine.sh"
-fi
 
 rm -rf -- "$publish_dir"
 dotnet publish "$project_root/src/PingYi.App/PingYi.App.csproj" \
@@ -41,11 +32,7 @@ dotnet publish "$project_root/src/PingYi.App/PingYi.App.csproj" \
   -p:DebugType=None \
   -p:DebugSymbols=false
 
-rm -rf -- "$publish_dir/engine-host"
-mkdir -p "$publish_dir/engine-host"
-cp -a "$engine_dir/." "$publish_dir/engine-host/"
 find "$publish_dir" -type f -name '*.pdb' -delete
-bash "$project_root/scripts/prepare-offline-models.sh" "${PINGYI_OFFLINE_MODEL_SOURCE:-}" "$publish_dir/offline-models"
 if [[ "$edition" == "complete" ]]; then
   runtime_source="${PINGYI_LLAMA_RUNTIME_SOURCE:-}"
   if [[ -z "$runtime_source" || ! -d "$runtime_source" ]]; then
@@ -57,8 +44,10 @@ if [[ "$edition" == "complete" ]]; then
   printf 'PingYi Complete\n' > "$publish_dir/pingyi-complete.edition"
 fi
 cp "$project_root/LICENSE" "$project_root/THIRD_PARTY_NOTICES.md" "$publish_dir/"
-"$engine_python" "$project_root/scripts/collect-release-licenses.py" "$publish_dir"
-"$engine_python" "$project_root/scripts/audit-release-dependencies.py" --require-licenses "$publish_dir"
+python3 "$project_root/scripts/collect-release-licenses.py" "$publish_dir"
+python3 "$project_root/scripts/audit-release-dependencies.py" --require-licenses "$publish_dir"
+
+python3 "$project_root/scripts/audit-secrets.py" --directory "$publish_dir"
 
 tar -C "$publish_dir" -czf "$project_root/artifacts/$archive_prefix-$version-linux-x64.tar.gz" .
 
@@ -79,7 +68,7 @@ cp "$project_root/LICENSE" "$deb_root/usr/share/doc/$install_name/copyright"
 ln -s "/opt/$install_name/PingYi.App" "$deb_root/usr/bin/$install_name"
 sed -e "s/@VERSION@/$version/g" -e "s/@PACKAGE@/$package_name/g" \
   "$project_root/packaging/linux/control" > "$deb_root/DEBIAN/control"
-chmod 0755 "$deb_root/opt/$install_name/PingYi.App" "$deb_root/opt/$install_name/engine-host/pingyi-engine"
+chmod 0755 "$deb_root/opt/$install_name/PingYi.App"
 if [[ "$edition" == "complete" ]]; then
   chmod 0755 "$deb_root/opt/$install_name/llama-runtime/vulkan/llama-server" \
     "$deb_root/opt/$install_name/llama-runtime/cpu/llama-server"

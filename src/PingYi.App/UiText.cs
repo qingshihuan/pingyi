@@ -114,24 +114,9 @@ public static partial class UiText
                 return "The operation timed out. Try a smaller capture area, then retry.";
             }
 
-            if (providerException.Code.Equals("RuntimeError", StringComparison.OrdinalIgnoreCase))
-            {
-                if (providerException.Message.Contains("不支持", StringComparison.Ordinal))
-                {
-                    return "The offline translator does not support the selected language pair. Choose a multilingual local model or cloud provider.";
-                }
-
-                if (providerException.Message.Contains("尚未安装", StringComparison.Ordinal) ||
-                    providerException.Message.Contains("找不到", StringComparison.Ordinal))
-                {
-                    return "The offline translation model is missing. Open Settings → Local models to repair it.";
-                }
-            }
-
             return providerException.Code switch
             {
                 "no_text" => "No text was found in the selected area. Select a clearer or larger area and retry.",
-                "ocr_models_missing" => "The offline OCR model is unavailable. Open Settings → Local models to repair it.",
                 "credentials_missing" => "Credentials are missing. Open Settings and add credentials for the selected provider.",
                 "credentials_invalid" => "The saved credentials were rejected. Check them in Settings and retry.",
                 "custom_endpoint_invalid" or "vlm_ocr_endpoint_invalid" =>
@@ -141,12 +126,8 @@ public static partial class UiText
                 "managed_runtime_unavailable" =>
                     "The local model could not start. Open Settings → Local multimodal model to repair it.",
                 "ocr_unavailable" => "The selected OCR provider is unavailable. Open Settings to repair or switch it.",
-                "translation_unsupported" or "translation_fallback_language_unsupported" =>
-                    "The offline translator does not support this language pair. Choose a multilingual local model or a cloud provider.",
-                "translation_unavailable" or "translation_fallback_unavailable" =>
+                "translation_unavailable" =>
                     "The selected translator is unavailable. Open Settings to repair or switch it.",
-                "translation_primary_and_fallback_failed" =>
-                    "Both the selected translator and offline fallback failed. Check the provider and local models in Settings.",
                 "custom_translate_http" =>
                     "The compatible translation service rejected the request. Check its endpoint, model, and API key.",
                 "custom_translate_schema" =>
@@ -156,11 +137,6 @@ public static partial class UiText
                     "The multimodal service rejected the image request. Confirm that the vision projector is loaded.",
                 "vlm_ocr_schema" or "vlm_ocr_empty" =>
                     "The multimodal service did not return usable OCR text. Check model vision support and retry.",
-                "engine_timeout" => "The offline translation engine timed out. Retry or repair the local model in Settings.",
-                "baidu_ocr_http" or "baidu_ocr_api" or "baidu_translate_api" =>
-                    "Baidu Cloud rejected the request. Check the credentials, quota, and network connection.",
-                "google_vision_http" or "google_vision_api" or "google_translate_http" or "google_translate_api" =>
-                    "Google Cloud rejected the request. Check the API key restrictions, enabled APIs, quota, and network.",
                 _ => T(providerException.Message)
             };
         }
@@ -186,14 +162,7 @@ public static partial class UiText
 
     public static string ProviderName(string id, string fallback) => id switch
     {
-        "local-paddle" => IsEnglish ? "Local PaddleOCR" : "本地 PaddleOCR",
-        "local-vlm-corrected" => IsEnglish ? "PaddleOCR + local LLM correction" : "PaddleOCR + 本机大模型纠错",
         "local-vlm-ocr" => IsEnglish ? "Compatible multimodal LLM OCR" : "兼容多模态大模型 OCR",
-        "local-argos" => IsEnglish ? "Local Argos" : "本地 Argos",
-        "baidu-ocr" => IsEnglish ? "Baidu Cloud OCR" : "百度云 OCR",
-        "baidu-translate" => IsEnglish ? "Baidu Translation" : "百度翻译",
-        "google-vision-ocr" => "Google Cloud Vision OCR",
-        "google-translate" => "Google Cloud Translation",
         "custom-chat" => IsEnglish ? "Compatible LLM API" : "兼容大模型 API",
         _ => T(fallback)
     };
@@ -356,12 +325,8 @@ public static partial class UiText
             "翻译凭据" => "Translation credential",
             "Google OCR 凭据" => "Google OCR credential",
             "Google 翻译凭据" => "Google Translation credential",
-            "本地 PaddleOCR ONNX" => "Local PaddleOCR ONNX",
             "本机多模态大模型 OCR" => "Local multimodal LLM OCR",
-            "PaddleOCR + 本机大模型纠错" => "PaddleOCR + local LLM correction",
             "本地 / 自定义大模型" => "Local / custom LLM",
-            "百度云 OCR" => "Baidu Cloud OCR",
-            "百度翻译" => "Baidu Translation",
             _ => null
         };
         if (knownValue is not null)

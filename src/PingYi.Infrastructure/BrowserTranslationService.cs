@@ -5,17 +5,17 @@ using SkiaSharp;
 
 namespace PingYi.Infrastructure;
 
-public sealed class BrowserTranslationService(ProviderRegistry providers,
+public sealed class BrowserTranslationService(
     Func<CancellationToken, Task> ensureRuntime,
-    Func<AppSettings, ITranslationProvider>? createTranslator = null,
-    Func<AppSettings, IOcrProvider>? createOcr = null)
+    Func<AppSettings, ITranslationProvider> createTranslator,
+    Func<AppSettings, IOcrProvider> createOcr)
 {
-    private ITranslationProvider Translator(AppSettings settings) => createTranslator?.Invoke(settings) ?? providers.GetTranslationProvider(settings.TranslationProviderId);
-    private IOcrProvider Ocr(AppSettings settings) => createOcr?.Invoke(settings) ?? providers.GetOcrProvider(settings.OcrProviderId);
+    private ITranslationProvider Translator(AppSettings settings) => createTranslator(settings);
+    private IOcrProvider Ocr(AppSettings settings) => createOcr(settings);
     private static bool IsRemote(ProviderMetadata provider, AppSettings settings) =>
         provider.Location == ProviderExecutionLocation.Cloud ||
         provider.Location == ProviderExecutionLocation.Configurable &&
-        (!Uri.TryCreate(settings.CustomTranslationEndpoint, UriKind.Absolute, out var endpoint) || !endpoint.IsLoopback);
+        !new Uri(ConfigurationRouting.Resolve(settings, ModelTasks.Translation).Settings.CustomTranslationEndpoint).IsLoopback;
 
     public BrowserStatus GetStatus(AppSettings settings)
     {
@@ -87,7 +87,7 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
             await ensureRuntime(token);
         if (!(await provider.GetAvailabilityAsync(token)).IsAvailable) return new(false, "translation_unavailable");
         var route = TextProcessing.ResolveTranslationLanguages(request.SourceLanguage, target, source, text,
-            provider.Metadata.Id != "local-argos");
+            true);
         var result = await provider.TranslateAsync(new(text, route.SourceLanguage, route.TargetLanguage), token);
         if (result.Text.Length > 100000) return new(false, "result_too_long");
         return new(true, Original: text, Translation: result.Text, SourceLanguage: source, TargetLanguage: target);

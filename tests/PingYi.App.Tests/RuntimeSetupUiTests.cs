@@ -37,7 +37,7 @@ public sealed class RuntimeSetupUiTests
             {
                 Directory.CreateDirectory(directory);
                 using var frame = window.CaptureRenderedFrame(); Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, "runtime-hardware-" + language + ".png"));
+                frame.Save(Path.Combine(directory, "runtime-hardware-" + language + ".png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
             }
         }
         finally { panel.Cancel(); window.Close(); }

@@ -147,7 +147,7 @@ public class ImageAnalysisTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ImageAnalysisPrompts.Build(new(CapturePurpose.TranslateText)));
         Assert.Throws<ArgumentOutOfRangeException>(() => ImageAnalysisPrompts.Build(new(CapturePurpose.Auto)));
-        var settings = new AppSettings { OcrProviderId = "local-paddle", TranslationProviderId = "local-argos",
+        var settings = new AppSettings {
             ManagedRuntimeEnabled = true, ManagedModelPackageId = ManagedMultimodalModels.Recommended.Id,
             CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint };
         Assert.False(RuntimePolicy.UsesManagedRuntime(settings));

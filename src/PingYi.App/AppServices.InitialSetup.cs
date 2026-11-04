@@ -1,6 +1,5 @@
 using PingYi.Core;
 using PingYi.Infrastructure;
-using SkiaSharp;
 
 namespace PingYi.App;
 
@@ -51,7 +50,6 @@ public sealed partial class AppServices
             await ManagedModels.EnsureStartedAsync(model, backend, progress, cancellation, device);
             var configured = before with
             {
-                OcrProviderId = "local-vlm-ocr", TranslationProviderId = "custom-chat",
                 CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint, CustomTranslationModel = model.ModelAlias,
                 CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions,
                 ManagedModelPackageId = model.Id, ManagedRuntimeBackend = backend, ManagedRuntimeEnabled = true,
@@ -59,6 +57,11 @@ public sealed partial class AppServices
                 InitialSetupCompleted = true
             };
             await VerifyConfiguredModelAsync(configured, cancellation);
+            configured = configured with { ModelConfiguration = (before.ModelConfiguration ?? new()) with
+            {
+                CurrentModel = new(ModelConfiguration.Managed, model.Id), VerifiedManagedModelId = model.Id,
+                PendingModel = null, MigrationNotice = ""
+            } };
             cancellation.ThrowIfCancellationRequested();
             // Serialize the compare-and-save with language, browser and settings transitions.
             await _settingsTransitionGate.WaitAsync(cancellation);
@@ -87,29 +90,16 @@ public sealed partial class AppServices
 
     private async Task VerifyConfiguredModelAsync(AppSettings configured, CancellationToken cancellation)
     {
+        if (ManagedMultimodalModels.TryGet(configured.ManagedModelPackageId, out var model))
+            configured = configured with { CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint,
+                CustomTranslationModel = model.ModelAlias, CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions };
         using var verification = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         verification.CancelAfter(TimeSpan.FromMinutes(4));
         // An owned loopback runtime never needs a cloud account credential.
         var localSecrets = new ProfileSecretStore(SecretStore, "");
         var translator = new ChatCompatibleTranslationProvider(_imageAnalysisClient, localSecrets, () => configured);
         var ocr = new ChatCompatibleOcrProvider(_imageAnalysisClient, localSecrets, () => configured, translator);
-        using var bitmap = new SKBitmap(360, 96);
-        using (var canvas = new SKCanvas(bitmap))
-        using (var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true })
-        using (var font = new SKFont(SKTypeface.Default, 28))
-        {
-            canvas.Clear(SKColors.White);
-            canvas.DrawText("PINGYI OCR 2026", 18, 58, SKTextAlign.Left, font, paint);
-        }
-        using var synthetic = SKImage.FromBitmap(bitmap);
-        using var png = synthetic.Encode(SKEncodedImageFormat.Png, 100);
-        var recognized = await ocr.RecognizeAsync(new ImageFrame(png.ToArray(), 360, 96, new PixelRect(0, 0, 360, 96)),
-            new OcrOptions("en"), verification.Token);
-        if (!recognized.PlainText.Contains("PINGYI", StringComparison.OrdinalIgnoreCase) ||
-            !recognized.PlainText.Contains("2026", StringComparison.Ordinal))
-            throw new ProviderException("custom_vision_mismatch", "模型未正确读出固定测试图片，请检查视觉组件或选择其他模型。");
-        var translated = await translator.TranslateAsync(new TranslationRequest("Hello", "en", "zh"), verification.Token);
-        if (string.IsNullOrWhiteSpace(translated.Text))
-            throw new ProviderException("custom_empty", "模型未返回测试译文，未应用本次配置。");
+        await ModelCapabilityProbe.VerifyVisionAsync(ocr, verification.Token);
+        await ModelCapabilityProbe.VerifyTextAsync(translator, verification.Token);
     }
 }
