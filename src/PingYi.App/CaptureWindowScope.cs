@@ -84,19 +84,25 @@ internal static class DesktopCaptureBarrier
     {
         // Drain queued Avalonia/native hide work before asking the OS for a desktop frame.
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
-        await Task.Delay(OperatingSystem.IsWindows() ? 120 : 200, cancellationToken);
         if (OperatingSystem.IsWindows())
         {
+            // Allow the Avalonia hide requests to reach the native window system, then
+            // synchronize with the DWM compositor. DwmFlush is the presentation barrier;
+            // a second fixed 34 ms sleep only adds latency after that barrier has completed.
+            await Task.Delay(16, cancellationToken);
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                // DwmFlush is an additional presentation barrier, not a claim that every
-                // compositor in the session has flushed. Hide + transition suppression remain required.
                 try { _ = DwmFlush(); }
                 catch (DllNotFoundException) { }
                 catch (EntryPointNotFoundException) { }
             }, cancellationToken);
-            await Task.Delay(34, cancellationToken);
+        }
+        else
+        {
+            // Keep the conservative non-Windows delay: compositor/portal behavior differs
+            // substantially across X11 and Wayland and has no equivalent portable barrier here.
+            await Task.Delay(200, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
     }
