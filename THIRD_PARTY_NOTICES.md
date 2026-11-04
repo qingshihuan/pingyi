@@ -198,3 +198,7 @@ This change reuses the existing Avalonia, .NET and llama.cpp integrations; no ad
 ## Mode status interface
 
 The three-mode overview and runtime-details page reuse Avalonia controls, theme resources and project-authored vector paths. No production dependencies, fonts, telemetry, remote status services or artwork are added. Status snapshots contain no credentials or captured content. New UI snapshots use explicitly synthetic state; they do not certify real models, cloud services or GPU hardware.
+
+## Configuration center integration
+
+The schema-15 configuration center reuses the existing Avalonia, .NET and model-provider adapters. It introduces no bundled models, runtime binaries, fonts or third-party dependencies. Explicit provider model-list/sample-test requests may contact the configured service and incur its charges; passive configuration overview does not.

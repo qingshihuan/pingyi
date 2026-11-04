@@ -213,3 +213,7 @@ Inno Setup 非默认位置可传 `-InnoCompiler`；质量基线使用 `scripts/r
 OpenAI 预设默认使用 Responses API，支持文字翻译及 `input_image` 视觉 OCR、图片描述和提示词反推，并显式设置 `store:false`；也可手动切换 Chat Completions。DeepSeek、SiliconFlow、OpenRouter、百炼、智谱和本机 llama.cpp/Ollama/LM Studio 仍默认使用 Chat Completions。远程服务必须使用 HTTPS；API Key 存入系统安全存储。远程翻译会发送识别文本，视觉任务会发送所选截图，服务商可能计费。切换服务商时请替换共用 API Key。当前不支持原生 Anthropic Messages 协议或要求专有签名的接口。
 
 [第三方 API 配置、服务商地址、隐私与排障说明](docs/THIRD_PARTY_API.md)。
+
+## 配置中心重构（开发分支）
+
+配置中心支持多服务独立密钥、每任务模型绑定、草稿概览和固定样例能力测试。旧配置自动迁移并备份；保存不预加载模型，不静默跨云回退。此功能尚未进入 v0.8.4 安装包。详见 [配置中心使用与迁移](docs/CONFIGURATION_CENTER.md)。

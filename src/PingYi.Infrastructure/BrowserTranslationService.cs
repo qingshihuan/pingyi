@@ -61,9 +61,14 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
             catch (FormatException) { return new(false, "invalid_image"); }
         }
 
-        if (RuntimePolicy.UsesManagedRuntime(settings)) await ensureRuntime(token);
+        var runtimeReady = false;
         if (image is not null)
         {
+            if (RuntimePolicy.UsesManagedRuntimeForTask(settings, ModelTasks.Ocr))
+            {
+                await ensureRuntime(token);
+                runtimeReady = true;
+            }
             var ocr = Ocr(settings);
             if (!(await ocr.GetAvailabilityAsync(token)).IsAvailable) return new(false, "ocr_unavailable");
             var recognized = await ocr.RecognizeAsync(image, new(request.SourceLanguage), token);
@@ -78,6 +83,8 @@ public sealed class BrowserTranslationService(ProviderRegistry providers,
             : request.SourceLanguage;
         var target = TextProcessing.ResolveTargetLanguage(source, request.TargetLanguage);
         if (source == target) return new(true, Original: text, Translation: text, SourceLanguage: source, TargetLanguage: target);
+        if (!runtimeReady && RuntimePolicy.UsesManagedRuntimeForTask(settings, ModelTasks.Translation))
+            await ensureRuntime(token);
         if (!(await provider.GetAvailabilityAsync(token)).IsAvailable) return new(false, "translation_unavailable");
         var route = TextProcessing.ResolveTranslationLanguages(request.SourceLanguage, target, source, text,
             provider.Metadata.Id != "local-argos");

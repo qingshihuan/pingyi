@@ -9,7 +9,7 @@ using PingYi.Core;
 namespace PingYi.App;
 
 /// <summary>A draft editor. Loading, navigation and localization never contact a model service.</summary>
-internal sealed class ConfigurationCenterView : UserControl
+internal sealed partial class ConfigurationCenterView : UserControl
 {
     private sealed record Choice(string Id, string Label) { public override string ToString() => Label; }
     private readonly List<(Action<string> Set, string Zh, string En)> _labels = [];
@@ -107,18 +107,22 @@ internal sealed class ConfigurationCenterView : UserControl
             Text("每个服务的密钥单独保存在系统安全存储，并绑定服务地址。改变地址后不会带入旧密钥。配置文件只保存服务、模型与路由；不保存截图或识别内容。", "Each service key is stored separately in the OS secure store and bound to the service URL. Changing URLs does not carry a key over. Configuration stores services, models and routes, never screenshots or recognized content."),
             Text("远程任务开始前显示实际目的地并请求确认。只允许 HTTPS（本机回环可用 HTTP）。退出并释放资源会关闭本软件拥有的后端，不关闭外部服务。", "Remote tasks disclose their destination and ask for confirmation. HTTPS is required except for loopback. Exit and release resources stops only backends owned by this app, not external services.")
         } };
-        var tabs = new TabControl { ItemsSource = new[]
+        _tabs.ItemsSource = new[]
         {
-            Tab("模型服务与模型", "Services and models", servicePage),
-            Tab("任务配置", "Task routing", _routing),
-            Tab("运行环境与隐私", "Runtime and privacy", environment)
-        } };
-        Content = new StackPanel { Spacing = 12, Children = { tabs, _cancel, _status } };
+            Tab("配置概览", "Overview", CreateOverviewPage()),
+            Tab("服务与模型", "Services", servicePage),
+            Tab("任务配置", "Tasks", _routing),
+            Tab("运行与隐私", "Runtime", environment)
+        };
+        _tabs.SelectionChanged += (_, e) => { if (ReferenceEquals(e.Source, _tabs)) RefreshOverview(); };
+        Content = new StackPanel { Spacing = 12, Children = { _tabs, _cancel, _status } };
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         _services.SelectionChanged += (_, _) => SelectEditor();
         _endpoint.PropertyChanged += (_, e) => { if (!_loading && e.Property == TextBox.TextProperty) InvalidateIdentity(); };
         _protocol.SelectionChanged += (_, _) => { if (!_loading) InvalidateIdentity(); };
         _model.SelectionChanged += (_, _) => RefreshCapabilities();
+        _model.PropertyChanged += (_, e) => { if (!_loading && e.Property == ComboBox.TextProperty) RefreshCapabilities(); };
+        _clearKey.PropertyChanged += (_, e) => { if (!_loading && e.Property == CheckBox.IsCheckedProperty) RefreshCapabilities(); };
         _key.PropertyChanged += (_, e) => { if (!_loading && e.Property == TextBox.TextProperty) RefreshCapabilities(); };
         Load(new AppSettings());
     }
@@ -129,6 +133,7 @@ internal sealed class ConfigurationCenterView : UserControl
         try
         {
             Baseline = settings.ModelConfiguration;
+            _baselineSettings = settings;
             _configuration = ConfigurationMigration.Upgrade(settings).ModelConfiguration!;
             _profiles.Clear(); _profiles.AddRange(_configuration.Services);
             _pendingKeys.Clear(); _editing = null;
@@ -167,6 +172,7 @@ internal sealed class ConfigurationCenterView : UserControl
         }
         finally { _loading = loading; }
         RefreshCapabilities();
+        RefreshOverview();
     }
 
     private void SelectEditor()
@@ -316,7 +322,7 @@ internal sealed class ConfigurationCenterView : UserControl
     }
     private void RefreshCapabilities()
     {
-        var entry = !string.IsNullOrWhiteSpace(_key.Text) || _clearKey.IsChecked == true ? null : _editing?.Models.FirstOrDefault(m => m.Id == _model.Text);
+        var entry = CurrentEditorProfile()?.Models.FirstOrDefault(m => m.Id == _model.Text);
         _capabilities.Text = T("文字能力：", "Text: ") + (entry?.TextVerified == true ? T("已测试", "tested") : T("未验证", "unverified")) +
             "  ·  " + T("图片能力：", "Vision: ") + (entry?.VisionVerified == true ? T("已测试", "tested") : T("未验证", "unverified"));
     }
@@ -328,12 +334,21 @@ internal sealed class ConfigurationCenterView : UserControl
             SaveEditor();
             if (_editing is not { } profile) return;
             _pendingKeys.TryGetValue(profile.CredentialRef, out var draftKey);
+            if (vision is not null)
+            {
+                profile = profile with { Models = profile.Models.Select(m => m.Id != profile.DefaultModel ? m :
+                    vision.Value ? m with { VisionVerified = false } : m with { TextVerified = false }).ToArray() };
+                _profiles[_profiles.FindIndex(p => p.Id == profile.Id)] = profile;
+                _editing = profile;
+                RefreshCapabilities();
+            }
             _request = new CancellationTokenSource(); SetBusy(true);
             Status(T("正在请求所选服务；配置尚未保存。", "Requesting the selected service; configuration is not saved yet."));
             if (vision is null)
             {
                 if (Discover is null) throw new InvalidOperationException();
                 var ids = await Discover(profile, draftKey, _request.Token);
+                _request.Token.ThrowIfCancellationRequested();
                 if (_closed) return;
                 profile = profile with { Models = ids.Select(id => profile.Models.FirstOrDefault(m => m.Id == id) ?? new ModelCatalogEntry(id)).ToArray() };
                 Status(T($"API 返回 {ids.Count} 个模型；列表可见不代表此账号一定能推理，也不代表支持图片。", $"API returned {ids.Count} models. Listing does not guarantee inference access or vision support."));
@@ -342,6 +357,7 @@ internal sealed class ConfigurationCenterView : UserControl
             {
                 if (Verify is null) throw new InvalidOperationException();
                 var entry = await Verify(profile, profile.DefaultModel, draftKey, vision.Value, _request.Token);
+                _request.Token.ThrowIfCancellationRequested();
                 if (_closed) return;
                 profile = profile with { Models = profile.Models.Where(m => m.Id != entry.Id).Append(entry).ToArray() };
                 Status(T("固定样例测试通过。请保存以记录该模型能力；这不等于所有任务的质量保证。", "Synthetic test passed. Save to record this model capability; this is not a quality guarantee for every task."));
@@ -351,7 +367,11 @@ internal sealed class ConfigurationCenterView : UserControl
         }
         catch (OperationCanceledException) { if (!_closed) Status(T("请求已取消或超时，可手动填写模型 ID。", "Request cancelled or timed out; manual model IDs remain available.")); }
         catch (Exception e) { if (!_closed) Status(SafeError(e)); }
-        finally { _request?.Dispose(); _request = null; SetBusy(false); }
+        finally
+        {
+            _request?.Dispose(); _request = null; SetBusy(false);
+            if (!_closed) { RefreshCapabilities(); RefreshOverview(); }
+        }
     }
     private void SetBusy(bool busy)
     {

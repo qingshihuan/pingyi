@@ -135,7 +135,7 @@ public sealed class ConfigurationCenterUiTests
             Click(FindButton(view, "删除服务")); Click(FindButton(view, "删除服务"));
             Assert.Equal(2, view.BuildDraft().Services.Length);
             var tabs = Controls<TabControl>(view).Single();
-            tabs.SelectedIndex = 1; Flush(window);
+            tabs.SelectedIndex = 2; Flush(window);
             var service = Controls<ComboBox>(view).Single(c => c.Name == "RouteService-translation");
             service.SelectedItem = service.Items.Cast<object>().Single(i => i.ToString() == A.Name);
             var model = Controls<ComboBox>(view).Single(c => c.Name == "RouteModel-translation");
@@ -192,7 +192,7 @@ public sealed class ConfigurationCenterUiTests
             Assert.NotNull(point); Assert.True(point.Value.Y >= 0 && point.Value.Y + save.Bounds.Height <= window.ClientSize.Height + 1);
             var directory = Environment.GetEnvironmentVariable("PINGYI_UI_ARTIFACTS");
             var tabs = Controls<TabControl>(window.ConfigurationCenter).Single();
-            for (var page = 0; page < 3; page++)
+            for (var page = 0; page < 4; page++)
             {
                 tabs.SelectedIndex = page; Flush(window);
                 Assert.True(window.ConfigurationCenter.Bounds.Width > 100);

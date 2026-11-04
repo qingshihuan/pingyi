@@ -8,12 +8,28 @@ public static class RuntimePolicy
         (string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
             AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) ||
          settings.ModelConfiguration?.Tasks is { } routes && ModelTasks.All.Any(t => routes.Get(t).ServiceId == ModelConfiguration.Managed));
-    public static bool UsesManagedRuntime(AppSettings settings) => HasConfiguredManagedRuntime(settings) &&
-        new[] { ModelTasks.Ocr, ModelTasks.Translation }.Any(task =>
-            settings.ModelConfiguration?.Tasks.Get(task).ServiceId == ModelConfiguration.Managed ||
-            string.IsNullOrEmpty(settings.ModelConfiguration?.Tasks.Get(task).ServiceId) &&
-            (task == ModelTasks.Ocr ? settings.OcrProviderId == "local-vlm-ocr" : settings.TranslationProviderId == "custom-chat") &&
-            settings.CustomTranslationEndpoint == AppSettings.ManagedModelEndpoint);
+    public static bool UsesManagedRuntime(AppSettings settings) =>
+        UsesManagedRuntimeForTask(settings, ModelTasks.Ocr) || UsesManagedRuntimeForTask(settings, ModelTasks.Translation);
+
+    public static bool UsesAnyManagedRuntime(AppSettings settings) =>
+        ModelTasks.All.Any(task => UsesManagedRuntimeForTask(settings, task));
+
+    /// <summary>A task that does not use the owned runtime must not load it for another task.</summary>
+    public static bool UsesManagedRuntimeForTask(AppSettings settings, string task)
+    {
+        if (!ModelTasks.All.Contains(task)) throw new ArgumentOutOfRangeException(nameof(task));
+        if (!HasConfiguredManagedRuntime(settings)) return false;
+        var id = settings.ModelConfiguration?.Tasks.Get(task).ServiceId ?? "";
+        if (id.Length > 0) return id == ModelConfiguration.Managed;
+        if (!string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
+                AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase)) return false;
+        return task switch
+        {
+            ModelTasks.Ocr => settings.OcrProviderId == "local-vlm-ocr",
+            ModelTasks.Translation => settings.TranslationProviderId == "custom-chat",
+            _ => true
+        };
+    }
     public static int OcrThreadCount(int logicalProcessors) => Math.Clamp(logicalProcessors / 2, 1, 4);
 }
 

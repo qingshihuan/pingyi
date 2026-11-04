@@ -35,8 +35,9 @@ public sealed partial class AppServices
             var previous = Settings;
             await ConfigurationSecrets.CommitAsync(SettingsStore, SecretStore, previous, normalized, pendingKeys, token);
             Settings = normalized;
-            if (RuntimePolicy.UsesManagedRuntime(Settings)) WarmManagedRuntimeIfConfigured();
-            else if (RuntimePolicy.UsesManagedRuntime(previous))
+            // Saving configuration is not a request to load a multi-gigabyte model.
+            // Remaining managed tasks start it on demand. Retire an unused owned runtime.
+            if (!RuntimePolicy.UsesAnyManagedRuntime(Settings) && RuntimePolicy.UsesAnyManagedRuntime(previous))
             {
                 var startup = InvalidateManagedRuntimeStartup();
                 CancelAndRelease(startup.Cancellation, startup.Task);
