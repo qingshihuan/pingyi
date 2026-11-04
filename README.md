@@ -8,7 +8,7 @@ Windows / Ubuntu 桌面截图工具，支持识字、翻译、图片描述、提
 
 Windows v0.10.0 尚未进行可信代码签名。免费开源签名方案处于申请准备阶段，未获批准；后续正式发布将要求签名验证通过。[Code signing policy](docs/CODE_SIGNING_POLICY.md)
 
-开发分支的 Windows 截图改用原始像素显示，框选后才编码选区；每次获取最新桌面，取消后释放图像。三屏实测、首次渲染与可交互时间的区别、复测方法及限制见[截图性能报告](docs/CAPTURE_PERFORMANCE.md)。这些改进尚未发布为正式版本。
+[v0.10.1-unsigned.3 性能预发布](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.1-unsigned.3)的 Windows 截图改用原始像素显示，框选后才编码选区；每次获取最新桌面，取消后释放图像。三屏实测、首次渲染与可交互时间的区别、复测方法及限制见[截图性能报告](docs/CAPTURE_PERFORMANCE.md)。这是未签名预发布，尚不替代正式版本。
 
 ## 新模型架构
 

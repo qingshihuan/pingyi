@@ -9,7 +9,7 @@ on:
       version:
         description: Preview version (must be a SemVer version)
         required: true
-        default: 0.10.1-unsigned.2
+        default: 0.10.1-unsigned.3
 
 permissions:
   contents: read
@@ -24,6 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       tag: ${{ steps.resolve.outputs.tag }}
+      notes: ${{ steps.resolve.outputs.notes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Resolve preview version
@@ -34,13 +35,15 @@ jobs:
           python3 - <<'PY'
           import os, re
           from pathlib import Path
-          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.2"
+          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.3"
           if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
               raise SystemExit("Invalid preview version")
           if "unsigned" not in version.lower():
               raise SystemExit("Temporary preview version must contain 'unsigned'")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={version}\ntag=v{version}\n")
+              notes = Path("docs/releases") / f"v{version}.md"
+              output.write(f"notes={notes.as_posix() if notes.is_file() else ''}\n")
           PY
 
   windows:
@@ -139,6 +142,7 @@ jobs:
       actions: read
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: release-files
@@ -170,8 +174,12 @@ jobs:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: "PingYi ${{ needs.version.outputs.tag }} (unsigned preview)"
+          # Verify the final downloadable packages before making a preview public.
+          draft: true
           prerelease: true
           make_latest: false
+          body_path: ${{ needs.version.outputs.notes }}
+          fail_on_unmatched_files: true
           body: |
             **Temporary unsigned preview build for screenshot performance testing.**
 
