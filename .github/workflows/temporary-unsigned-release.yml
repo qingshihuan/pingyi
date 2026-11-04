@@ -83,7 +83,7 @@ jobs:
           if (-not (Test-Path "packaging/windows/Output/PingYi-Complete-$($env:RELEASE_VERSION)-win-x64-setup.exe")) {
             throw "Expected Windows installer was not produced."
           }
-          python scripts/audit-secrets.py --directory ./artifacts/publish/win-x64-complete
+          python scripts/audit-secrets.py --directory "./artifacts/publish/win-x64-$($env:RELEASE_VERSION)-complete"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-unsigned-preview
