@@ -35,6 +35,7 @@ public partial class SettingsWindow
         ConfigurationCenter.Load(_services.Settings);
         ConfigurationCenter.Discover = _services.DiscoverProfileModelsAsync;
         ConfigurationCenter.Verify = _services.TestProfileModelAsync;
+        if (_services.ConfigurationCredentialWarning is { } warning) SetGlobalStatus(warning, true);
     }
     private void ConfigurationLanguageChanged(object? sender, EventArgs e) => RefreshConfigurationLanguage();
     private void RefreshConfigurationLanguage()

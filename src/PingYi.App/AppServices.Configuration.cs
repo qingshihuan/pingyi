@@ -13,19 +13,19 @@ public sealed partial class AppServices
     public IImageAnalysisProvider TaskImageAnalyzer(AppSettings snapshot, CapturePurpose purpose) =>
         ConfiguredProviders.Image(_imageAnalysisClient, SecretStore, snapshot, purpose);
 
-    internal async Task InitializeProfileCredentialsAsync(CancellationToken token = default)
-    {
-        await _settingsTransitionGate.WaitAsync(token);
-        try { Settings = await ConfigurationSecrets.ImportLegacyAsync(Settings, SecretStore, token); }
-        finally { _settingsTransitionGate.Release(); }
-    }
-
     public async Task SaveConfigurationAsync(AppSettings settings, IReadOnlyDictionary<string, string> editedKeys,
         ModelConfiguration? expectedConfiguration, CancellationToken token = default)
     {
         if (IsRuntimeMaintenance) throw new ProviderException("runtime_maintenance", "后端维护中，请完成后再保存。 / Finish runtime maintenance before saving.");
+        if (!AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var legacyEndpoint))
+            throw new ProviderException("custom_endpoint_invalid", "旧版兼容接口地址无效。 / Invalid compatibility endpoint.");
+        if (!AppSettings.IsChatCompletionsTransportAllowed(legacyEndpoint))
+            throw new ProviderException("custom_endpoint_insecure_transport", "远程接口必须使用 HTTPS。 / Remote endpoints require HTTPS.");
         var normalized = ConfigurationMigration.Upgrade(settings.Normalize());
         normalized.ModelConfiguration!.Validate();
+        var pendingKeys = new Dictionary<string, string>(editedKeys, StringComparer.Ordinal);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
+        token = lifetime.Token;
         await _settingsTransitionGate.WaitAsync(token);
         try
         {
@@ -33,7 +33,7 @@ public sealed partial class AppServices
             if (Settings.ModelConfiguration != expectedConfiguration)
                 throw new ProviderException("configuration_changed", "配置已在其他操作中改变，请重新打开设置后编辑。 / Configuration changed; reopen settings before editing.");
             var previous = Settings;
-            await ConfigurationSecrets.CommitAsync(SettingsStore, SecretStore, previous, normalized, editedKeys, token);
+            await ConfigurationSecrets.CommitAsync(SettingsStore, SecretStore, previous, normalized, pendingKeys, token);
             Settings = normalized;
             if (RuntimePolicy.UsesManagedRuntime(Settings)) WarmManagedRuntimeIfConfigured();
             else if (RuntimePolicy.UsesManagedRuntime(previous))

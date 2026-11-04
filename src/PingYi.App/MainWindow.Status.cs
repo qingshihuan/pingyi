@@ -16,8 +16,6 @@ public partial class MainWindow
 
     private void InitializeModeStatusUi()
     {
-        // Give the overview real breathing room. The workspace panel distributes
-        // spare height; compact windows scroll rather than squeezing these cards.
         ModeStatusBorder.Padding = new Thickness(18, 12);
         if (ModeStatusBorder.Child is Grid statusLayout)
         {
@@ -31,10 +29,7 @@ public partial class MainWindow
             if (card.Child is Control content) content.VerticalAlignment = VerticalAlignment.Center;
         }
         foreach (var button in new[] { RefreshWorkspaceButton, ModeDetailsButton })
-        {
-            button.MinHeight = 32;
-            button.Padding = new Thickness(13, 4);
-        }
+        { button.MinHeight = 32; button.Padding = new Thickness(13, 4); }
         var refreshIcon = new Avalonia.Controls.Shapes.Path
         {
             Width = 14, Height = 14, Stretch = Stretch.Uniform, StrokeThickness = 1.8,
@@ -43,10 +38,7 @@ public partial class MainWindow
         };
         ThemeResources.Use(refreshIcon, Avalonia.Controls.Shapes.Path.StrokeProperty, "SecondaryTextBrush");
         RefreshWorkspaceButton.Content = new StackPanel
-        {
-            Orientation = Orientation.Horizontal, Spacing = 6,
-            Children = { refreshIcon, _modeRefreshLabel }
-        };
+        { Orientation = Orientation.Horizontal, Spacing = 6, Children = { refreshIcon, _modeRefreshLabel } };
         ModeDetailsButton.BorderThickness = new Thickness(0);
         ModeDetailsButton.Background = Brushes.Transparent;
         RefreshModeStatusLanguage();
@@ -60,33 +52,38 @@ public partial class MainWindow
         ModeCards.SetSnapshot(_runtimeStatusSnapshot);
     }
     internal void RenderRuntimeStatus(RuntimeStatusSnapshot snapshot)
-    {
-        _runtimeStatusSnapshot = snapshot;
-        RefreshModeStatusLanguage();
-    }
+    { _runtimeStatusSnapshot = snapshot; RefreshModeStatusLanguage(); }
     private async void OpenModeDetails_OnClick(object? sender, RoutedEventArgs e)
     {
         try
         {
             if (Application.Current is App app && await app.OpenRuntimeStatusPageAsync()) return;
             var settings = _services is null ? new SettingsWindow() : new SettingsWindow(_services);
-            settings.SelectRuntimeStatus();
-            settings.Show(this);
+            settings.SelectRuntimeStatus(); settings.Show(this);
         }
         catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); }
     }
+    internal static ModeReadiness TaskReadiness(RuntimeStatusSnapshot snapshot, string task)
+    {
+        try
+        {
+            var route = ConfigurationRouting.Resolve(snapshot.Settings, task);
+            var settings = route.Settings;
+            var providerId = task == ModelTasks.Ocr ? settings.OcrProviderId : settings.TranslationProviderId;
+            if (providerId == "local-paddle") return ModeReadinessPolicy.Lightweight(snapshot.PaddleReady, snapshot.PaddleReady);
+            if (providerId == "local-argos") return ModeReadinessPolicy.Lightweight(snapshot.ArgosReady, snapshot.ArgosReady);
+            if (route.IsManaged) return snapshot.Basic;
+            if (route.IsExplicit)
+                return new(ModeReadinessState.Unverified, ProcessingModes.IsLocalEndpoint(settings) ? "local-vision-unverified" : "cloud-unverified");
+            return providerId is "local-vlm-ocr" or "custom-chat"
+                ? ProcessingModes.IsLocalEndpoint(settings) ? snapshot.Basic : snapshot.Cloud : snapshot.Cloud;
+        }
+        catch (ProviderException) { return new(ModeReadinessState.NeedsAttention, "cloud-incomplete"); }
+    }
     private void RenderPipelineStatus(RuntimeStatusSnapshot snapshot)
     {
-        var settings = snapshot.Settings;
-        ModeReadiness PickProvider(string id) => id switch
-        {
-            "local-paddle" => ModeReadinessPolicy.Lightweight(snapshot.PaddleReady, snapshot.PaddleReady),
-            "local-argos" => ModeReadinessPolicy.Lightweight(snapshot.ArgosReady, snapshot.ArgosReady),
-            "local-vlm-ocr" or "custom-chat" => ProcessingModes.IsLocalEndpoint(settings) ? snapshot.Basic : snapshot.Cloud,
-            _ => snapshot.Cloud
-        };
-        var ocr = PickProvider(settings.OcrProviderId);
-        var translation = PickProvider(settings.TranslationProviderId);
+        var ocr = TaskReadiness(snapshot, ModelTasks.Ocr);
+        var translation = TaskReadiness(snapshot, ModelTasks.Translation);
         OcrHealthText.Text = ModeStatusText.Badge(ocr);
         TranslationHealthText.Text = ModeStatusText.Badge(translation);
         var broken = new[] { ocr, translation }.FirstOrDefault(state =>
@@ -96,8 +93,7 @@ public partial class MainWindow
         var verified = ocr.IsReady && translation.IsReady;
         SetGlobalStatus(onDemand ? ModeStatusText.Reason(snapshot.Basic)
             : verified ? ModeStatusText.Pick("已就绪，点击“一键识别”或选择手动任务。", "Ready. Use Smart capture or choose a manual task.")
-            : ModeStatusText.Pick("当前方案已配置但尚未验证；查看运行状态或前往设置检查。", "The current scheme is configured but unverified. View runtime status or check Settings."), false);
-        // Never let a healthy mode card erase a shortcut-registration error.
+            : ModeStatusText.Pick("当前方案已配置但尚未验证；查看运行状态或前往配置中心检查。", "The current scheme is configured but unverified. Check Configuration center or runtime status."), false);
         if (_services?.HotkeyRegistrationError is not null) return;
         if (onDemand || !verified)
         {

@@ -54,12 +54,26 @@ public partial class MainWindow : Window, IMainWindowShell
         RefreshSmartCaptureUi();
         if (_services is null) return;
         var settings = _services.Settings;
-        var ocr = _services.Providers.GetOcrProvider(settings.OcrProviderId).Metadata;
-        var translation = _services.Providers.GetTranslationProvider(settings.TranslationProviderId).Metadata;
-        ModeSummaryText.Text = ModePickerWindow.NameFor(ProcessingModes.Match(settings).Id);
-        OcrSummaryText.Text = UiText.ProviderName(ocr.Id, ocr.DisplayName);
-        TranslationSummaryText.Text = $"{UiText.ProviderName(translation.Id, translation.DisplayName)} · → {UiText.LanguageName(settings.TargetLanguage)}";
         CaptureHotkeyText.Text = LinuxDesktopUi.ShortcutLabel(settings.Hotkey);
+        try
+        {
+            var ocr = _services.TaskOcr(settings).Metadata;
+            var translation = _services.TaskTranslator(settings).Metadata;
+            var ocrExplicit = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr).IsExplicit;
+            var translationExplicit = ConfigurationRouting.Resolve(settings, ModelTasks.Translation).IsExplicit;
+            ModeSummaryText.Text = ocrExplicit || translationExplicit
+                ? ModeStatusText.Pick("独立任务配置 · 本地 / API", "Per-task configuration · Local / API")
+                : ModePickerWindow.NameFor(ProcessingModes.Match(settings).Id);
+            OcrSummaryText.Text = ocrExplicit ? ocr.DisplayName : UiText.ProviderName(ocr.Id, ocr.DisplayName);
+            var translationLabel = translationExplicit ? translation.DisplayName : UiText.ProviderName(translation.Id, translation.DisplayName);
+            TranslationSummaryText.Text = $"{translationLabel} · → {UiText.LanguageName(settings.TargetLanguage)}";
+        }
+        catch (ProviderException error)
+        {
+            ModeSummaryText.Text = ModeStatusText.Pick("任务配置需要处理", "Task configuration needs attention");
+            OcrSummaryText.Text = TranslationSummaryText.Text = ModeStatusText.Pick("请检查配置中心的任务绑定", "Check task bindings in Configuration center");
+            SetGlobalStatus(UiText.Error(error), true);
+        }
     }
     private async Task RefreshSettingsFromStoreAsync()
     {
