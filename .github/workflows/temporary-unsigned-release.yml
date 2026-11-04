@@ -69,10 +69,20 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: |
-          choco install innosetup --version 6.7.1 --yes --no-progress
-          $env:PATH += ";C:\\Program Files (x86)\\Inno Setup 6"
+          choco install innosetup --yes --no-progress
+          $isccCandidates = @(
+            (Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1),
+            (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\\ISCC.exe"),
+            (Join-Path $env:LOCALAPPDATA "Programs\\Inno Setup 6\\ISCC.exe")
+          ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) }
+          if (-not $isccCandidates) { throw "Inno Setup installation completed but ISCC.exe was not found." }
+          $env:PINGYI_ISCC = $isccCandidates[0]
+          Write-Host "Using Inno Setup compiler: $env:PINGYI_ISCC"
           python ./scripts/prepare-llama-runtime.py --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
           ./scripts/publish.ps1 -Runtime win-x64 -Version $env:RELEASE_VERSION -Edition Complete -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 -BuildInstaller
+          if (-not (Test-Path "packaging/windows/Output/PingYi-Complete-$($env:RELEASE_VERSION)-win-x64-setup.exe")) {
+            throw "Expected Windows installer was not produced."
+          }
           python scripts/audit-secrets.py --directory ./artifacts/publish/win-x64-complete
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
