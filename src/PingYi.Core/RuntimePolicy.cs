@@ -5,10 +5,15 @@ public static class RuntimePolicy
 {
     public static bool HasConfiguredManagedRuntime(AppSettings settings) =>
         settings.ManagedRuntimeEnabled && ManagedMultimodalModels.TryGet(settings.ManagedModelPackageId, out _) &&
-        string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
-            AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase);
+        (string.Equals(AppSettings.NormalizeChatCompletionsEndpoint(settings.CustomTranslationEndpoint),
+            AppSettings.ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) ||
+         settings.ModelConfiguration?.Tasks is { } routes && ModelTasks.All.Any(t => routes.Get(t).ServiceId == ModelConfiguration.Managed));
     public static bool UsesManagedRuntime(AppSettings settings) => HasConfiguredManagedRuntime(settings) &&
-        (settings.OcrProviderId == "local-vlm-ocr" || settings.TranslationProviderId == "custom-chat");
+        new[] { ModelTasks.Ocr, ModelTasks.Translation }.Any(task =>
+            settings.ModelConfiguration?.Tasks.Get(task).ServiceId == ModelConfiguration.Managed ||
+            string.IsNullOrEmpty(settings.ModelConfiguration?.Tasks.Get(task).ServiceId) &&
+            (task == ModelTasks.Ocr ? settings.OcrProviderId == "local-vlm-ocr" : settings.TranslationProviderId == "custom-chat") &&
+            settings.CustomTranslationEndpoint == AppSettings.ManagedModelEndpoint);
     public static int OcrThreadCount(int logicalProcessors) => Math.Clamp(logicalProcessors / 2, 1, 4);
 }
 

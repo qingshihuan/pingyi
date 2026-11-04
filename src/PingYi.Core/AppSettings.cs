@@ -2,7 +2,7 @@ namespace PingYi.Core;
 
 public sealed record AppSettings
 {
-    public const int CurrentSchemaVersion = 14;
+    public const int CurrentSchemaVersion = 15;
     public const string WindowsDefaultHotkey = "Ctrl+Alt+D";
     public const string LinuxDefaultHotkey = "Ctrl+Shift+D";
     public const string PreviousLinuxDefaultHotkey = "Ctrl+Alt+Shift+D";
@@ -12,6 +12,7 @@ public sealed record AppSettings
     public const string ManagedModelEndpoint = "http://127.0.0.1:18080/v1/chat/completions";
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
+    public ModelConfiguration? ModelConfiguration { get; init; }
     public string Hotkey { get; init; } = DefaultHotkey;
     public string OcrProviderId { get; init; } = "local-vlm-ocr";
     public string TranslationProviderId { get; init; } = "custom-chat";
@@ -58,7 +59,6 @@ public sealed record AppSettings
         {
             SchemaVersion = CurrentSchemaVersion,
             Hotkey = hotkey,
-            // Existing preferences are preserved. Only the removed OCR ID migrates.
             OcrProviderId = OcrProviderId == "local-vlm-corrected" ? "local-vlm-ocr"
                 : string.IsNullOrWhiteSpace(OcrProviderId) ? (SchemaVersion < 11 ? "local-paddle" : "local-vlm-ocr") : OcrProviderId,
             TranslationProviderId = string.IsNullOrWhiteSpace(TranslationProviderId)
@@ -74,8 +74,6 @@ public sealed record AppSettings
                     : CustomTranslationApiProtocol),
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
                 ? ManagedModelPackageId.Trim() : string.Empty,
-            // Migrate the former automatic default only without an explicit GPU choice.
-            // Explicit CPU/CUDA/ROCm/Vulkan selections and schema-13 Auto stay unchanged.
             ManagedRuntimeBackend = SchemaVersion < 13 &&
                 ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend) == "auto" &&
                 RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice) == "auto"
@@ -84,7 +82,8 @@ public sealed record AppSettings
             RuntimeMirrorPrefixes = RuntimeMirrorPrefixes?.Trim() ?? string.Empty,
             ManagedRuntimeEnabled = ManagedRuntimeEnabled &&
                 ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _) &&
-                string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase),
+                (string.Equals(endpoint, ManagedModelEndpoint, StringComparison.OrdinalIgnoreCase) ||
+                 ModelConfiguration?.Tasks is { } routes && ModelTasks.All.Any(t => routes.Get(t)?.ServiceId == PingYi.Core.ModelConfiguration.Managed)),
             CheckForUpdates = SchemaVersion >= 7 && CheckForUpdates,
             UiLanguage = UiLanguage is "zh-CN" or "en-US" ? UiLanguage : "auto"
         };
