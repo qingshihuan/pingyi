@@ -27,7 +27,7 @@ public sealed partial class AppServices : IAsyncDisposable
     public void StartBrowserBridge()
     {
         if (_browserBridge is not null) return;
-        var handler = new BrowserTranslationService(Providers, async token => { await WaitForManagedRuntimeAsync(token); });
+        var handler = new BrowserTranslationService(Providers, async token => { await WaitForManagedRuntimeAsync(token); }, TaskTranslator, TaskOcr);
         _browserBridge = new BrowserBridgeServer(BrowserWire.PipeName(AppEdition.IsComplete ? "complete" : "standard"),
             async (request, token) =>
             {
@@ -65,6 +65,7 @@ public sealed partial class AppServices : IAsyncDisposable
     public ISettingsStore SettingsStore { get; }
     public ISecretStore SecretStore { get; }
     public AppSettings Settings { get; private set; }
+    public string? ConfigurationCredentialWarning { get; private set; }
     public EngineProcessClient Engine { get; }
     public IGlobalHotkeyService HotkeyService { get; }
     public IScreenCaptureService ScreenCaptureService { get; }
@@ -86,14 +87,8 @@ public sealed partial class AppServices : IAsyncDisposable
         get { lock (_managedRuntimeLock) return _managedRuntimeStartupTask; }
     }
 
-    // Capture requests use immutable endpoint/model snapshots, including after upload consent.
-    public ITranslationProvider CaptureTranslator(AppSettings snapshot) => snapshot.TranslationProviderId == "custom-chat"
-        ? new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot)
-        : Providers.GetTranslationProvider(snapshot.TranslationProviderId);
-    public IOcrProvider CaptureOcr(AppSettings snapshot) => snapshot.OcrProviderId == "local-vlm-ocr"
-        ? new ChatCompatibleOcrProvider(_inferenceClient, SecretStore, () => snapshot,
-            new ChatCompatibleTranslationProvider(_inferenceClient, SecretStore, () => snapshot))
-        : Providers.GetOcrProvider(snapshot.OcrProviderId);
+    public ITranslationProvider CaptureTranslator(AppSettings snapshot) => TaskTranslator(snapshot);
+    public IOcrProvider CaptureOcr(AppSettings snapshot) => TaskOcr(snapshot);
 
     public Task ClearDownloadedTranslationModelsAsync(CancellationToken cancellationToken = default) =>
         Engine.CallAsync("delete_models", new JsonObject { ["scope"] = "translation" }, cancellationToken);
@@ -104,11 +99,20 @@ public sealed partial class AppServices : IAsyncDisposable
         var settingsStore = new JsonSettingsStore(paths);
         var settings = await settingsStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         var secretStore = new PlatformSecretStore(paths);
+        string? credentialWarning = null;
+        try { settings = await ConfigurationSecrets.ImportLegacyAsync(settings, secretStore, cancellationToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception)
+        {
+            // Retain the pending flag and legacy key; a temporarily locked vault must not prevent startup.
+            credentialWarning = "独立服务密钥迁移未完成；旧配置保留，请解锁安全存储后重启，或在配置中心重新填写密钥。 / Service key migration is pending; unlock the OS vault and restart, or enter the key in Configuration center.";
+        }
         var engine = new EngineProcessClient(paths);
         var httpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PingYi/0.1");
         return new AppServices(paths, settingsStore, secretStore, settings, engine,
-            GlobalHotkeyServiceFactory.Create(), ScreenCaptureServiceFactory.Create(), new SkiaImageCropper(), httpClient);
+            GlobalHotkeyServiceFactory.Create(), ScreenCaptureServiceFactory.Create(), new SkiaImageCropper(), httpClient)
+            { ConfigurationCredentialWarning = credentialWarning };
     }
 
     public async Task SaveSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
@@ -127,8 +131,9 @@ public sealed partial class AppServices : IAsyncDisposable
             var previous = Settings;
             await SettingsStore.SaveAsync(normalized, cancellationToken);
             Settings = normalized;
-            if (RuntimePolicy.UsesManagedRuntime(Settings)) WarmManagedRuntimeIfConfigured();
-            else if (RuntimePolicy.UsesManagedRuntime(previous))
+            // Saving configuration is not a request to load a multi-gigabyte model.
+            // Remaining managed tasks start it on demand. Retire an unused owned runtime.
+            if (!RuntimePolicy.UsesAnyManagedRuntime(Settings) && RuntimePolicy.UsesAnyManagedRuntime(previous))
             {
                 var previousStartup = InvalidateManagedRuntimeStartup();
                 CancelAndRelease(previousStartup.Cancellation, previousStartup.Task);
@@ -231,8 +236,8 @@ public sealed partial class AppServices : IAsyncDisposable
         try
         {
             Volatile.Write(ref _managedProgress, null);
-            await ManagedModels.EnsureStartedAsync(model, backend,
-                new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)), deadline.Token, device);
+            await ManagedModels.EnsureStartedAsync(model, backend, progress: new Progress<ManagedModelProgress>(value => Volatile.Write(ref _managedProgress, value)),
+                cancellationToken: deadline.Token, deviceSelection: device);
             return ProviderAvailability.Available;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -248,8 +253,6 @@ public sealed partial class AppServices : IAsyncDisposable
         Exception? failure = null;
         try
         {
-            // Start owned runtime termination before waiting for browser/settings gates or UI teardown.
-            // Native ONNX disposal retains its own inference lock; it is not freed during Run().
             await ShutdownWork.RunAllAsync(
                 () => _lifetime.CancelAsync(),
                 () => ManagedModels.DisposeAsync().AsTask(),

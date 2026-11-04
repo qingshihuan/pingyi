@@ -10,8 +10,6 @@ APP = ROOT / 'src/PingYi.App'
 class VisionContracts(unittest.TestCase):
     def test_no_ocr_precondition_or_silent_fallback_for_image_analysis(self):
         code = (APP / 'CaptureCoordinator.cs').read_text(encoding='utf8')
-        # Text and automatic probing now live in separate partial files. Manual visual
-        # tasks must dispatch directly, rather than relying on old local-variable names.
         dispatch = code[code.index('private async Task ProcessAsync('):code.index('private static async Task<T> WithTimeoutAsync')]
         self.assertRegex(dispatch, r'case CapturePurpose\.DescribeImage:\s*case CapturePurpose\.ReconstructPrompt:\s*await ProcessImageAnalysisAsync\(operation, window, image\); break;')
         self.assertIn('case CapturePurpose.TranslateText: await ProcessTextAsync', dispatch)
@@ -26,9 +24,16 @@ class VisionContracts(unittest.TestCase):
 
     def test_image_destination_is_frozen_and_confirmed_before_send(self):
         code = (APP / 'CaptureCoordinator.ImageAnalysis.cs').read_text(encoding='utf8')
-        self.assertLess(code.index('ConfirmAsync'), code.index('CreateImageAnalyzer(snapshot)'))
-        self.assertLess(code.index('VisionConfigurationChanged'), code.index('CreateImageAnalyzer(snapshot)'))
+        send = code.index('TaskImageAnalyzer(originalSettings, purpose)')
+        self.assertLess(code.index('ConfigurationRouting.Resolve(originalSettings'), code.index('ConfirmAsync'))
+        self.assertLess(code.index('ConfirmAsync'), send)
+        self.assertLess(code.index('services.Settings != originalSettings'), send)
+        self.assertLess(code.index('VisionConfigurationChanged'), send)
         self.assertIn('!endpoint.IsLoopback', code)
+        factory = (ROOT / 'src/PingYi.Infrastructure/ConfiguredProviders.cs').read_text(encoding='utf8')
+        self.assertIn('ModelTasks.ForPurpose(purpose)', factory)
+        self.assertIn('new ProfileSecretStore(secrets, Credential(route))', factory)
+        self.assertIn('route.IsManaged ? "" : route.CredentialRef', factory)
 
     def test_processing_deadline_includes_cpu_startup_and_cancel_action_exists(self):
         code = (APP / 'CaptureCoordinator.cs').read_text(encoding='utf8')

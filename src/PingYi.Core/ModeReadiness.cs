@@ -1,6 +1,5 @@
 namespace PingYi.Core;
 
-// State is evidence, not the currently selected processing scheme. Unknown is never green.
 public enum ModeReadinessState { Unknown, Available, OnDemand, Unconfigured, NeedsAttention, Unverified }
 public sealed record ModeReadiness(ModeReadinessState State, string Reason)
 {
@@ -37,7 +36,6 @@ public static class ModeReadinessPolicy
 
     public static ModeReadiness Cloud(CloudModeEvidence value)
     {
-        // Configured credentials are not proof of internet reachability, quota or valid credentials.
         if (value.RemoteEndpointConfigured || value.GoogleKey ||
             (value.BaiduOcrKey && value.BaiduOcrSecret && value.BaiduAppId && value.BaiduTranslationSecret))
             return new(ModeReadinessState.Unverified, "cloud-unverified");
@@ -48,16 +46,22 @@ public static class ModeReadinessPolicy
     }
 
     public static bool HasRemoteEndpoint(AppSettings settings) =>
-        AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var uri) &&
-        !uri.IsLoopback && uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo) &&
-        !string.IsNullOrWhiteSpace(settings.CustomTranslationModel);
+        HasRemoteModel(settings.CustomTranslationEndpoint, settings.CustomTranslationModel) ||
+        (settings.ModelConfiguration?.Services ?? []).Any(profile =>
+            HasRemoteModel(profile.Endpoint, profile.DefaultModel) ||
+            HasRemoteModel(profile.Endpoint, ModelTasks.All.Select(t => settings.ModelConfiguration!.Tasks.Get(t))
+                .FirstOrDefault(r => r.ServiceId == profile.Id && !string.IsNullOrWhiteSpace(r.ModelId))?.ModelId ?? ""));
+
+    private static bool HasRemoteModel(string endpoint, string model) =>
+        AppSettings.TryParseChatCompletionsEndpoint(endpoint, out var uri) &&
+        !uri.IsLoopback && uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo) && !string.IsNullOrWhiteSpace(model);
 
     public static bool HasLocalConfiguration(AppSettings settings) =>
+        RuntimePolicy.HasConfiguredManagedRuntime(settings) ||
         AppSettings.TryParseChatCompletionsEndpoint(settings.CustomTranslationEndpoint, out var uri) &&
         uri.IsLoopback && string.IsNullOrEmpty(uri.UserInfo) && !string.IsNullOrWhiteSpace(settings.CustomTranslationModel) &&
-        (RuntimePolicy.HasConfiguredManagedRuntime(settings) ||
-         (settings.InitialSetupCompleted &&
-          (settings.OcrProviderId == "local-vlm-ocr" || settings.TranslationProviderId == "custom-chat" ||
-           settings.CustomTranslationEndpoint != AppSettings.DefaultCustomTranslationEndpoint ||
-           settings.CustomTranslationModel != AppSettings.DefaultCustomTranslationModel)));
+        settings.InitialSetupCompleted &&
+        (settings.OcrProviderId == "local-vlm-ocr" || settings.TranslationProviderId == "custom-chat" ||
+         settings.CustomTranslationEndpoint != AppSettings.DefaultCustomTranslationEndpoint ||
+         settings.CustomTranslationModel != AppSettings.DefaultCustomTranslationModel);
 }
