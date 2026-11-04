@@ -1,15 +1,17 @@
 name: Temporary unsigned preview release
 
 on:
-  push:
-    branches: [main]
-    paths: [".github/workflows/temporary-unsigned-release.yml"]
   workflow_dispatch:
     inputs:
       version:
         description: Preview version (must be a SemVer version)
         required: true
-        default: 0.10.1-unsigned.3
+        default: 0.10.1
+      confirm_unsigned:
+        description: Explicitly confirm that these Windows packages will be unsigned
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -31,15 +33,26 @@ jobs:
         id: resolve
         env:
           REQUESTED_VERSION: ${{ inputs.version }}
+          CONFIRM_UNSIGNED: ${{ inputs.confirm_unsigned }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import os, re
+          import json, os, re, subprocess
           from pathlib import Path
-          version = os.environ.get("REQUESTED_VERSION", "").strip() or "0.10.1-unsigned.3"
+          if os.environ.get("CONFIRM_UNSIGNED") != "true":
+              raise SystemExit("Explicit confirmation is required for unsigned preview packages")
+          version = os.environ.get("REQUESTED_VERSION", "").strip()
           if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
               raise SystemExit("Invalid preview version")
-          if "unsigned" not in version.lower():
-              raise SystemExit("Temporary preview version must contain 'unsigned'")
+          existing = subprocess.run(
+              ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/tags/v{version}"],
+              capture_output=True, text=True)
+          if existing.returncode == 0:
+              release = json.loads(existing.stdout)
+              if not release["draft"] or release["target_commitish"] != os.environ["GITHUB_SHA"]:
+                  raise SystemExit("Refusing to overwrite a published release or a draft for another commit")
+          elif "HTTP 404" not in existing.stderr:
+              raise SystemExit("Cannot verify the existing release; refusing to overwrite assets")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"version={version}\ntag=v{version}\n")
               notes = Path("docs/releases") / f"v{version}.md"
@@ -173,7 +186,7 @@ jobs:
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: "PingYi ${{ needs.version.outputs.tag }} (unsigned preview)"
+          name: "截屏释义 ${{ needs.version.outputs.tag }}"
           # Verify the final downloadable packages before making a preview public.
           draft: true
           prerelease: true

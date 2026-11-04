@@ -26,16 +26,20 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
       tag: ${{ steps.resolve.outputs.tag }}
       notes: ${{ steps.resolve.outputs.notes }}
+      should_build: ${{ steps.resolve.outputs.should_build }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Resolve and validate release version
         id: resolve
         env:
           REQUESTED_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
+          import json
           import os
           import re
+          import subprocess
           from pathlib import Path
 
           if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
@@ -47,14 +51,29 @@ jobs:
           if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?", version):
               raise SystemExit("Invalid release version")
           notes = Path("docs/releases") / f"v{version}.md"
+          should_build = True
+          if os.environ["GITHUB_EVENT_NAME"] == "push" and os.environ["GITHUB_REF"].startswith("refs/tags/v"):
+              # Publishing a verified draft also creates its tag. Do not rebuild
+              # or replace assets that have already been published for that tag.
+              existing = subprocess.run(
+                  ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/tags/v{version}"],
+                  capture_output=True, text=True)
+              if existing.returncode == 0:
+                  should_build = bool(json.loads(existing.stdout)["draft"])
+              elif "HTTP 404" not in existing.stderr:
+                  raise SystemExit("Cannot verify whether this release already exists; refusing to replace assets")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"version={version}\ntag=v{version}\n")
               output.write(f"notes={notes.as_posix() if notes.is_file() else ''}\n")
+              output.write(f"should_build={str(should_build).lower()}\n")
           print(f"Release version: {version}")
+          if not should_build:
+              print("Release is already published; preserving its verified assets.")
           PY
 
   windows:
     needs: version
+    if: needs.version.outputs.should_build == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -151,6 +170,7 @@ jobs:
 
   linux:
     needs: version
+    if: needs.version.outputs.should_build == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -222,7 +242,7 @@ jobs:
             artifacts/PingYi-Complete-*-linux-x64.deb
 
   publish:
-    if: github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v')
+    if: needs.version.outputs.should_build == 'true' && (github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v'))
     needs: [version, windows, linux]
     runs-on: ubuntu-latest
     permissions:
