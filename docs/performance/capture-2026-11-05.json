@@ -1,0 +1,333 @@
+{
+  "baseline_main": "325a988",
+  "date": "2026-11-05",
+  "platform": "Windows native desktop; DWM enabled; 3 monitors; 7680x2160; scales 1/1.5/1",
+  "metric": "software trigger to all monitors render-thread completion; not physical key or scanout",
+  "before": {
+    "samples": 12,
+    "environment": {
+      "os": "Windows",
+      "displays": [
+        {
+          "Width": 1920,
+          "Height": 1080,
+          "Scaling": 1
+        },
+        {
+          "Width": 3840,
+          "Height": 2160,
+          "Scaling": 1.5
+        },
+        {
+          "Width": 1920,
+          "Height": 1080,
+          "Scaling": 1
+        }
+      ],
+      "dwmResult": 0,
+      "composition": 1
+    },
+    "desktop_png_bytes": {
+      "minimum": 5785394,
+      "maximum": 6736718,
+      "median": 6266828.5
+    },
+    "shell_restored_every_sample": true,
+    "first_sample_rendered_ms": 1773.89,
+    "all_monitors_rendered": {
+      "n": 12,
+      "p50_ms": 1650.11,
+      "p95_ms": 1800.95
+    },
+    "input_ready": {
+      "n": 12,
+      "p50_ms": 1698.06,
+      "p95_ms": 1877.77
+    },
+    "repeated_rendered": {
+      "n": 11,
+      "p50_ms": 1628.42,
+      "p95_ms": 1800.95
+    },
+    "trigger_groups": {
+      "ui_trigger": {
+        "n": 6,
+        "p50_ms": 1650.11,
+        "p95_ms": 1773.89
+      },
+      "dispatch_trigger": {
+        "n": 6,
+        "p50_ms": 1616.14,
+        "p95_ms": 1800.95
+      }
+    },
+    "stage_duration_sum_per_capture": {
+      "ui_trigger": {
+        "n": 6,
+        "p50_ms": 0.0,
+        "p95_ms": 0.75
+      },
+      "application_windows_hide": {
+        "n": 12,
+        "p50_ms": 5.19,
+        "p95_ms": 9.07
+      },
+      "application_windows_hidden": {
+        "n": 12,
+        "p50_ms": 5.32,
+        "p95_ms": 13.33
+      },
+      "dispatcher_hide_drain": {
+        "n": 12,
+        "p50_ms": 18.98,
+        "p95_ms": 28.78
+      },
+      "desktop_hide_settle": {
+        "n": 12,
+        "p50_ms": 21.57,
+        "p95_ms": 27.22
+      },
+      "dwm_flush": {
+        "n": 12,
+        "p50_ms": 6.36,
+        "p95_ms": 8.03
+      },
+      "desktop_barrier_complete": {
+        "n": 12,
+        "p50_ms": 47.31,
+        "p95_ms": 61.26
+      },
+      "gdi_allocate": {
+        "n": 12,
+        "p50_ms": 0.16,
+        "p95_ms": 0.35
+      },
+      "gdi_bitblt": {
+        "n": 12,
+        "p50_ms": 93.07,
+        "p95_ms": 95.76
+      },
+      "gdi_read_pixels": {
+        "n": 12,
+        "p50_ms": 7.64,
+        "p95_ms": 12.68
+      },
+      "desktop_png_encode": {
+        "n": 12,
+        "p50_ms": 481.45,
+        "p95_ms": 578.83
+      },
+      "desktop_capture_worker": {
+        "n": 12,
+        "p50_ms": 589.11,
+        "p95_ms": 686.65
+      },
+      "desktop_frame_ready": {
+        "n": 12,
+        "p50_ms": 589.18,
+        "p95_ms": 686.72
+      },
+      "display_crop_decode_draw_encode": {
+        "n": 12,
+        "p50_ms": 769.52,
+        "p95_ms": 883.53
+      },
+      "overlay_xaml_initialize": {
+        "n": 12,
+        "p50_ms": 3.86,
+        "p95_ms": 26.85
+      },
+      "overlay_bitmap_decode": {
+        "n": 12,
+        "p50_ms": 69.46,
+        "p95_ms": 74.39
+      },
+      "overlay_window_create": {
+        "n": 12,
+        "p50_ms": 85.93,
+        "p95_ms": 122.85
+      },
+      "overlay_window_opened": {
+        "n": 12,
+        "p50_ms": 958.82,
+        "p95_ms": 1046.66
+      },
+      "overlay_show_requests": {
+        "n": 12,
+        "p50_ms": 73.74,
+        "p95_ms": 118.84
+      },
+      "overlay_first_frame_rendered": {
+        "n": 12,
+        "p50_ms": 67.99,
+        "p95_ms": 480.39
+      },
+      "all_overlays_input_ready": {
+        "n": 12,
+        "p50_ms": 81.52,
+        "p95_ms": 210.63
+      },
+      "dispatch_trigger": {
+        "n": 6,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0
+      }
+    }
+  },
+  "after": {
+    "samples": 30,
+    "environment": {
+      "os": "Windows",
+      "displays": [
+        {
+          "Width": 1920,
+          "Height": 1080,
+          "Scaling": 1
+        },
+        {
+          "Width": 3840,
+          "Height": 2160,
+          "Scaling": 1.5
+        },
+        {
+          "Width": 1920,
+          "Height": 1080,
+          "Scaling": 1
+        }
+      ],
+      "dwmResult": 0,
+      "composition": 1
+    },
+    "desktop_png_bytes": {
+      "minimum": 0,
+      "maximum": 0,
+      "median": 0.0
+    },
+    "shell_restored_every_sample": true,
+    "first_sample_rendered_ms": 321.82,
+    "all_monitors_rendered": {
+      "n": 30,
+      "p50_ms": 193.06,
+      "p95_ms": 232.89
+    },
+    "input_ready": {
+      "n": 30,
+      "p50_ms": 242.28,
+      "p95_ms": 280.32
+    },
+    "repeated_rendered": {
+      "n": 29,
+      "p50_ms": 192.85,
+      "p95_ms": 222.75
+    },
+    "trigger_groups": {
+      "ui_trigger": {
+        "n": 15,
+        "p50_ms": 192.59,
+        "p95_ms": 321.82
+      },
+      "dispatch_trigger": {
+        "n": 15,
+        "p50_ms": 193.28,
+        "p95_ms": 232.89
+      }
+    },
+    "stage_duration_sum_per_capture": {
+      "ui_trigger": {
+        "n": 15,
+        "p50_ms": 0.0,
+        "p95_ms": 0.25
+      },
+      "application_windows_hide": {
+        "n": 30,
+        "p50_ms": 5.84,
+        "p95_ms": 7.77
+      },
+      "application_windows_hidden": {
+        "n": 30,
+        "p50_ms": 5.97,
+        "p95_ms": 7.89
+      },
+      "dwm_flush": {
+        "n": 30,
+        "p50_ms": 5.46,
+        "p95_ms": 10.93
+      },
+      "desktop_barrier_complete": {
+        "n": 30,
+        "p50_ms": 7.51,
+        "p95_ms": 15.57
+      },
+      "gdi_allocate": {
+        "n": 30,
+        "p50_ms": 0.07,
+        "p95_ms": 0.44
+      },
+      "gdi_bitblt": {
+        "n": 30,
+        "p50_ms": 92.67,
+        "p95_ms": 101.31
+      },
+      "gdi_copy_pixels": {
+        "n": 30,
+        "p50_ms": 3.82,
+        "p95_ms": 10.77
+      },
+      "desktop_capture_worker": {
+        "n": 30,
+        "p50_ms": 100.2,
+        "p95_ms": 112.2
+      },
+      "desktop_frame_ready": {
+        "n": 30,
+        "p50_ms": 100.27,
+        "p95_ms": 112.27
+      },
+      "display_pixel_view": {
+        "n": 30,
+        "p50_ms": 0.0,
+        "p95_ms": 0.01
+      },
+      "overlay_xaml_initialize": {
+        "n": 30,
+        "p50_ms": 4.22,
+        "p95_ms": 6.04
+      },
+      "overlay_bitmap_copy": {
+        "n": 30,
+        "p50_ms": 8.07,
+        "p95_ms": 9.05
+      },
+      "overlay_window_create": {
+        "n": 30,
+        "p50_ms": 26.0,
+        "p95_ms": 30.15
+      },
+      "overlay_window_opened": {
+        "n": 30,
+        "p50_ms": 40.26,
+        "p95_ms": 63.35
+      },
+      "overlay_show_requests": {
+        "n": 30,
+        "p50_ms": 24.28,
+        "p95_ms": 49.51
+      },
+      "overlay_first_frame_rendered": {
+        "n": 30,
+        "p50_ms": 70.66,
+        "p95_ms": 124.04
+      },
+      "all_overlays_input_ready": {
+        "n": 30,
+        "p50_ms": 82.04,
+        "p95_ms": 105.84
+      },
+      "dispatch_trigger": {
+        "n": 15,
+        "p50_ms": 0.03,
+        "p95_ms": 0.17
+      }
+    }
+  }
+}

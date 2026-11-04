@@ -8,6 +8,8 @@ This README describes the unified multimodal architecture in v0.10.0. [Download 
 
 Windows v0.10.0 is unsigned. Free open-source signing is being prepared and has not been approved; future official releases require successful signature verification. [Code signing policy](docs/CODE_SIGNING_POLICY.md)
 
+The development branch displays fresh raw Windows capture pixels and encodes only the selected region after selection. See the [capture performance report](docs/CAPTURE_PERFORMANCE.md) for three-monitor measurements, render versus input readiness, reproduction and limitations. These changes have not been released as an official version.
+
 ## Current model architecture
 
 Only a model verified for **image input and text output** can be selected. A model appearing in an API catalog is not evidence of vision support. Text-only and unverified models remain manageable but cannot become the current model. Requests never silently fall back to another model or cloud service.

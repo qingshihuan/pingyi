@@ -16,7 +16,7 @@ public static class ScreenCaptureServiceFactory
                 : new X11ScreenCaptureService();
 }
 
-internal sealed class WindowsScreenCaptureService : IScreenCaptureService
+internal sealed class WindowsScreenCaptureService : IDesktopFrameCaptureService
 {
     private const int SmXVirtualScreen = 76;
     private const int SmYVirtualScreen = 77;
@@ -26,67 +26,71 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
     private const int CaptureBlt = 0x40000000;
     private const uint DibRgbColors = 0;
 
-    public Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default)
+    public async Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default)
+    {
+        var frame = await CaptureFrameAsync(cancellationToken);
+        return new SkiaImageCropper().Crop(frame, new PixelRect(0, 0, frame.Width, frame.Height));
+    }
+
+    public Task<DesktopFrame> CaptureFrameAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var x = GetSystemMetrics(SmXVirtualScreen);
         var y = GetSystemMetrics(SmYVirtualScreen);
         var width = GetSystemMetrics(SmCxVirtualScreen);
         var height = GetSystemMetrics(SmCyVirtualScreen);
+        CaptureTiming.Current?.SetFrame(width, height, 0);
         if (width <= 0 || height <= 0)
         {
             throw new InvalidOperationException("无法获取虚拟桌面尺寸。");
         }
 
+        var byteCount = checked(width * height * 4);
+        var header = new BitmapInfo
+        {
+            Header = new BitmapInfoHeader
+            {
+                Size = (uint)Marshal.SizeOf<BitmapInfoHeader>(), Width = width, Height = -height,
+                Planes = 1, BitCount = 32, Compression = 0, SizeImage = (uint)byteCount
+            }
+        };
+
+        var allocateStartedAt = Stopwatch.GetTimestamp();
         var screenDc = GetDC(IntPtr.Zero);
-        var memoryDc = CreateCompatibleDC(screenDc);
-        var bitmap = CreateCompatibleBitmap(screenDc, width, height);
-        var oldObject = SelectObject(memoryDc, bitmap);
+        if (screenDc == IntPtr.Zero) throw new Win32Exception("无法获取屏幕设备上下文。");
+        IntPtr memoryDc = IntPtr.Zero, bitmap = IntPtr.Zero, oldObject = IntPtr.Zero;
         try
         {
+            memoryDc = CreateCompatibleDC(screenDc);
+            if (memoryDc == IntPtr.Zero) throw new Win32Exception("无法创建屏幕设备上下文。");
+            bitmap = CreateDIBSection(screenDc, ref header, DibRgbColors, out var bits, IntPtr.Zero, 0);
+            if (bitmap == IntPtr.Zero || bits == IntPtr.Zero) throw new Win32Exception("无法创建屏幕位图。");
+            oldObject = SelectObject(memoryDc, bitmap);
+            if (oldObject == IntPtr.Zero || oldObject == new IntPtr(-1)) throw new Win32Exception("无法选择屏幕位图。");
+            CaptureTiming.Current?.Record("gdi_allocate", allocateStartedAt);
             var bitBltStartedAt = Stopwatch.GetTimestamp();
             if (!BitBlt(memoryDc, 0, 0, width, height, screenDc, x, y, SrcCopy | CaptureBlt))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "屏幕捕获失败。");
             }
-            Trace.WriteLine($"[PingYi.CaptureTiming] duration=gdi_bitblt elapsed_ms={Stopwatch.GetElapsedTime(bitBltStartedAt).TotalMilliseconds:F1}");
+            CaptureTiming.Current?.Record("gdi_bitblt", bitBltStartedAt);
 
-            var header = new BitmapInfo
-            {
-                Header = new BitmapInfoHeader
-                {
-                    Size = (uint)Marshal.SizeOf<BitmapInfoHeader>(),
-                    Width = width,
-                    Height = -height,
-                    Planes = 1,
-                    BitCount = 32,
-                    Compression = 0,
-                    SizeImage = (uint)(width * height * 4)
-                }
-            };
-            var pixels = new byte[checked(width * height * 4)];
             var readPixelsStartedAt = Stopwatch.GetTimestamp();
-            var copied = GetDIBits(memoryDc, bitmap, 0, (uint)height, pixels, ref header, DibRgbColors);
-            if (copied == 0)
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "无法读取屏幕像素。");
-            }
-            Trace.WriteLine($"[PingYi.CaptureTiming] duration=gdi_read_pixels elapsed_ms={Stopwatch.GetElapsedTime(readPixelsStartedAt).TotalMilliseconds:F1}");
+            // The GDI batch must finish before reading the top-down BGRA DIB. Copy once
+            // into managed ownership; no native bitmap/pointer escapes this method.
+            if (!GdiFlush()) throw new Win32Exception("无法完成屏幕像素读取。");
+            var pixels = new byte[byteCount];
+            Marshal.Copy(bits, pixels, 0, byteCount);
+            CaptureTiming.Current?.Record("gdi_copy_pixels", readPixelsStartedAt);
 
-            var encodeStartedAt = Stopwatch.GetTimestamp();
-            var png = EncodeBgraToPng(pixels, width, height);
-            Trace.WriteLine($"[PingYi.CaptureTiming] duration=desktop_png_encode elapsed_ms={Stopwatch.GetElapsedTime(encodeStartedAt).TotalMilliseconds:F1} width={width} height={height}");
-            return Task.FromResult(new ImageFrame(
-                png,
-                width,
-                height,
-                new PixelRect(x, y, width, height)));
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new DesktopFrame(pixels, checked(width * 4), new PixelRect(x, y, width, height)));
         }
         finally
         {
-            SelectObject(memoryDc, oldObject);
-            DeleteObject(bitmap);
-            DeleteDC(memoryDc);
+            if (oldObject != IntPtr.Zero && oldObject != new IntPtr(-1)) SelectObject(memoryDc, oldObject);
+            if (bitmap != IntPtr.Zero) DeleteObject(bitmap);
+            if (memoryDc != IntPtr.Zero) DeleteDC(memoryDc);
             ReleaseDC(IntPtr.Zero, screenDc);
         }
     }
@@ -135,8 +139,12 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateCompatibleDC(IntPtr dc);
 
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern IntPtr CreateDIBSection(IntPtr dc, ref BitmapInfo info, uint usage, out IntPtr bits, IntPtr section, uint offset);
+
     [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateCompatibleBitmap(IntPtr dc, int width, int height);
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GdiFlush();
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr SelectObject(IntPtr dc, IntPtr obj);
@@ -153,16 +161,6 @@ internal sealed class WindowsScreenCaptureService : IScreenCaptureService
         int sourceX,
         int sourceY,
         int operation);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern int GetDIBits(
-        IntPtr dc,
-        IntPtr bitmap,
-        uint start,
-        uint lines,
-        [Out] byte[] bits,
-        ref BitmapInfo info,
-        uint usage);
 
     [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

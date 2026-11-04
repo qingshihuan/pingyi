@@ -24,9 +24,17 @@ public interface IScreenCaptureService
     Task<ImageFrame> CaptureDesktopAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>Optional fast desktop path; portals and existing encoded services are unchanged.</summary>
+public interface IDesktopFrameCaptureService : IScreenCaptureService
+{
+    Task<DesktopFrame> CaptureFrameAsync(CancellationToken cancellationToken = default);
+}
+
 public interface IImageCropper
 {
     ImageFrame Crop(ImageFrame source, PixelRect cropBounds);
+    ImageFrame Crop(DesktopFrame source, PixelRect cropBounds) =>
+        Crop(source.EncodedImage ?? throw new NotSupportedException("Raw frame cropping is not supported."), cropBounds);
 }
 
 public interface IGlobalHotkeyService : IAsyncDisposable

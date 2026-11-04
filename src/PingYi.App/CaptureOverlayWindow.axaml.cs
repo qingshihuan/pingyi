@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using PingYi.Core;
 using CorePixelRect = PingYi.Core.PixelRect;
@@ -12,19 +13,20 @@ namespace PingYi.App;
 
 public partial class CaptureOverlayWindow : Window
 {
-    private readonly ImageFrame _capture;
+    private readonly DesktopFrame _capture;
     private readonly Bitmap _bitmap;
     private readonly CaptureOverlaySession? _session;
     private readonly double _preferredScaling;
     private bool _bitmapDisposalQueued;
     private bool _bitmapDisposed;
+    private readonly CaptureTiming? _timing = CaptureTiming.Current;
 
     public CaptureOverlayWindow() : this(CreatePlaceholderCapture(), 1, session: null)
     {
     }
 
     internal CaptureOverlayWindow(
-        ImageFrame capture,
+        DesktopFrame capture,
         double preferredScaling,
         CaptureOverlaySession? session,
         long captureStartedAt = 0)
@@ -38,9 +40,10 @@ public partial class CaptureOverlayWindow : Window
         UiText.Attach(this);
         Title = UiText.IsEnglish ? "Screen Insight Capture" : "截屏释义框选";
         var bitmapDecodeStartedAt = CapturePerformance.Start();
-        _bitmap = new Bitmap(new MemoryStream(capture.PngBytes));
-        CapturePerformance.LogDuration("overlay_bitmap_decode", bitmapDecodeStartedAt);
+        _bitmap = CreateBitmap(capture);
+        CapturePerformance.LogDuration(capture.IsRaw ? "overlay_bitmap_copy" : "overlay_bitmap_decode", bitmapDecodeStartedAt);
         ScreenshotImage.Source = _bitmap;
+        ScreenshotImage.FrameDrawn += OnFrameDrawn;
         Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);
         Width = capture.Width / _preferredScaling;
         Height = capture.Height / _preferredScaling;
@@ -54,8 +57,6 @@ public partial class CaptureOverlayWindow : Window
             _session?.Refresh(this);
             if (captureStartedAt != 0)
                 CapturePerformance.Log("overlay_window_opened", captureStartedAt);
-            Activate();
-            Focus();
         };
         KeyDown += (_, eventArgs) =>
         {
@@ -72,6 +73,51 @@ public partial class CaptureOverlayWindow : Window
     }
 
     internal void ShowOverlay() => Show();
+    internal bool ContainsPointer()
+    {
+        if (!OperatingSystem.IsWindows() || !NativePointer.TryGetPosition(out var point)) return false;
+        var bounds = _capture.DesktopBounds;
+        return point.X >= bounds.X && point.Y >= bounds.Y && point.X < (long)bounds.X + bounds.Width && point.Y < (long)bounds.Y + bounds.Height;
+    }
+
+    internal bool IsBitmapDisposed => _bitmapDisposed;
+    internal CorePixelRect CaptureBounds => _capture.DesktopBounds;
+
+    internal static unsafe Bitmap CreateBitmap(DesktopFrame capture)
+    {
+        if (capture.EncodedImage is { } encoded)
+        {
+            using var stream = new MemoryStream(encoded.PngBytes, writable: false);
+            return new Bitmap(stream);
+        }
+        // Avalonia's raw Bitmap constructor copies each row into its own immutable storage.
+        // Keep the managed view pinned only during that copy, never for the render lifetime.
+        using var pin = capture.BgraPixels.Pin();
+        return new Bitmap(Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Opaque,
+            (IntPtr)pin.Pointer, new PixelSize(capture.Width, capture.Height), new Vector(96, 96), capture.Stride);
+    }
+
+    private void OnFrameDrawn(object? sender, EventArgs e)
+    {
+        if (!IsVisible) return; // Off-screen resource warmup is not a presented screenshot.
+        // Render() only records drawing commands. Wait for the batch containing the image
+        // to finish on Avalonia's render thread, not Opened or a dispatcher/animation tick.
+        var compositor = ElementComposition.GetElementVisual(ScreenshotImage)?.Compositor;
+        if (compositor is null) return;
+        ScreenshotImage.FrameDrawn -= OnFrameDrawn;
+        var timing = _timing;
+        var started = CapturePerformance.Start();
+        var batch = compositor.RequestCompositionBatchCommitAsync();
+        _ = batch.Rendered.ContinueWith(completed =>
+        {
+            if (!completed.IsCompletedSuccessfully || Volatile.Read(ref _bitmapDisposalQueued)) return;
+            timing?.Record("overlay_first_frame_rendered", started);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (IsVisible) _session?.NotifyRendered(this);
+            }, DispatcherPriority.Input);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
 
     internal void CloseOverlay()
     {
@@ -159,6 +205,7 @@ public partial class CaptureOverlayWindow : Window
         }
 
         _bitmapDisposalQueued = true;
+        ScreenshotImage.FrameDrawn -= OnFrameDrawn;
         // Detach the native bitmap before closing the window, then give Avalonia's
         // render queue a turn to release its reference before disposing the image.
         ScreenshotImage.Source = null;
@@ -176,14 +223,14 @@ public partial class CaptureOverlayWindow : Window
         _bitmap.Dispose();
     }
 
-    private static ImageFrame CreatePlaceholderCapture()
+    private static DesktopFrame CreatePlaceholderCapture()
     {
         const string transparentPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-        return new ImageFrame(
+        return new DesktopFrame(new ImageFrame(
             Convert.FromBase64String(transparentPng),
             1,
             1,
-            new CorePixelRect(0, 0, 1, 1));
+            new CorePixelRect(0, 0, 1, 1)));
     }
 
     private static class NativePointer
@@ -214,7 +261,7 @@ public partial class CaptureOverlayWindow : Window
 }
 
 internal sealed class CaptureOverlaySession(
-    ImageFrame desktop,
+    DesktopFrame desktop,
     IReadOnlyList<CaptureDisplay> displays,
     IImageCropper imageCropper,
     long captureStartedAt = 0)
@@ -229,6 +276,20 @@ internal sealed class CaptureOverlaySession(
     private bool _completing;
     private int _openWindowCount;
     private CancellationTokenRegistration _cancellationRegistration;
+    private readonly HashSet<CaptureOverlayWindow> _renderedWindows = [];
+    private readonly CaptureTiming? _timing = CaptureTiming.Current;
+    internal IReadOnlyList<CaptureOverlayWindow> Windows => _windows;
+    internal TaskCompletionSource FirstFrame { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    internal void NotifyRendered(CaptureOverlayWindow window)
+    {
+        if (_completing || !_renderedWindows.Add(window)) return;
+        if (_renderedWindows.Count == _windows.Count)
+        {
+            _timing?.Mark("all_overlays_input_ready");
+            FirstFrame.TrySetResult();
+        }
+    }
 
     public Task<CorePixelRect?> ShowAndSelectAsync(CancellationToken cancellationToken = default)
     {
@@ -248,6 +309,8 @@ internal sealed class CaptureOverlaySession(
     private Task<CorePixelRect?> ShowAndSelectCore(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        _timing?.SetDisplays(displays.Count);
+        _timing?.SetFrame(desktop.Width, desktop.Height, desktop.PngByteCount);
         foreach (var display in displays)
         {
             var displayCapture = ScreenSelectionGeometry.Intersect(display.Bounds, desktop.DesktopBounds);
@@ -259,8 +322,12 @@ internal sealed class CaptureOverlaySession(
             var relativeCapture = ScreenSelectionGeometry.ToCaptureRelative(
                 displayCapture,
                 desktop.DesktopBounds);
-            ImageFrame image;
-            if (relativeCapture.X == 0 && relativeCapture.Y == 0 &&
+            DesktopFrame image;
+            if (desktop.IsRaw)
+            {
+                using (_timing?.Measure("display_pixel_view")) image = desktop.Slice(relativeCapture);
+            }
+            else if (relativeCapture.X == 0 && relativeCapture.Y == 0 &&
                 relativeCapture.Width == desktop.Width && relativeCapture.Height == desktop.Height)
             {
                 // A single display commonly covers the entire captured desktop. Reuse the
@@ -270,10 +337,11 @@ internal sealed class CaptureOverlaySession(
             else
             {
                 var cropStartedAt = CapturePerformance.Start();
-                image = imageCropper.Crop(desktop, relativeCapture);
+                image = new DesktopFrame(imageCropper.Crop(desktop, relativeCapture));
                 CapturePerformance.LogDuration("display_crop_decode_draw_encode", cropStartedAt);
             }
-            _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this, captureStartedAt));
+            using (_timing?.Measure("overlay_window_create"))
+                _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this, captureStartedAt));
         }
 
         if (_windows.Count == 0)
@@ -293,6 +361,11 @@ internal sealed class CaptureOverlaySession(
             {
                 window.ShowOverlay();
             }
+            // Showing/activating every monitor generated three focus transitions on a
+            // three-monitor desktop. Only the pointer's monitor needs keyboard focus (Esc).
+            var active = _windows.FirstOrDefault(window => window.ContainsPointer()) ?? _windows[0];
+            active.Activate();
+            active.Focus();
             CapturePerformance.LogDuration("overlay_show_requests", showStartedAt);
         }
         catch
@@ -414,6 +487,7 @@ internal sealed class CaptureOverlaySession(
 
     private void CloseWindows()
     {
+        FirstFrame.TrySetCanceled();
         foreach (var window in _windows)
         {
             try
@@ -424,6 +498,23 @@ internal sealed class CaptureOverlaySession(
             {
                 // A native overlay may already have closed; always clean up the rest.
             }
+        }
+    }
+}
+
+public sealed class CaptureScreenshotImage : Control
+{
+    public static readonly StyledProperty<IImage?> SourceProperty = Image.SourceProperty.AddOwner<CaptureScreenshotImage>();
+    public IImage? Source { get => GetValue(SourceProperty); set => SetValue(SourceProperty, value); }
+    static CaptureScreenshotImage() => AffectsRender<CaptureScreenshotImage>(SourceProperty);
+    internal event EventHandler? FrameDrawn;
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        if (Source is { } source && Bounds.Width > 0 && Bounds.Height > 0)
+        {
+            context.DrawImage(source, new Rect(source.Size), new Rect(Bounds.Size));
+            FrameDrawn?.Invoke(this, EventArgs.Empty);
         }
     }
 }

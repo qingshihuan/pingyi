@@ -4,6 +4,10 @@ This document describes the v0.10.0 architecture. Earlier release notes are hist
 
 ## Request flow
 
+Development capture path: Windows `IDesktopFrameCaptureService` returns a validated top-down opaque BGRA `DesktopFrame` from a synchronized DIB. Per-monitor views share the immutable managed buffer; Avalonia bitmaps take owned row copies while briefly pinning that buffer. Whole-desktop/per-monitor PNG round trips are removed. Once selection completes, the cropper encodes only that rectangle on a worker and returns the existing PNG `ImageFrame` to QR/model providers. X11 encoded capture and portal-selected-image routing remain supported.
+
+`CaptureTiming` follows each operation through worker/UI boundaries, from hotkey/button receipt and gate wait to the render batch containing screenshot commands and the all-window input-ready milestone. Logs contain timing/dimensions/counts only. Windows verifies hidden HWND state and fences DWM presentation (with an unavailable-DWM fallback); Linux retains its prior wait strategy. Startup resource warmup uses synthetic pixels without showing windows or retaining captures. Overlay sessions still own fresh windows/bitmaps and close/detach/dispose them on success, Esc, cancellation or shutdown. See [measured stages, ownership, tests and limits](CAPTURE_PERFORMANCE.md).
+
 ```mermaid
 flowchart TD
     Capture[Screen capture] --> QR[Local QR decode]

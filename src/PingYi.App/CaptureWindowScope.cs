@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using PingYi.Core;
 
 namespace PingYi.App;
 
@@ -22,7 +23,8 @@ internal static class CaptureWindowScope
             .Select(w => new Snapshot(w)).ToArray();
         try
         {
-            foreach (var snapshot in snapshots) snapshot.Hide();
+            using (CaptureTiming.Current?.Measure("application_windows_hide"))
+                foreach (var snapshot in snapshots) snapshot.Hide();
             if (captureStartedAt != 0)
                 CapturePerformance.Log("application_windows_hidden", captureStartedAt);
             await waitForDesktop(cancellationToken);
@@ -64,6 +66,7 @@ internal static class CaptureWindowScope
             _nativeState = NativeCaptureState.Apply(_window);
             _hidden = true;
             _window.Hide();
+            NativeCaptureState.VerifyHidden(_window);
         }
         public void Restore(bool visible)
         {
@@ -87,24 +90,27 @@ internal static class DesktopCaptureBarrier
 {
     public static async Task WaitAsync(CancellationToken cancellationToken)
     {
-        // Drain queued Avalonia/native hide work before asking the OS for a desktop frame.
-        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
         if (OperatingSystem.IsWindows())
         {
-            // Allow the Avalonia hide requests to reach the native window system, then
-            // synchronize with the DWM compositor. DwmFlush is the presentation barrier;
-            // a second fixed 34 ms sleep only adds latency after that barrier has completed.
-            await Task.Delay(16, cancellationToken);
-            await Task.Run(() =>
+            // Avalonia Win32 Hide calls ShowWindow(SW_HIDE) synchronously on this UI thread;
+            // HWND visibility was checked by Snapshot.Hide. A Background dispatcher round
+            // trip or fixed sleep adds no hide-state confirmation. Fence presentation with
+            // DWM, retaining a conservative fallback when composition is unavailable.
+            var synchronized = await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                try { _ = DwmFlush(); }
-                catch (DllNotFoundException) { }
-                catch (EntryPointNotFoundException) { }
+                try { using (CaptureTiming.Current?.Measure("dwm_flush")) return DwmFlush() >= 0; }
+                catch (DllNotFoundException) { return false; }
+                catch (EntryPointNotFoundException) { return false; }
             }, cancellationToken);
+            if (!synchronized)
+                using (CaptureTiming.Current?.Measure("desktop_barrier_fallback"))
+                    await Task.Delay(50, cancellationToken);
         }
         else
         {
+            using (CaptureTiming.Current?.Measure("dispatcher_hide_drain"))
+                await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
             // Keep the conservative non-Windows delay: compositor/portal behavior differs
             // substantially across X11 and Wayland and has no equivalent portable barrier here.
             await Task.Delay(200, cancellationToken);
@@ -123,6 +129,14 @@ internal sealed class NativeCaptureState : IDisposable
     private bool _restoreTransitions;
     private bool _restoreAffinity;
     private NativeCaptureState(IntPtr handle) => _handle = handle;
+
+    internal static void VerifyHidden(Window window)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var handle = window.TryGetPlatformHandle();
+        if (handle?.HandleDescriptor == "HWND" && handle.Handle != IntPtr.Zero && IsWindowVisible(handle.Handle))
+            throw new InvalidOperationException("截图前无法隐藏应用窗口，请重试。");
+    }
 
     public static IDisposable? Apply(Window window)
     {
@@ -158,4 +172,6 @@ internal sealed class NativeCaptureState : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetWindowDisplayAffinity(IntPtr hwnd, out uint affinity);
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)] private static extern bool IsWindowVisible(IntPtr hwnd);
 }

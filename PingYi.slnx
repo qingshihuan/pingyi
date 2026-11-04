@@ -6,6 +6,7 @@
     <Project Path="src/PingYi.Infrastructure/PingYi.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/PingYi.Capture.Benchmarks/PingYi.Capture.Benchmarks.csproj" />
     <Project Path="tests/PingYi.Core.Tests/PingYi.Core.Tests.csproj" />
     <Project Path="tests/PingYi.App.Tests/PingYi.App.Tests.csproj" />
   </Folder>

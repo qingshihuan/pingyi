@@ -115,9 +115,11 @@ public partial class MainWindow : Window, IMainWindowShell
     }
     private async void CaptureButton_OnClick(object? sender, RoutedEventArgs e)
     {
+        var timing = new CaptureTiming();
+        timing.Mark("capture_button_received");
         if (_captureCoordinator is null) { SetGlobalStatus("截图服务尚未初始化。", true); return; }
         CaptureButtonV2.IsEnabled = false;
-        try { await _captureCoordinator.StartCaptureAsync(this); }
+        try { await _captureCoordinator.StartCaptureAsync(this, timing: timing); }
         finally { CaptureButtonV2.IsEnabled = true; }
     }
     private void OnLanguageChanged(object? sender, EventArgs e) { UpdateProductTitle(); LoadSettings(); RefreshModeStatusLanguage(); }

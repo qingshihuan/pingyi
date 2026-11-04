@@ -27,25 +27,30 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
     private int _disposeState;
     public bool IsCapturingScreen { get; private set; }
 
-    public async Task StartCaptureAsync(IMainWindowShell? mainWindow, CapturePurpose purpose = CapturePurpose.Auto)
+    public async Task StartCaptureAsync(IMainWindowShell? mainWindow, CapturePurpose purpose = CapturePurpose.Auto,
+        CaptureTiming? timing = null)
     {
         if (!Enum.IsDefined(purpose)) throw new ArgumentOutOfRangeException(nameof(purpose));
         if (services.IsInitialSetupActive || services.IsShuttingDown) return;
         if (purpose == CapturePurpose.Auto && !services.Settings.AutomaticCaptureEnabled) purpose = CapturePurpose.TranslateText;
-        var captureStartedAt = CapturePerformance.Start();
-        CapturePerformance.Log("trigger", captureStartedAt);
+        timing ??= new CaptureTiming();
+        using var timingScope = timing.Enter();
+        var captureStartedAt = timing.StartedAt;
+        timing.Mark("coordinator_entered");
         var operation = BeginOperation();
         if (operation is null) return;
         _mainWindow = mainWindow;
         var enteredGate = false;
         try
         {
-            await _operationGate.WaitAsync(operation.Token);
+            using (timing.Measure("operation_gate_wait"))
+                await _operationGate.WaitAsync(operation.Token);
             enteredGate = true;
             CapturePerformance.Log("operation_gate_acquired", captureStartedAt);
             EnsureCurrent(operation);
             if (_resultWindow?.IsPinned == true) { ArchivePinnedWindow(_resultWindow); _resultWindow = null; }
             var displays = mainWindow?.GetCaptureDisplays();
+            timing.SetDisplays(displays?.Count ?? 0);
             var windows = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 ? desktop.Windows.ToList() : new List<Window>();
             if (mainWindow is Window shell) windows.Add(shell);
@@ -65,7 +70,8 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                             var overlay = new CaptureOverlaySession(frame, captureDisplays, services.ImageCropper, captureStartedAt);
                             var selection = await overlay.ShowAndSelectAsync(selectionToken);
                             EnsureCurrent(operation);
-                            return selection is null ? null : services.ImageCropper.Crop(frame, selection.Value);
+                            return selection is null ? null : await Task.Run(() =>
+                                services.ImageCropper.Crop(frame, selection.Value), selectionToken);
                         }, token), operation.Token, () => Volatile.Read(ref _disposeState) == 0, captureStartedAt);
             }
             finally { IsCapturingScreen = false; }

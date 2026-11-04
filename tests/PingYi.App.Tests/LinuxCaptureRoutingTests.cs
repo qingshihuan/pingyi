@@ -25,7 +25,7 @@ public class LinuxCaptureRoutingTests
         var service = new Desktop();
         int calls = 0;
         var image = await CaptureSelectionRouter.SelectAsync(service, (frame, _) =>
-        { calls++; return Task.FromResult<ImageFrame?>(frame); }, TestContext.Current.CancellationToken);
+        { calls++; return Task.FromResult(frame.EncodedImage); }, TestContext.Current.CancellationToken);
         Assert.Equal(1, calls);
         Assert.NotNull(image);
     }
