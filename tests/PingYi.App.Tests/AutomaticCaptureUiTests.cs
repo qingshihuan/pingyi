@@ -55,6 +55,7 @@ public sealed class AutomaticCaptureUiTests
         var owner = new Window();
         var dialog = new FirstRunSetupWindow(hasRuntime,
             (_, _, _, _) => { downloads++; return Task.CompletedTask; },
+            (_, _, _, _) => { downloads++; return Task.CompletedTask; },
             (choice, _) => { saved = choice; return Task.CompletedTask; });
         try
         {
@@ -65,6 +66,8 @@ public sealed class AutomaticCaptureUiTests
             Assert.Equal(0, downloads);
             Assert.Null(saved);
             Assert.True(dialog.DownloadButton.IsEnabled);
+            Assert.True(dialog.AutomaticButton.IsEffectivelyVisible);
+            Assert.False(dialog.ManualOptions.IsExpanded);
             Assert.True(dialog.ApiButton.IsEnabled);
             Frame(dialog, "first-run-" + language);
             dialog.ApiButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -84,14 +87,22 @@ public sealed class AutomaticCaptureUiTests
         var saves = 0;
         var dialog = new FirstRunSetupWindow(true,
             async (_, _, _, token) => { started = true; await Task.Delay(Timeout.InfiniteTimeSpan, token); },
-            (_, _) => { saves++; return Task.CompletedTask; });
+            (_, _, _, _) => throw new InvalidOperationException("Manual setup must retain the selected path"),
+            (_, _) => { saves++; return Task.CompletedTask; }) { Height = 400 };
         try
         {
             owner.Show();
             var selection = dialog.ShowDialog<InitialSetupChoice>(owner);
+            dialog.ManualOptions.IsExpanded = true;
+            dialog.UpdateLayout();
+            ((ScrollViewer)dialog.Content!).Offset = new Vector(0, 10000);
             dialog.DownloadButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            dialog.UpdateLayout();
             Assert.True(started);
             Assert.False(dialog.ApiButton.IsEnabled);
+            var cancelPosition = dialog.CancelButton.TranslatePoint(default, dialog)!.Value;
+            Assert.InRange(cancelPosition.Y, 0, dialog.ClientSize.Height - dialog.CancelButton.Bounds.Height);
             dialog.CancelButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await dialog.OperationTask;
             Assert.False(selection.IsCompleted);
@@ -110,11 +121,13 @@ public sealed class AutomaticCaptureUiTests
         {
             attempts++;
             return attempts == 1 ? Task.FromException(new IOException("Synthetic model failure")) : Task.CompletedTask;
-        }, (_, _) => Task.CompletedTask);
+        }, (_, _, _, _) => throw new InvalidOperationException("Manual retry must retain the selected path"),
+            (_, _) => Task.CompletedTask);
         try
         {
             owner.Show();
             var selection = dialog.ShowDialog<InitialSetupChoice>(owner);
+            dialog.ManualOptions.IsExpanded = true;
             dialog.DownloadButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await dialog.OperationTask;
             Assert.False(selection.IsCompleted);

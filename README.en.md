@@ -23,7 +23,7 @@ Settings has five sections: **Current model, API models, Local models, Hotkeys, 
 
 The runtime backend defaults to **Automatic (default)**: use a compatible GPU when available and fall back to CPU when no GPU is usable or GPU startup fails. Saved backend and GPU selections are retained. **Reset to default: Automatic** resets both choices to automatic; choose **Install and switch** to apply it.
 
-**Detect and configure automatically** at the top of Local models detects hardware, prepares a usable runtime, reuses or downloads the model, verifies recognition and translation, then saves it as the current model. It reuses the configured model or starts with the recommended Qwen3.5 2B Q4 (about 1.82 GiB). Setup can be cancelled and retains unsaved API, key and general-setting drafts. See [runtime download sources](docs/RUNTIME_DOWNLOADS.md) for online and bundled versions.
+**Detect and configure automatically** appears on the setup wizard's first screen and at the top of Local models. It detects hardware, prepares a usable runtime, reuses or downloads the model, verifies recognition and translation, then saves it as the current model. It reuses the configured model or starts with the recommended Qwen3.5 2B Q4 (about 1.82 GiB). The wizard returns to the main window after verified setup, supports retry on failure, and keeps manual model/runtime selection in an expandable section. Setup can be cancelled and retains unsaved API, key and general-setting drafts. See [runtime download sources](docs/RUNTIME_DOWNLOADS.md) for online and bundled versions.
 
 ## Capture and privacy
 

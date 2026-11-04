@@ -19,6 +19,7 @@ public sealed class VideoPreviewTests
         var calls = 0;
         var firstRun = new FirstRunSetupWindow(true,
             (_, _, _, _) => { calls++; return Task.CompletedTask; },
+            (_, _, _, _) => { calls++; return Task.CompletedTask; },
             (_, _) => { calls++; return Task.CompletedTask; }) { RequestedThemeVariant = ThemeVariant.Light };
         var home = new MainWindow { Width = 1040, Height = 720, RequestedThemeVariant = ThemeVariant.Light };
         var settings = new SettingsWindow { Width = 1040, Height = 760, RequestedThemeVariant = ThemeVariant.Light };
