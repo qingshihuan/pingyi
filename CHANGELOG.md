@@ -5,6 +5,11 @@
 - Require trusted Windows release signatures, the configured certificate publisher and timestamps; missing credentials cannot silently produce another unsigned release. Local unsigned development builds remain available.
 - Document the pending SignPath Foundation application, signing scope, maintainer roles and privacy policy. No signing identity has been issued or configured and no signed release is claimed.
 
+## 0.10.1 — 2026-11-05 — original version naming
+
+- Rebuild the verified screenshot performance improvements with `0.10.1` in the application version and package filenames, and use the original release title `截屏释义 v0.10.1`. Windows packages remain explicitly unsigned and the release remains a prerelease until trusted signing is available.
+- Make unsigned preview builds manual and require an explicit unsigned-build confirmation. Creating a tag for an already published release no longer starts a second build that could replace its verified assets; the stable signing requirement is retained.
+
 ## 0.10.1-unsigned.3 — 2026-11-05 — screenshot performance preview
 
 - Windows capture now displays fresh opaque BGRA pixels without whole-desktop or per-monitor PNG round trips; only the selected region is encoded on a worker. Use a synchronized DIB capture, shared stride-aware monitor views, synthetic startup resource warmup and one overlay activation per session. Native HWND hide confirmation plus DWM replaces Windows fixed sleeps/dispatcher drains; Linux synchronization remains unchanged.
