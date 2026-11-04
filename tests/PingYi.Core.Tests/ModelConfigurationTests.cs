@@ -9,6 +9,7 @@ namespace PingYi.Core.Tests;
 
 public sealed class ModelConfigurationTests
 {
+    private const string SelectedGpu = "vulkan|Vulkan2|0123456789ABCDEF01234567";
     private static ModelServiceProfile Profile(string id = "service-a", string endpoint = "https://a.example/v1/chat/completions") =>
         new() { Id = id, Name = id, Endpoint = endpoint, DefaultModel = "model-a" };
     private static AppSettings Configured(params ModelServiceProfile[] profiles) => new()
@@ -42,7 +43,7 @@ public sealed class ModelConfigurationTests
         var original = new AppSettings { SchemaVersion = 14, Hotkey = "Ctrl+Alt+G", OcrProviderId = "local-paddle",
             TranslationProviderId = "custom-chat", CustomTranslationEndpoint = "https://api.example/chat/completions",
             CustomTranslationModel = "old-model", CustomTranslationApiProtocol = ModelApiProtocols.Responses,
-            ManagedRuntimeBackend = "vulkan", ManagedRuntimeDevice = "Vulkan2", UiLanguage = "en-US" };
+            ManagedRuntimeBackend = "vulkan", ManagedRuntimeDevice = SelectedGpu, UiLanguage = "en-US" };
         var migrated = ConfigurationMigration.Upgrade(original);
         Assert.Equal(original, migrated with { ModelConfiguration = null });
         Assert.False(migrated.ModelConfiguration!.HasOverrides);
@@ -84,6 +85,35 @@ public sealed class ModelConfigurationTests
         Assert.Null(await new ProfileSecretStore(store, a.CredentialRef).GetAsync(SecretKeys.GoogleCloudApiKey));
         Assert.Equal("draft", await new ProfileSecretStore(store, a.CredentialRef, "draft").GetAsync(SecretKeys.CustomTranslationApiKey));
         Assert.Equal("key-a", store.Values[a.CredentialRef]);
+    }
+
+    [Fact]
+    public async Task Invalid_keys_are_rejected_without_echoing_key_material_or_writing_any_secret()
+    {
+        var profile = Profile(); var settings = Configured(profile); var secrets = new MemorySecrets();
+        const string badKey = "private-test-key\r\nX-Injected: value";
+        var error = await Assert.ThrowsAsync<ProviderException>(() => new ProfileSecretStore(secrets, profile.CredentialRef, badKey)
+            .GetAsync(SecretKeys.CustomTranslationApiKey));
+        Assert.DoesNotContain("private-test-key", error.ToString());
+        await Assert.ThrowsAsync<ProviderException>(() => ConfigurationSecrets.CommitAsync(new MemorySettings(), secrets,
+            settings, settings, new Dictionary<string, string> { [profile.CredentialRef] = badKey }));
+        Assert.Empty(secrets.Values);
+    }
+
+    [Fact]
+    public async Task Owned_runtime_never_receives_the_legacy_cloud_key()
+    {
+        var model = ManagedMultimodalModels.Recommended;
+        var settings = new AppSettings { ManagedRuntimeEnabled = true, ManagedModelPackageId = model.Id,
+            CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint, CustomTranslationModel = model.ModelAlias };
+        var secrets = new MemorySecrets(); secrets.Values[SecretKeys.CustomTranslationApiKey] = "must-stay-away-from-localhost";
+        using var client = new HttpClient(new Handler(request =>
+        {
+            Assert.Null(request.Headers.Authorization);
+            return Task.FromResult(Json("""{"choices":[{"message":{"content":"hello"}}]}"""));
+        }));
+        await ConfiguredProviders.Translation(client, secrets, settings, new ProviderRegistry([], []))
+            .TranslateAsync(new("hello", "en", "zh"));
     }
 
     [Fact]
@@ -192,12 +222,12 @@ public sealed class ModelConfigurationTests
     {
         var model = ManagedMultimodalModels.Recommended; var remote = Profile();
         var settings = Configured(remote) with { ManagedRuntimeEnabled = true, ManagedModelPackageId = model.Id,
-            ManagedRuntimeBackend = "vulkan", ManagedRuntimeDevice = "Vulkan2", CustomTranslationEndpoint = "https://legacy.example/v1",
+            ManagedRuntimeBackend = "vulkan", ManagedRuntimeDevice = SelectedGpu, CustomTranslationEndpoint = "https://legacy.example/v1",
             ModelConfiguration = new() { Services = [remote], Tasks = new() { Ocr = new(ModelConfiguration.Managed), Translation = new(remote.Id) } } };
         settings = settings.Normalize();
         Assert.True(settings.ManagedRuntimeEnabled); Assert.True(RuntimePolicy.UsesManagedRuntime(settings));
         Assert.True(ConfigurationRouting.Resolve(settings, ModelTasks.Ocr).IsManaged);
-        Assert.Equal("vulkan", settings.ManagedRuntimeBackend); Assert.Equal("Vulkan2", settings.ManagedRuntimeDevice);
+        Assert.Equal("vulkan", settings.ManagedRuntimeBackend); Assert.Equal(SelectedGpu, settings.ManagedRuntimeDevice);
         Assert.False(ConfigurationRouting.Resolve(settings, ModelTasks.Translation).IsManaged);
     }
 

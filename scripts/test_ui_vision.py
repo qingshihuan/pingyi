@@ -32,7 +32,8 @@ class VisionContracts(unittest.TestCase):
         self.assertIn('!endpoint.IsLoopback', code)
         factory = (ROOT / 'src/PingYi.Infrastructure/ConfiguredProviders.cs').read_text(encoding='utf8')
         self.assertIn('ModelTasks.ForPurpose(purpose)', factory)
-        self.assertIn('new ProfileSecretStore(secrets, route.CredentialRef)', factory)
+        self.assertIn('new ProfileSecretStore(secrets, Credential(route))', factory)
+        self.assertIn('route.IsManaged ? "" : route.CredentialRef', factory)
 
     def test_processing_deadline_includes_cpu_startup_and_cancel_action_exists(self):
         code = (APP / 'CaptureCoordinator.cs').read_text(encoding='utf8')

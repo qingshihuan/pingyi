@@ -9,14 +9,14 @@ public static class ConfiguredProviders
     {
         var route = ConfigurationRouting.Resolve(settings, ModelTasks.Translation);
         if (route.Settings.TranslationProviderId != "custom-chat") return providers.GetTranslationProvider(route.Settings.TranslationProviderId);
-        var provider = new ChatCompatibleTranslationProvider(client, new ProfileSecretStore(secrets, route.CredentialRef), () => route.Settings);
+        var provider = new ChatCompatibleTranslationProvider(client, new ProfileSecretStore(secrets, Credential(route)), () => route.Settings);
         return route.IsExplicit ? new RoutedTranslation(provider, Metadata(provider.Metadata, route)) : provider;
     }
     public static IOcrProvider Ocr(HttpClient client, ISecretStore secrets, AppSettings settings, ProviderRegistry providers)
     {
         var route = ConfigurationRouting.Resolve(settings, ModelTasks.Ocr);
         if (route.Settings.OcrProviderId != "local-vlm-ocr") return providers.GetOcrProvider(route.Settings.OcrProviderId);
-        var scoped = new ProfileSecretStore(secrets, route.CredentialRef);
+        var scoped = new ProfileSecretStore(secrets, Credential(route));
         var provider = new ChatCompatibleOcrProvider(client, scoped, () => route.Settings,
             new ChatCompatibleTranslationProvider(client, scoped, () => route.Settings));
         return route.IsExplicit ? new RoutedOcr(provider, Metadata(provider.Metadata, route)) : provider;
@@ -24,8 +24,9 @@ public static class ConfiguredProviders
     public static IImageAnalysisProvider Image(HttpClient client, ISecretStore secrets, AppSettings settings, CapturePurpose purpose)
     {
         var route = ConfigurationRouting.Resolve(settings, ModelTasks.ForPurpose(purpose));
-        return new ChatCompatibleImageAnalysisProvider(client, new ProfileSecretStore(secrets, route.CredentialRef), route.Settings);
+        return new ChatCompatibleImageAnalysisProvider(client, new ProfileSecretStore(secrets, Credential(route)), route.Settings);
     }
+    private static string Credential(ResolvedModelRoute route) => route.IsManaged ? "" : route.CredentialRef;
     private static ProviderMetadata Metadata(ProviderMetadata metadata, ResolvedModelRoute route) => metadata with
     {
         DisplayName = route.Label,

@@ -43,7 +43,9 @@ public sealed class JsonSettingsStore : ISettingsStore
                     TranslationProviderId = root.TryGetProperty("translationProviderId", out _) ? settings.TranslationProviderId : "local-argos"
                 };
             }
-            return ConfigurationMigration.Upgrade(settings.Normalize());
+            var upgraded = ConfigurationMigration.Upgrade(settings.Normalize());
+            upgraded.ModelConfiguration?.Validate();
+            return upgraded;
         }
         catch (Exception error) when (error is JsonException or FileNotFoundException or DirectoryNotFoundException)
         {

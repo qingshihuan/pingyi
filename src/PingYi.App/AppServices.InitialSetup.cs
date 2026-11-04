@@ -53,6 +53,7 @@ public sealed partial class AppServices
             {
                 OcrProviderId = "local-vlm-ocr", TranslationProviderId = "custom-chat",
                 CustomTranslationEndpoint = AppSettings.ManagedModelEndpoint, CustomTranslationModel = model.ModelAlias,
+                CustomTranslationApiProtocol = ModelApiProtocols.ChatCompletions,
                 ManagedModelPackageId = model.Id, ManagedRuntimeBackend = backend, ManagedRuntimeEnabled = true,
                 ManagedRuntimeDevice = device, RuntimeAllowMirrors = allowMirrors, RuntimeMirrorPrefixes = mirrorPrefixes,
                 InitialSetupCompleted = true
@@ -88,8 +89,10 @@ public sealed partial class AppServices
     {
         using var verification = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         verification.CancelAfter(TimeSpan.FromMinutes(4));
-        var translator = new ChatCompatibleTranslationProvider(_imageAnalysisClient, SecretStore, () => configured);
-        var ocr = new ChatCompatibleOcrProvider(_imageAnalysisClient, SecretStore, () => configured, translator);
+        // An owned loopback runtime never needs a cloud account credential.
+        var localSecrets = new ProfileSecretStore(SecretStore, "");
+        var translator = new ChatCompatibleTranslationProvider(_imageAnalysisClient, localSecrets, () => configured);
+        var ocr = new ChatCompatibleOcrProvider(_imageAnalysisClient, localSecrets, () => configured, translator);
         using var bitmap = new SKBitmap(360, 96);
         using (var canvas = new SKCanvas(bitmap))
         using (var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true })

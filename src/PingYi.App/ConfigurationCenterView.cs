@@ -46,6 +46,7 @@ internal sealed class ConfigurationCenterView : UserControl
     internal TextBox EndpointEditor => _endpoint;
     internal TextBox KeyEditor => _key;
     internal ComboBox ModelEditor => _model;
+    internal string StatusMessage => _status.Text ?? "";
 
     public ConfigurationCenterView()
     {
@@ -84,6 +85,8 @@ internal sealed class ConfigurationCenterView : UserControl
             var model = Field<ComboBox>("RouteModel-" + task); model.IsEditable = true;
             var fallback = new CheckBox { IsVisible = task is ModelTasks.Ocr or ModelTasks.Translation };
             Label(value => fallback.Content = value, "失败后允许轻量离线回退", "Allow lightweight offline fallback on failure");
+            Label(value => AutomationProperties.SetName(service, value), TaskName(task, false) + "服务", TaskName(task, true) + " service");
+            Label(value => AutomationProperties.SetName(model, value), TaskName(task, false) + "模型", TaskName(task, true) + " model");
             _routeControls[task] = (service, model, fallback);
             service.SelectionChanged += (_, _) => { if (!_loading) UpdateRouteModels(task, false); };
             var card = new StackPanel { Spacing = 7 };
@@ -116,6 +119,7 @@ internal sealed class ConfigurationCenterView : UserControl
         _endpoint.PropertyChanged += (_, e) => { if (!_loading && e.Property == TextBox.TextProperty) InvalidateIdentity(); };
         _protocol.SelectionChanged += (_, _) => { if (!_loading) InvalidateIdentity(); };
         _model.SelectionChanged += (_, _) => RefreshCapabilities();
+        _key.PropertyChanged += (_, e) => { if (!_loading && e.Property == TextBox.TextProperty) RefreshCapabilities(); };
         Load(new AppSettings());
     }
 
@@ -139,6 +143,7 @@ internal sealed class ConfigurationCenterView : UserControl
     }
     internal ModelConfiguration BuildDraft()
     {
+        if (_busy) throw new ProviderException("profile_operation_active", "请先完成或取消服务请求，再保存配置。 / Finish or cancel the service request before saving.");
         SaveEditor();
         var draft = _configuration with { Services = _profiles.ToArray(), Tasks = ReadRoutes() };
         draft.Validate();
@@ -151,8 +156,16 @@ internal sealed class ConfigurationCenterView : UserControl
     }
     internal void RefreshLanguage()
     {
-        foreach (var label in _labels) label.Set(T(label.Zh, label.En));
-        _summary.Text = T($"已保存 {_profiles.Count} 个独立服务。服务切换不覆盖其他账号。", $"{_profiles.Count} independent service profiles. Switching does not overwrite other accounts.");
+        var loading = _loading; _loading = true;
+        try
+        {
+            foreach (var label in _labels) label.Set(T(label.Zh, label.En));
+            _summary.Text = T($"服务档案：{_profiles.Count} 个。编辑不会覆盖其他账号，点击底部保存后生效。", $"Service profiles: {_profiles.Count}. Other accounts stay separate; edits take effect after saving below.");
+            _key.PlaceholderText = T("留空保留已保存密钥", "Leave blank to keep the saved key");
+            AutomationProperties.SetName(_services, T("选择服务档案", "Select service profile"));
+            RefreshRoutes(ReadRoutes());
+        }
+        finally { _loading = loading; }
         RefreshCapabilities();
     }
 
@@ -164,7 +177,7 @@ internal sealed class ConfigurationCenterView : UserControl
         catch (Exception e)
         {
             _loading = true; _services.SelectedItem = _editing; _loading = false;
-            Status(UiText.Error(e));
+            Status(SafeError(e));
         }
     }
     private void LoadEditor(ModelServiceProfile? profile)
@@ -197,8 +210,12 @@ internal sealed class ConfigurationCenterView : UserControl
         var endpoint = ModelServiceProfile.CanonicalEndpoint(_endpoint.Text ?? "");
         var protocol = (_protocol.SelectedItem as ApiProtocolChoice)?.Id ?? ModelApiProtocols.ChatCompletions;
         var identityChanged = endpoint != _editing.Endpoint || protocol != _editing.Protocol;
+        var keyChanged = _clearKey.IsChecked == true || !string.IsNullOrWhiteSpace(_key.Text);
+        var catalog = identityChanged ? [] : keyChanged
+            ? _editing.Models.Select(m => m with { TextVerified = false, VisionVerified = false }).ToArray()
+            : _editing.Models;
         var updated = _editing with { Name = _name.Text?.Trim() ?? "", Endpoint = endpoint,
-            Protocol = protocol, DefaultModel = _model.Text?.Trim() ?? "", Models = identityChanged ? [] : _editing.Models };
+            Protocol = protocol, DefaultModel = _model.Text?.Trim() ?? "", Models = catalog };
         updated.Validate();
         if (_clearKey.IsChecked == true) _pendingKeys[updated.CredentialRef] = "";
         else if (!string.IsNullOrWhiteSpace(_key.Text)) _pendingKeys[updated.CredentialRef] = _key.Text.Trim();
@@ -206,6 +223,17 @@ internal sealed class ConfigurationCenterView : UserControl
         var index = _profiles.FindIndex(p => p.Id == updated.Id);
         if (index >= 0) _profiles[index] = updated;
         _editing = updated;
+        // Refresh renamed choices without losing either the target service selection or unsaved task overrides.
+        var selectedId = (_services.SelectedItem as ModelServiceProfile)?.Id;
+        var routes = ReadRoutes(); var loading = _loading; _loading = true;
+        try
+        {
+            _services.ItemsSource = _profiles.ToArray();
+            _services.SelectedItem = _profiles.FirstOrDefault(p => p.Id == selectedId);
+            RefreshRoutes(routes);
+        }
+        finally { _loading = loading; }
+        RefreshCapabilities();
     }
     private void AddService()
     {
@@ -288,7 +316,7 @@ internal sealed class ConfigurationCenterView : UserControl
     }
     private void RefreshCapabilities()
     {
-        var entry = _editing?.Models.FirstOrDefault(m => m.Id == _model.Text);
+        var entry = !string.IsNullOrWhiteSpace(_key.Text) || _clearKey.IsChecked == true ? null : _editing?.Models.FirstOrDefault(m => m.Id == _model.Text);
         _capabilities.Text = T("文字能力：", "Text: ") + (entry?.TextVerified == true ? T("已测试", "tested") : T("未验证", "unverified")) +
             "  ·  " + T("图片能力：", "Vision: ") + (entry?.VisionVerified == true ? T("已测试", "tested") : T("未验证", "unverified"));
     }
@@ -304,7 +332,7 @@ internal sealed class ConfigurationCenterView : UserControl
             Status(T("正在请求所选服务；配置尚未保存。", "Requesting the selected service; configuration is not saved yet."));
             if (vision is null)
             {
-                if (Discover is null) throw new InvalidOperationException(T("请在运行的软件中获取模型。", "Model discovery requires the running application."));
+                if (Discover is null) throw new InvalidOperationException();
                 var ids = await Discover(profile, draftKey, _request.Token);
                 if (_closed) return;
                 profile = profile with { Models = ids.Select(id => profile.Models.FirstOrDefault(m => m.Id == id) ?? new ModelCatalogEntry(id)).ToArray() };
@@ -312,7 +340,7 @@ internal sealed class ConfigurationCenterView : UserControl
             }
             else
             {
-                if (Verify is null) throw new InvalidOperationException(T("请在运行的软件中测试模型。", "Model testing requires the running application."));
+                if (Verify is null) throw new InvalidOperationException();
                 var entry = await Verify(profile, profile.DefaultModel, draftKey, vision.Value, _request.Token);
                 if (_closed) return;
                 profile = profile with { Models = profile.Models.Where(m => m.Id != entry.Id).Append(entry).ToArray() };
@@ -322,7 +350,7 @@ internal sealed class ConfigurationCenterView : UserControl
             ResetServiceChoices(profile.Id);
         }
         catch (OperationCanceledException) { if (!_closed) Status(T("请求已取消或超时，可手动填写模型 ID。", "Request cancelled or timed out; manual model IDs remain available.")); }
-        catch (Exception e) { if (!_closed) Status(UiText.Error(e)); }
+        catch (Exception e) { if (!_closed) Status(SafeError(e)); }
         finally { _request?.Dispose(); _request = null; SetBusy(false); }
     }
     private void SetBusy(bool busy)
@@ -330,7 +358,10 @@ internal sealed class ConfigurationCenterView : UserControl
         _busy = busy; _editor.IsEnabled = _services.IsEnabled = _add.IsEnabled = _delete.IsEnabled = !busy;
         _cancel.IsVisible = busy;
     }
-    private void Sync(Action action) { try { action(); } catch (Exception e) { Status(UiText.Error(e)); } }
+    private void Sync(Action action) { if (_busy) return; try { action(); } catch (Exception e) { Status(SafeError(e)); } }
+    private static string SafeError(Exception error) => error is ProviderException authored
+        ? UiText.Error(authored)
+        : T("操作未完成，请检查服务地址、密钥、网络和协议；可手动输入模型 ID。未显示原始错误内容。", "Operation failed. Check the service URL, key, network and protocol; manual model IDs remain available. Raw error details are not displayed.");
     private void Status(string text) => _status.Text = text;
     private static string T(string zh, string en) => UiText.IsEnglish ? en : zh;
     private static string TaskName(string task, bool en) => task switch
@@ -346,7 +377,11 @@ internal sealed class ConfigurationCenterView : UserControl
         var text = new TextBlock { TextWrapping = TextWrapping.Wrap, FontWeight = heading ? FontWeight.SemiBold : FontWeight.Normal };
         Label(value => text.Text = value, zh, en); return text;
     }
-    private StackPanel Group(string zh, string en, Control control) => new() { Spacing = 5, Children = { Text(zh, en, true), control } };
+    private StackPanel Group(string zh, string en, Control control)
+    {
+        Label(value => AutomationProperties.SetName(control, value), zh, en);
+        return new() { Spacing = 5, Children = { Text(zh, en, true), control } };
+    }
     private Button Button(string zh, string en, EventHandler<RoutedEventArgs> click)
     {
         var button = new Button { Margin = new Thickness(0, 0, 8, 6), HorizontalAlignment = HorizontalAlignment.Left };

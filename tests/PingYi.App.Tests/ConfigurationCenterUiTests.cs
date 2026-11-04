@@ -23,7 +23,9 @@ public sealed class ConfigurationCenterUiTests
         { Ocr = new(A.Id), Translation = new(B.Id), Description = new(B.Id, "example-vision", false), Prompt = new(A.Id, "local-vision", false) } } };
     private static void Flush(Window window) { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-    private static Button FindButton(Control view, string content) => view.GetLogicalDescendants().OfType<Button>().Single(b => Equals(b.Content, content));
+    // A TabControl can expose the same control through Items and selected content. Count instances, not traversal paths.
+    private static IEnumerable<T> Controls<T>(Control view) where T : Control => view.GetLogicalDescendants().OfType<T>().Distinct();
+    private static Button FindButton(Control view, string content) => Controls<Button>(view).Single(b => Equals(b.Content, content));
 
     [AvaloniaFact]
     public void Loading_navigating_and_changing_language_never_send_requests_or_discard_drafts()
@@ -94,7 +96,7 @@ public sealed class ConfigurationCenterUiTests
             var draft = view.BuildDraft();
             Assert.Equal(2, draft.Services[0].Models.Length);
             Assert.All(draft.Services[0].Models, m => { Assert.False(m.TextVerified); Assert.False(m.VisionVerified); });
-            Assert.Equal("local-vision", view.ModelEditor.Text); // Do not silently choose a new paid model.
+            Assert.Equal("local-vision", view.ModelEditor.Text);
             Assert.Single(Sample.ModelConfiguration!.Services[0].Models);
         }
         finally { window.Close(); }
@@ -132,11 +134,11 @@ public sealed class ConfigurationCenterUiTests
             window.Show(); Flush(window);
             Click(FindButton(view, "删除服务")); Click(FindButton(view, "删除服务"));
             Assert.Equal(2, view.BuildDraft().Services.Length);
-            var tabs = view.GetLogicalDescendants().OfType<TabControl>().Single();
+            var tabs = Controls<TabControl>(view).Single();
             tabs.SelectedIndex = 1; Flush(window);
-            var service = view.GetLogicalDescendants().OfType<ComboBox>().Single(c => c.Name == "RouteService-translation");
+            var service = Controls<ComboBox>(view).Single(c => c.Name == "RouteService-translation");
             service.SelectedItem = service.Items.Cast<object>().Single(i => i.ToString() == A.Name);
-            var model = view.GetLogicalDescendants().OfType<ComboBox>().Single(c => c.Name == "RouteModel-translation");
+            var model = Controls<ComboBox>(view).Single(c => c.Name == "RouteModel-translation");
             model.Text = "local-text-override";
             var draft = view.BuildDraft();
             Assert.Equal(A.Id, draft.Tasks.Translation.ServiceId);
@@ -159,6 +161,19 @@ public sealed class ConfigurationCenterUiTests
         setup.Close();
     }
 
+    [Fact]
+    public void Homepage_readiness_tracks_the_actual_task_route_without_claiming_online_verification()
+    {
+        var snapshot = RuntimeStatusSnapshot.Unknown with { Settings = Sample, PaddleReady = true, ArgosReady = true,
+            Basic = new(ModeReadinessState.Available, "basic-running") };
+        Assert.Equal(ModeReadinessState.Unverified, MainWindow.TaskReadiness(snapshot, ModelTasks.Translation).State);
+        Assert.Equal(ModeReadinessState.Unverified, MainWindow.TaskReadiness(snapshot, ModelTasks.Ocr).State);
+        Assert.True(ModeReadinessPolicy.HasRemoteEndpoint(Sample));
+        var broken = Sample with { ModelConfiguration = Sample.ModelConfiguration! with { Tasks = new() { Translation = new("missing") } } };
+        Assert.Equal(ModeReadinessState.NeedsAttention,
+            MainWindow.TaskReadiness(snapshot with { Settings = broken }, ModelTasks.Translation).State);
+    }
+
     [AvaloniaTheory]
     [InlineData(1040, "zh-CN", false)] [InlineData(1040, "en-US", true)]
     [InlineData(800, "zh-CN", true)] [InlineData(800, "en-US", false)]
@@ -176,7 +191,7 @@ public sealed class ConfigurationCenterUiTests
             var point = save.TranslatePoint(default, window);
             Assert.NotNull(point); Assert.True(point.Value.Y >= 0 && point.Value.Y + save.Bounds.Height <= window.ClientSize.Height + 1);
             var directory = Environment.GetEnvironmentVariable("PINGYI_UI_ARTIFACTS");
-            var tabs = window.ConfigurationCenter.GetLogicalDescendants().OfType<TabControl>().Single();
+            var tabs = Controls<TabControl>(window.ConfigurationCenter).Single();
             for (var page = 0; page < 3; page++)
             {
                 tabs.SelectedIndex = page; Flush(window);

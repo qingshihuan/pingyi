@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using PingYi.Core;
 
 namespace PingYi.Infrastructure;
@@ -5,14 +6,27 @@ namespace PingYi.Infrastructure;
 /// <summary>Read-only capability: a model client can read only the key for its frozen route.</summary>
 public sealed class ProfileSecretStore(ISecretStore inner, string credentialRef, string? draftKey = null) : ISecretStore
 {
-    public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (key != SecretKeys.CustomTranslationApiKey || string.IsNullOrEmpty(credentialRef)) return Task.FromResult<string?>(null);
-        return draftKey is not null ? Task.FromResult<string?>(draftKey) : inner.GetAsync(credentialRef, cancellationToken);
+        if (key != SecretKeys.CustomTranslationApiKey || string.IsNullOrEmpty(credentialRef)) return null;
+        var value = draftKey ?? await inner.GetAsync(credentialRef, cancellationToken);
+        return ValidateKey(value);
     }
     public Task SetAsync(string key, string value, CancellationToken cancellationToken = default) => throw new NotSupportedException("Read-only route credentials.");
     public Task DeleteAsync(string key, CancellationToken cancellationToken = default) => throw new NotSupportedException("Read-only route credentials.");
+
+    public static string? ValidateKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Length > 8192 || value.Any(char.IsControl)) throw InvalidKey();
+        value = value.Trim();
+        try { _ = new AuthenticationHeaderValue("Bearer", value); }
+        catch (FormatException) { throw InvalidKey(); }
+        return value;
+    }
+    private static ProviderException InvalidKey() => new("profile_key_invalid",
+        "API Key 格式无效，请重新输入，勿包含换行或控制字符。 / Invalid API key format; remove line breaks and control characters.");
 }
 
 public static class ConfigurationSecrets
@@ -29,7 +43,7 @@ public static class ConfigurationSecrets
             var existing = await store.GetAsync(imported.CredentialRef, token);
             if (string.IsNullOrEmpty(existing))
             {
-                var legacy = await store.GetAsync(SecretKeys.CustomTranslationApiKey, token);
+                var legacy = ProfileSecretStore.ValidateKey(await store.GetAsync(SecretKeys.CustomTranslationApiKey, token));
                 if (!string.IsNullOrEmpty(legacy)) await store.SetAsync(imported.CredentialRef, legacy, token);
             }
         }
@@ -46,7 +60,7 @@ public static class ConfigurationSecrets
         if (editedKeys.Keys.Any(key => !liveRefs.Contains(key)))
             throw new ProviderException("profile_secret_scope", "密钥写入不属于当前服务配置。 / Credential write is outside the configured services.");
         var writes = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var pair in editedKeys) writes[pair.Key] = string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value.Trim();
+        foreach (var pair in editedKeys) writes[pair.Key] = ProfileSecretStore.ValidateKey(pair.Value);
         foreach (var profile in before.ModelConfiguration?.Services ?? [])
             if (!liveRefs.Contains(profile.CredentialRef)) writes[profile.CredentialRef] = null;
         var restore = new Dictionary<string, string?>(StringComparer.Ordinal);
