@@ -26,7 +26,8 @@ public partial class CaptureOverlayWindow : Window
     internal CaptureOverlayWindow(
         ImageFrame capture,
         double preferredScaling,
-        CaptureOverlaySession? session)
+        CaptureOverlaySession? session,
+        long captureStartedAt = 0)
     {
         _capture = capture;
         _preferredScaling = preferredScaling > 0 ? preferredScaling : 1;
@@ -47,6 +48,8 @@ public partial class CaptureOverlayWindow : Window
             Height = capture.Height / scale;
             Position = new PixelPoint(capture.DesktopBounds.X, capture.DesktopBounds.Y);
             _session?.Refresh(this);
+            if (captureStartedAt != 0)
+                CapturePerformance.Log("overlay_window_opened", captureStartedAt);
             Activate();
             Focus();
         };
@@ -209,7 +212,8 @@ public partial class CaptureOverlayWindow : Window
 internal sealed class CaptureOverlaySession(
     ImageFrame desktop,
     IReadOnlyList<CaptureDisplay> displays,
-    IImageCropper imageCropper)
+    IImageCropper imageCropper,
+    long captureStartedAt = 0)
 {
     private readonly TaskCompletionSource<CorePixelRect?> _completion =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -252,7 +256,7 @@ internal sealed class CaptureOverlaySession(
                 displayCapture,
                 desktop.DesktopBounds);
             var image = imageCropper.Crop(desktop, relativeCapture);
-            _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this));
+            _windows.Add(new CaptureOverlayWindow(image, display.Scaling, this, captureStartedAt));
         }
 
         if (_windows.Count == 0)
