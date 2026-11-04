@@ -36,7 +36,6 @@ internal sealed partial class ConfigurationCenterView : UserControl
     internal ModelConfiguration? Baseline { get; private set; }
     internal Func<ModelServiceProfile, string?, CancellationToken, Task<IReadOnlyList<string>>>? Discover { get; set; }
     internal Func<ModelServiceProfile, string, string?, bool, CancellationToken, Task<ModelCatalogEntry>>? Verify { get; set; }
-    private readonly bool _local;
     internal Task OperationTask { get; private set; } = Task.CompletedTask;
     internal IReadOnlyDictionary<string, string> PendingKeys => _pendingKeys;
     internal ComboBox ProfileSelector => _services;
@@ -45,14 +44,13 @@ internal sealed partial class ConfigurationCenterView : UserControl
     internal ComboBox ModelEditor => _model;
     internal string StatusMessage => _status.Text ?? "";
 
-    public ConfigurationCenterView(bool local = false)
+    public ConfigurationCenterView()
     {
-        _local = local;
         _model.IsEditable = true;
         _key.PasswordChar = '●';
         _key.PlaceholderText = T("留空保留已保存密钥", "Leave blank to keep the saved key");
         _protocol.ItemsSource = ApiProtocolChoices.All;
-        _preset.ItemsSource = local ? LocalLlmPresets.All.Cast<object>().ToArray() : ThirdPartyApiPresets.All.Cast<object>().ToArray();
+        _preset.ItemsSource = LocalLlmPresets.All.Cast<object>().Concat(ThirdPartyApiPresets.All).ToArray();
         _add = Button("添加服务", "Add service", (_, _) => Sync(AddService));
         _delete = Button("删除服务", "Remove service", (_, _) => Sync(RemoveService));
         var apply = Button("填入预设", "Use preset", (_, _) => Sync(ApplyPreset));
@@ -65,7 +63,7 @@ internal sealed partial class ConfigurationCenterView : UserControl
         _editor.Children.Add(Group("服务名称", "Service name", _name));
         _editor.Children.Add(Group("地址预设（不绑定账号）", "Endpoint preset (not an account)", _preset));
         _editor.Children.Add(apply);
-        _editor.Children.Add(Group(local ? "本机服务地址" : "云端 API 地址", local ? "Local service URL" : "Cloud API URL", _endpoint));
+        _editor.Children.Add(Group("API 服务地址（本地或云端）", "API service URL (local or cloud)", _endpoint));
         _editor.Children.Add(Group("接口协议", "API protocol", _protocol));
         _editor.Children.Add(Group("此服务的 API Key", "API key for this service", _key));
         _editor.Children.Add(_clearKey);
@@ -96,7 +94,7 @@ internal sealed partial class ConfigurationCenterView : UserControl
         {
             Baseline = settings.ModelConfiguration;
             _configuration = ConfigurationMigration.Upgrade(settings).ModelConfiguration!;
-            _profiles.Clear(); _profiles.AddRange(_local ? _configuration.LocalServices : _configuration.Services);
+            _profiles.Clear(); _profiles.AddRange(_configuration.AllServices);
             _pendingKeys.Clear(); _editing = null;
             _services.ItemsSource = _profiles.ToArray();
             _services.SelectedItem = _profiles.FirstOrDefault();
@@ -110,8 +108,12 @@ internal sealed partial class ConfigurationCenterView : UserControl
     {
         if (_busy) throw new ProviderException("profile_operation_active", "请先完成或取消服务请求，再保存配置。 / Finish or cancel the service request before saving.");
         SaveEditor();
-        var draft = _local ? _configuration with { LocalServices = _profiles.ToArray() }
-            : _configuration with { Services = _profiles.ToArray() };
+        // Preserve schema 16 and credential references; only the editor is unified.
+        var draft = _configuration with
+        {
+            Services = _profiles.Where(p => p.IsRemote).ToArray(),
+            LocalServices = _profiles.Where(p => !p.IsRemote).ToArray()
+        };
         (draft with { CurrentModel = null }).Validate();
         return draft;
     }
@@ -174,24 +176,22 @@ internal sealed partial class ConfigurationCenterView : UserControl
         if (_editing is null) return;
         var endpoint = ModelServiceProfile.CanonicalEndpoint(_endpoint.Text ?? "");
         var protocol = (_protocol.SelectedItem as ApiProtocolChoice)?.Id ?? ModelApiProtocols.ChatCompletions;
-        var identityChanged = endpoint != _editing.Endpoint || protocol != _editing.Protocol;
+        var identityChanged = endpoint != ModelServiceProfile.CanonicalEndpoint(_editing.Endpoint) || protocol != _editing.Protocol;
         var keyChanged = _clearKey.IsChecked == true || !string.IsNullOrWhiteSpace(_key.Text);
         var catalog = identityChanged ? [] : keyChanged
             ? _editing.Models.Select(m => m with { TextVerified = false, VisionVerified = false }).ToArray()
             : _editing.Models;
         var updated = _editing with { Name = _name.Text?.Trim() ?? "", Endpoint = endpoint,
             Protocol = protocol, DefaultModel = _model.Text?.Trim() ?? "", Models = catalog,
-            Backend = _local ? LocalLlmPresets.MatchEndpoint(endpoint)?.Id ?? "openai-compatible" : "openai-compatible" };
+            Backend = new Uri(endpoint).IsLoopback ? LocalLlmPresets.MatchEndpoint(endpoint)?.Id ?? "openai-compatible" : "openai-compatible" };
         updated.Validate();
-        if (updated.IsRemote == _local)
-            throw new ProviderException("service_location_invalid", T("请在云端 API 页管理远程地址，在本地模型页管理回环地址。", "Use Cloud APIs for remote URLs and Local models for loopback URLs."));
         if (_clearKey.IsChecked == true) _pendingKeys[updated.CredentialRef] = "";
         else if (!string.IsNullOrWhiteSpace(_key.Text)) _pendingKeys[updated.CredentialRef] = _key.Text.Trim();
         _key.Text = ""; _clearKey.IsChecked = false;
         var index = _profiles.FindIndex(p => p.Id == updated.Id);
         if (index >= 0) _profiles[index] = updated;
         _editing = updated;
-        // Refresh renamed choices without losing either the target service selection or unsaved task overrides.
+        // Refresh renamed choices without losing the selected service or pending keys.
         var selectedId = (_services.SelectedItem as ModelServiceProfile)?.Id;
         var loading = _loading; _loading = true;
         try
@@ -207,8 +207,8 @@ internal sealed partial class ConfigurationCenterView : UserControl
         SaveEditor();
         if (_profiles.Count >= 32) throw new ProviderException("profile_limit", "服务数量上限为 32。 / At most 32 services are supported.");
         var profile = new ModelServiceProfile { Name = T("新服务", "New service") + " " + (_profiles.Count + 1),
-            Endpoint = _local ? AppSettings.DefaultCustomTranslationEndpoint : "https://api.openai.com/v1/chat/completions",
-            Protocol = _local ? ModelApiProtocols.ChatCompletions : ModelApiProtocols.Responses };
+            Endpoint = "https://api.openai.com/v1/chat/completions",
+            Protocol = ModelApiProtocols.Responses };
         _profiles.Add(profile); ResetServiceChoices(profile.Id);
     }
     private void RemoveService()

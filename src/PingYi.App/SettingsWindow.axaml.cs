@@ -19,7 +19,6 @@ public partial class SettingsWindow : Window
     private Uri? _latestReleasePage;
     private ModelConfiguration? _baselineConfiguration;
     internal ConfigurationCenterView ConfigurationCenter { get; } = new();
-    internal ConfigurationCenterView LocalModelEditor { get; } = new(local: true);
     private sealed record CurrentChoice(ModelSelection? Selection, string Label)
     { public override string ToString() => Label; }
     private sealed record LanguageChoice(string Code, string Name)
@@ -29,8 +28,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         UiText.Attach(this);
-        CloudEditorHost.Content = ConfigurationCenter;
-        LocalEditorHost.Content = LocalModelEditor;
+        ApiEditorHost.Content = ConfigurationCenter;
         InitializeLinuxHelp();
         InitializeRuntimeStatusPage();
         InitializeLanguageSelection();
@@ -44,7 +42,7 @@ public partial class SettingsWindow : Window
         Closed += (_, _) =>
         {
             UiText.LanguageChanged -= OnLanguageChanged;
-            ConfigurationCenter.Cancel(); LocalModelEditor.Cancel(); _managedModelOperation?.Cancel();
+            ConfigurationCenter.Cancel(); _managedModelOperation?.Cancel();
             foreach (var button in _buttonFeedbackResetTokens.Keys.ToArray()) CancelButtonFeedbackReset(button);
         };
         RefreshWindowTitle(); RefreshSettingsLanguage();
@@ -53,8 +51,8 @@ public partial class SettingsWindow : Window
     {
         _services = services;
         _persistLanguage = services.SaveUiLanguageAsync;
-        foreach (var editor in new[] { ConfigurationCenter, LocalModelEditor })
-        { editor.Discover = services.DiscoverProfileModelsAsync; editor.Verify = services.TestProfileModelAsync; }
+        ConfigurationCenter.Discover = services.DiscoverProfileModelsAsync;
+        ConfigurationCenter.Verify = services.TestProfileModelAsync;
         LoadSettings(services.Settings);
         InitializeRuntimeHardware();
         if (services.ConfigurationCredentialWarning is { } warning) SetGlobalStatus(warning, true);
@@ -72,7 +70,7 @@ public partial class SettingsWindow : Window
         try
         {
             _baselineConfiguration = settings.ModelConfiguration;
-            ConfigurationCenter.Load(settings); LocalModelEditor.Load(settings);
+            ConfigurationCenter.Load(settings);
             _selectedLanguage = settings.UiLanguage; InitializeLanguageSelection();
             HotkeyBox.Text = settings.Hotkey;
             StartMinimizedCheckBox.IsChecked = settings.StartMinimized;
@@ -91,11 +89,10 @@ public partial class SettingsWindow : Window
     }
     internal ModelConfiguration BuildModelConfiguration()
     {
-        var cloud = ConfigurationCenter.BuildDraft();
-        var local = LocalModelEditor.BuildDraft();
+        var api = ConfigurationCenter.BuildDraft();
         var config = (_baselineConfiguration ?? new()) with
         {
-            Services = cloud.Services, LocalServices = local.LocalServices,
+            Services = api.Services, LocalServices = api.LocalServices,
             CurrentModel = (CurrentModelCombo.SelectedItem as CurrentChoice)?.Selection
         };
         config.Validate();
@@ -104,9 +101,9 @@ public partial class SettingsWindow : Window
     private void RefreshCurrentModels(ModelSelection? preferred = null)
     {
         var selection = preferred ?? (CurrentModelCombo.SelectedItem as CurrentChoice)?.Selection;
-        var cloud = ConfigurationCenter.BuildDraft(); var local = LocalModelEditor.BuildDraft();
+        var api = ConfigurationCenter.BuildDraft();
         var choices = new List<CurrentChoice> { new(null, CaptureUiText.Pick("尚未选择模型", "No model selected")) };
-        foreach (var profile in cloud.Services.Concat(local.LocalServices))
+        foreach (var profile in api.AllServices)
             foreach (var entry in profile.Models.Where(m => m.TextVerified && m.VisionVerified))
                 choices.Add(new(new(profile.Id, entry.Id), profile.Name + " · " + entry.Id));
         var config = _services?.Settings.ModelConfiguration ?? _baselineConfiguration;
@@ -139,7 +136,7 @@ public partial class SettingsWindow : Window
             var previous = _services.Settings;
             var updated = BuildSettingsFromForm();
             _ = GlobalHotkeyGesture.Parse(updated.Hotkey);
-            var keys = ConfigurationCenter.PendingKeys.Concat(LocalModelEditor.PendingKeys).ToDictionary(p => p.Key, p => p.Value);
+            var keys = new Dictionary<string, string>(ConfigurationCenter.PendingKeys, StringComparer.Ordinal);
             var changed = !string.Equals(previous.Hotkey, updated.Hotkey, StringComparison.OrdinalIgnoreCase);
             if (changed) await SwitchHotkeyAsync(previous.Hotkey, updated.Hotkey);
             try { await _services.SaveConfigurationAsync(updated, keys, _baselineConfiguration); }

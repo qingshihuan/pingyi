@@ -16,7 +16,7 @@ class WorkspaceStructureTests(unittest.TestCase):
         self.home = ET.parse(APP / 'MainWindow.axaml').getroot()
 
     def test_settings_retains_backing_code_controls(self):
-        expected = '''CurrentModelCombo CloudEditorHost LocalEditorHost ManagedModelCombo ManagedRuntimeBackendCombo HotkeyBox UiLanguageCombo SaveSettingsButton GlobalStatusText RuntimeStatusPage'''.split()
+        expected = '''CurrentModelCombo ApiEditorHost ManagedModelCombo ManagedRuntimeBackendCombo HotkeyBox UiLanguageCombo SaveSettingsButton GlobalStatusText RuntimeStatusPage'''.split()
         actual = {n.get(NAME) for n in self.settings.iter()}
         self.assertEqual(set(expected) - actual, set())
 

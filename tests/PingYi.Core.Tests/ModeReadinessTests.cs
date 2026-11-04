@@ -16,6 +16,14 @@ public sealed class ModeReadinessTests
         Assert.Equal(state, ModeReadinessPolicy.Basic(new(configured, managed, files, runtime, running, connected)).State);
 
     [Fact]
+    public void External_local_api_is_an_api_profile_and_does_not_claim_built_in_deployment()
+    {
+        var settings = new AppSettings { ModelConfiguration = new() { LocalServices = [new()] } };
+        Assert.True(ModeReadinessPolicy.HasApiConfiguration(settings));
+        Assert.False(ModeReadinessPolicy.HasLocalConfiguration(settings));
+    }
+
+    [Fact]
     public void Pending_states_are_not_green()
     {
         foreach (var state in new[] { ModeReadinessState.Unknown, ModeReadinessState.Unconfigured,

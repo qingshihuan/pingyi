@@ -15,7 +15,7 @@ internal static class ModeStatusText
     {
         "current" => Pick("当前模型", "Current model"),
         "basic" => Pick("本地模型", "Local models"),
-        "cloud" => Pick("云端 API", "Cloud APIs"),
+        "api" => Pick("API 模型", "API models"),
         _ => id
     };
     internal static string Badge(ModeReadiness state) => state.State switch
@@ -36,10 +36,10 @@ internal static class ModeStatusText
         "runtime-missing" => Pick("所选运行后端尚未安装，请在本地模型中管理后端。", "The selected runtime is not installed. Manage runtimes in Local models."),
         "basic-running" => Pick("已配置的托管模型服务正在运行；状态检查不进行额外推理。", "The configured managed model is running. Status checks do not perform extra inference."),
         "basic-on-demand" => Pick("本机模型与后端已配置，文件大小检查通过，当前未加载。截图时才校验并启动，不因刷新状态占用显存。", "Local model and runtime are configured and file sizes match; the model is not loaded. Capture verifies and starts it on demand. Refresh does not allocate model VRAM."),
-        "local-configured" => Pick("本机服务可连接；模型列表不代表视觉 OCR 已验证，请在本地模型管理中测试能力。", "The local service is reachable. Its model list does not verify vision OCR; test capabilities under Local models."),
+        "local-configured" => Pick("已保存本机 API 服务；请在 API 模型管理中测试文字和图片能力。", "A local API service is configured; test text and vision under API models."),
         "local-unreachable" => Pick("已保存本机服务配置，但当前无法连接，请启动服务或检查端口。", "A local service is configured but is not reachable. Start it or check its port."),
-        "cloud-unconfigured" => Pick("尚未保存云端模型服务；不影响本地功能。", "No cloud model services are configured. Local features are unaffected."),
-        "cloud-unverified" => Pick("已保存云端配置，但本次未联网验证凭据、额度或连通性。请在云端服务／自定义接口中主动验证。", "Cloud settings are present; credentials, quota and connectivity were not checked online. Verify explicitly in Cloud services or Custom endpoint."),
+        "api-unconfigured" => Pick("尚未保存 API 模型服务；不影响本地基础功能。", "No API model services are configured. Built-in local features are unaffected."),
+        "api-unverified" => Pick("已保存本地或云端 API 配置；本次未请求服务。请在 API 模型管理中主动测试。", "Local or cloud API settings are present; no service was contacted during this refresh. Test explicitly under API models."),
         _ => Pick("尚未检测；不会仅凭已选模式显示为可用。", "Not checked. Selecting a mode alone does not make it available.")
     };
 }
@@ -50,7 +50,7 @@ public sealed class ModeStatusCards : UserControl
     internal RuntimeStatusSnapshot Snapshot { get; private set; } = RuntimeStatusSnapshot.Unknown;
     public ModeStatusCards()
     {
-        Cards = [new("current"), new("basic"), new("cloud")];
+        Cards = [new("current"), new("basic"), new("api")];
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,*"), ColumnSpacing = 12 };
         for (var i = 0; i < Cards.Length; i++) { Grid.SetColumn(Cards[i], i); grid.Children.Add(Cards[i]); }
         Content = grid;
@@ -62,7 +62,7 @@ public sealed class ModeStatusCards : UserControl
     internal void SetSnapshot(RuntimeStatusSnapshot snapshot) { Snapshot = snapshot; Render(); }
     private void Render()
     {
-        Cards[0].SetState(Snapshot.Current); Cards[1].SetState(Snapshot.Basic); Cards[2].SetState(Snapshot.Cloud);
+        Cards[0].SetState(Snapshot.Current); Cards[1].SetState(Snapshot.Basic); Cards[2].SetState(Snapshot.Api);
     }
 }
 

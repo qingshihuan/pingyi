@@ -69,7 +69,7 @@ internal sealed class FirstRunSetupWindow : Window
         _models.SelectionChanged += (_, _) => UpdateDetails();
         DownloadButton.Content = CaptureUiText.Pick("下载、验证并使用本地模型", "Download, verify and use a local model");
         ExistingButton.Content = CaptureUiText.Pick("我已有本机模型服务", "Connect an existing local service");
-        ApiButton.Content = CaptureUiText.Pick("第三方 API · 无需下载本地模型", "Third-party API · no local model download");
+        ApiButton.Content = CaptureUiText.Pick("API 模型管理 · 本地或云端接口", "API models · local or cloud endpoints");
         CancelButton.Content = CaptureUiText.Pick("取消下载／启动", "Cancel download / startup");
         DownloadButton.Classes.Add("primary");
         foreach (var button in new[] { ExistingButton, ApiButton, CancelButton }) button.Classes.Add("secondary");
@@ -92,9 +92,9 @@ internal sealed class FirstRunSetupWindow : Window
                 Children =
                 {
                     new TextBlock { Text = Title, FontSize = 22, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-                    new TextBlock { Text = CaptureUiText.Pick("选择本地模型或云端 API。所有任务共用一个支持图片输入和文字输出的模型。先测试，再设为当前模型。", "Choose a local model or cloud API. All tasks share one model supporting images and text output. Test it before selecting it."), TextWrapping = TextWrapping.Wrap },
+                    new TextBlock { Text = CaptureUiText.Pick("使用软件基础功能部署本机模型，或在 API 模型管理中连接已有的本地／云端服务。所有任务共用一个支持图片输入和文字输出的当前模型。", "Use built-in deployment for a local model, or connect an existing local/cloud service under API models. All tasks share one current model supporting image input and text output."), TextWrapping = TextWrapping.Wrap },
                     ApiButton,
-                    new TextBlock { Text = CaptureUiText.Pick("本地多模态模型：识字与翻译", "Local multimodal model: recognition and translation"), FontWeight = FontWeight.SemiBold },
+                    new TextBlock { Text = CaptureUiText.Pick("基础功能 · 本机多模态模型", "Built-in local multimodal model"), FontWeight = FontWeight.SemiBold },
                     _models, _backends, _runtimeHost, _details,
                     new TextBlock { Text = CaptureUiText.Pick("仅点击下载按钮才会下载并校验权重；API 模式不需要本地权重。已安装模型继续复用，退出时可释放后端资源。", "Weights are downloaded and verified only after clicking Download. API mode needs no local weights. Installed models are reused; exiting can release backend resources."), TextWrapping = TextWrapping.Wrap },
                     DownloadButton, _progress, _status, CancelButton, ExistingButton

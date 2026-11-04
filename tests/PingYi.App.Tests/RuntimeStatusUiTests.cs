@@ -18,7 +18,7 @@ public sealed class RuntimeStatusUiTests
     {
         Current = new(ModeReadinessState.Unconfigured, "current-unconfigured"),
         Basic = new(ModeReadinessState.Unconfigured, "basic-unconfigured"),
-        Cloud = new(ModeReadinessState.Unconfigured, "cloud-unconfigured"),
+        Api = new(ModeReadinessState.Unconfigured, "api-unconfigured"),
         CheckedAt = DateTimeOffset.UtcNow
     };
     [AvaloniaTheory]
@@ -37,7 +37,7 @@ public sealed class RuntimeStatusUiTests
             home.FindControl<TextBlock>("LiveStatusDetailText")!.Text = WorkspaceText.Preview;
             home.UpdateLayout(); Dispatcher.UIThread.RunJobs();
             var cards = home.FindControl<ModeStatusCards>("ModeCards")!.Cards;
-            Assert.Equal(new[] { "current", "basic", "cloud" }, cards.Select(c => c.ModeId));
+            Assert.Equal(new[] { "current", "basic", "api" }, cards.Select(c => c.ModeId));
             Assert.Equal(ModeReadinessState.Unconfigured, cards[0].State.State);
             Assert.All(cards.Skip(1), card => Assert.Equal(ModeReadinessState.Unconfigured, card.State.State));
             Assert.Equal(Color.Parse("#D74750"), ((ISolidColorBrush)cards[0].Indicator.Background!).Color);
@@ -50,7 +50,7 @@ public sealed class RuntimeStatusUiTests
             }
             Save(home, $"status-home-{width}-{language}-{dark}");
             UiText.Configure(language == "zh-CN" ? "en-US" : "zh-CN");
-            Assert.Equal(language == "zh-CN" ? "Cloud APIs" : "云端 API", cards[2].TitleText.Text);
+            Assert.Equal(language == "zh-CN" ? "API models" : "API 模型", cards[2].TitleText.Text);
             Assert.Equal(ModeReadinessState.Unconfigured, cards[2].State.State);
         }
         finally { home.Close(); }

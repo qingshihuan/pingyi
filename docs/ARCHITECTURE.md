@@ -25,12 +25,12 @@ flowchart TD
 | Section | Responsibilities |
 | --- | --- |
 | Current model | One verified model for all tasks; translation language |
-| Cloud APIs | HTTPS services, per-service keys, protocol, catalogs and tests |
-| Local models | Loopback service connections; app-owned model download, runtime installation, GPU selection, start/stop and backend switching |
+| API models | Existing local and cloud services in one editor; per-service keys, protocols, catalogs and capability tests |
+| Local models | Built-in app-owned model download, runtime installation, GPU selection, start/stop and backend switching |
 | Hotkeys | Record/edit shortcut, conflict handling and platform guidance |
 | General | Interface language, startup and explicit update checks |
 
-`Services` contains cloud profiles; `LocalServices` contains loopback profiles. They share transport adapters but are edited separately. App-owned llama.cpp state is independent of cloud selection, so switching to a cloud model does not erase local installation preferences. External Ollama/LM Studio instances retain ownership of their processes and model lifecycle; the app only connects and tests them.
+`Services` contains cloud profiles; `LocalServices` contains loopback profiles. A single API model editor loads both collections and partitions them by endpoint when saving, retaining schema 16, service IDs and credential references. App-owned llama.cpp deployment is a separate built-in feature; switching to an API model does not erase local installation preferences. External Ollama/LM Studio instances retain ownership of their processes and model lifecycle; the app only connects and tests them. Status cards count external local services as API models, not app-owned deployments.
 
 ## Layers
 

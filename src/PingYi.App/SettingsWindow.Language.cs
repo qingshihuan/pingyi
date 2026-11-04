@@ -71,7 +71,7 @@ public partial class SettingsWindow
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
         RefreshWindowTitle(); RefreshSettingsLanguage(); InitializeLanguageSelection(); RefreshHotkeyEditor();
-        ConfigurationCenter.RefreshLanguage(); LocalModelEditor.RefreshLanguage();
+        ConfigurationCenter.RefreshLanguage();
         var selected = (TargetLanguageCombo.SelectedItem as LanguageChoice)?.Code ?? LanguageCatalog.AutoOpposite;
         LoadTargetLanguageChoices(selected);
         UpdateManagedModelDescription(); UpdateManagedRuntimeBackendDescription();
@@ -79,16 +79,18 @@ public partial class SettingsWindow
     private void RefreshSettingsLanguage()
     {
         CurrentModelSettingsTab.Header = CurrentModelTitle.Text = CaptureUiText.Pick("当前模型", "Current model");
-        CloudSettingsTab.Header = CaptureUiText.Pick("云端 API 管理", "Cloud APIs");
+        ApiSettingsTab.Header = CaptureUiText.Pick("API 模型管理", "API models");
         LocalSettingsTab.Header = CaptureUiText.Pick("本地模型管理", "Local models");
         HotkeySettingsTab.Header = CaptureUiText.Pick("快捷键", "Hotkeys");
         GeneralSettingsTab.Header = CaptureUiText.Pick("通用设置", "General");
-        CurrentModelHint.Text = CaptureUiText.Pick("截图识字、翻译、图片描述与提示词反推共用此模型。请先在云端 API 或本地模型管理中测试文字与图片能力。未验证和纯文本模型不能设为当前模型。",
-            "Recognition, translation, image description and prompt reconstruction share this model. Test text and image support under Cloud APIs or Local models first. Unverified and text-only models cannot be selected.");
+        CurrentModelHint.Text = CaptureUiText.Pick("截图识字、翻译、图片描述与提示词反推共用此模型。请先在 API 模型管理中测试接口模型，或在本地模型管理中下载并验证本机模型。未验证和纯文本模型不能设为当前模型。",
+            "Recognition, translation, image description and prompt reconstruction share this model. Test an endpoint under API models, or download and verify a model under Local models. Unverified and text-only models cannot be selected.");
         RefreshCurrentModelsButton.Content = CaptureUiText.Pick("刷新可用模型", "Refresh verified models");
         TargetLanguageLabel.Text = CaptureUiText.Pick("翻译目标语言", "Translation target language");
-        LocalModelHint.Text = CaptureUiText.Pick("连接已有的 Ollama、LM Studio 或兼容服务；也可在下方下载并管理本软件托管的模型与推理后端。外部服务的下载和启停由其自身应用管理。",
-            "Connect Ollama, LM Studio or a compatible local service, or download and manage an app-owned model and runtime below. External services manage their own downloads and lifecycle.");
+        ApiModelHint.Text = CaptureUiText.Pick("统一管理本地和云端 API 模型，包括 Ollama、LM Studio 与兼容接口。这里连接已有服务；模型下载、推理后端和显卡设置在“本地模型管理”中。",
+            "Manage local and cloud API models together, including Ollama, LM Studio and compatible endpoints. Connect existing services here; app-owned downloads, runtimes and GPUs are under Local models.");
+        LocalModelHint.Text = CaptureUiText.Pick("软件基础功能：下载并运行本机多模态模型，管理推理后端与显卡，无需云端 API。本地 API 服务调用请在“API 模型管理”中配置。",
+            "Built-in functionality: download and run a local multimodal model and manage its runtime and GPU, without a cloud API. Configure existing local API services under API models.");
         UiLanguageLabel.Text = CaptureUiText.Pick("界面语言", "Interface language");
         Avalonia.Automation.AutomationProperties.SetName(SaveSettingsButton, CaptureUiText.Pick("保存并应用", "Save and apply"));
         SaveSettingsButton.Content = CaptureUiText.Pick("保存并应用", "Save and apply");

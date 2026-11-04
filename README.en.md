@@ -14,12 +14,12 @@ PaddleOCR, Baidu Cloud OCR, Google Cloud Vision, traditional OCR configuration a
 
 ## Setup
 
-1. Open Settings → **Cloud APIs** to add an HTTPS compatible service, or **Local models** to connect a loopback service such as Ollama / LM Studio. Each service has a separate key and model catalog.
+1. Open Settings → **API models** to manage cloud HTTPS services and existing local API services such as Ollama / LM Studio in one list. Each service retains a separate key and model catalog.
 2. Fetch model IDs or enter one manually. Run **Test text** and **Test vision**. Tests send synthetic content only; a remote service may charge for them. The vision challenge is random and its answer appears only in the image.
 3. Select the verified model under **Current model**, then **Save and apply**. The same selection serves all model tasks.
-4. Alternatively, explicitly download and set up an app-owned model under **Local models**. Runtime installation, GPU selection, start/stop and backend switching are separate from cloud API credentials. External applications manage their own downloads and process lifecycle.
+4. **Local models** is the app's independent built-in functionality: download and run an app-owned multimodal model, manage runtimes and GPUs, and inspect runtime status without a cloud API. Existing local API connections belong under **API models**; external applications own their downloads and process lifecycle.
 
-Settings has five sections: **Current model, Cloud APIs, Local models, Hotkeys, General**. Loading settings or fetching a model list does not select a model or start inference. App-owned setup verifies both capabilities before making the model current.
+Settings has five sections: **Current model, API models, Local models, Hotkeys, General**. Local and cloud API profiles share one editor while retaining their IDs, capability evidence and credential references. Loading settings or fetching a model list does not select a model or start inference. App-owned setup verifies both capabilities before making the model current.
 
 ## Capture and privacy
 

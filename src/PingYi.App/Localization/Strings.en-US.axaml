@@ -65,7 +65,7 @@
   <x:String x:Key="Text.1f06472ae882">Google Translation credential: checking secure storage…</x:String>
   <x:String x:Key="Text.21a71618bad2">Checking the complete model package…</x:String>
   <x:String x:Key="Text.24cd2dadb9a2">Save all settings</x:String>
-  <x:String x:Key="Text.28137e0aafbe">Complete edition · One-click local multimodal model</x:String>
+  <x:String x:Key="Text.28137e0aafbe">Built-in local multimodal model</x:String>
   <x:String x:Key="Text.2888370272ee">Check processing engine status</x:String>
   <x:String x:Key="Text.2b153304b138">Test image</x:String>
   <x:String x:Key="Text.2cd0f3be8738">Cancel</x:String>

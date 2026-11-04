@@ -1,8 +1,8 @@
 # 云端 API 与本地兼容服务
 
-在云端 API 管理页新增 HTTPS 服务，填写服务名、地址、协议、模型 ID 和自己的 API Key。示例地址可使用 `https://api.example.com/v1`，密钥示例只能写 `YOUR_API_KEY`。不要将真实配置或密钥提交到仓库。
+在 API 模型管理页统一添加云端 HTTPS 服务和本地回环 API 服务，填写服务名、地址、协议、模型 ID 和自己的 API Key。示例地址可使用 `https://api.example.com/v1` 或 `http://127.0.0.1:11434/v1`，密钥示例只能写 `YOUR_API_KEY`。不要将真实配置或密钥提交到仓库。
 
-支持 OpenAI 兼容 Chat Completions 与 Responses。OpenAI 预设默认 Responses，其他预设默认 Chat Completions；具体服务是否实现所选协议，以实际测试为准。Responses 请求包含 `store: false`。本机回环服务使用 Chat Completions，必须在本地模型页管理。远程地址禁止 HTTP、URL 用户密码、查询参数和片段。
+支持 OpenAI 兼容 Chat Completions 与 Responses。OpenAI 预设默认 Responses，其他预设默认 Chat Completions；具体服务是否实现所选协议，以实际测试为准。Responses 请求包含 `store: false`。本机回环服务使用 Chat Completions，与云端服务在同一 API 页面管理。本地模型页专用于软件自带的模型部署、推理后端和显卡管理。远程地址禁止 HTTP、URL 用户密码、查询参数和片段。
 
 可以获取模型列表或手动填写 ID，但只有文字与图片测试都通过的模型才能设为当前模型。纯文本服务可以保留档案，不能用于当前截图识字/翻译组合。列表不等于账号拥有推理权限；图片识别成功也不是所有截图质量的保证。
 

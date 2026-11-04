@@ -6,7 +6,8 @@
 
 - Translation and screenshot recognition share a single current multimodal model. Image description and prompt reconstruction use the same selection.
 - Current models must have verified image-input and text-output capabilities. Text-only models and catalog-only entries cannot be selected.
-- Settings now has Current model, Cloud APIs, Local models, Hotkeys and General sections. Local deployment/runtime management is independent of cloud API credentials.
+- Settings now has Current model, API models, Local models, Hotkeys and General sections. API models combines existing local and cloud endpoints in one editor; Local models is the separate built-in deployment/runtime/GPU feature.
+- Preserve schema 16, service IDs, model capability evidence and scoped keys when combining the API editor. Existing local API services appear on the API status card rather than the built-in deployment card.
 - Vision capability checks use random synthetic images without putting the answer in the text prompt.
 - Schema 16 migrates services and preserves local keys, language and hotkeys. The first save creates a non-overwriting original-byte backup; ambiguous legacy task routes require selection. Old downloads and keys are not automatically deleted.
 - Retain existing local key storage. Ignore private config and backups; audit staged content, committed trees and unpacked releases without printing secret values.

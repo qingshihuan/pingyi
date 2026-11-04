@@ -117,7 +117,7 @@ public sealed record ModelConfiguration
             throw new ProviderException("configuration_invalid", "服务配置无效或标识重复。 / Invalid configuration or duplicate service IDs.");
         foreach (var service in AllServices) service.Validate();
         if (Services.Any(s => !s.IsRemote) || LocalServices.Any(s => s.IsRemote))
-            throw new ProviderException("service_location_invalid", "云端 API 和本机服务必须分别管理。 / Manage cloud APIs and local services separately.");
+            throw new ProviderException("service_location_invalid", "模型服务配置无效，请重新保存 API 模型设置。 / Invalid service configuration; save the API model settings again.");
         if (CurrentModel is not null) ValidateSelection(CurrentModel);
     }
 

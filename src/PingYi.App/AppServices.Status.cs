@@ -4,7 +4,7 @@ using PingYi.Infrastructure;
 namespace PingYi.App;
 
 internal sealed record RuntimeStatusSnapshot(AppSettings Settings, ModeReadiness Current,
-    ModeReadiness Basic, ModeReadiness Cloud, PassiveModelStatus? Model, InstalledRuntime? Runtime, DateTimeOffset? CheckedAt)
+    ModeReadiness Basic, ModeReadiness Api, PassiveModelStatus? Model, InstalledRuntime? Runtime, DateTimeOffset? CheckedAt)
 {
     public static RuntimeStatusSnapshot Unknown { get; } = new(new AppSettings(), ModeReadiness.Unknown,
         ModeReadiness.Unknown, ModeReadiness.Unknown, null, null, null);
@@ -31,8 +31,8 @@ public sealed partial class AppServices
             catch (Exception) { }
             var local = ModeReadinessPolicy.Basic(new(ModeReadinessPolicy.HasLocalConfiguration(settings),
                 RuntimePolicy.HasConfiguredManagedRuntime(settings), model.FilesPresent, runtime is not null, model.Running, null));
-            var cloud = new ModeReadiness(ModeReadinessPolicy.HasRemoteEndpoint(settings) ? ModeReadinessState.Unverified : ModeReadinessState.Unconfigured,
-                ModeReadinessPolicy.HasRemoteEndpoint(settings) ? "cloud-unverified" : "cloud-unconfigured");
+            var api = new ModeReadiness(ModeReadinessPolicy.HasApiConfiguration(settings) ? ModeReadinessState.Unverified : ModeReadinessState.Unconfigured,
+                ModeReadinessPolicy.HasApiConfiguration(settings) ? "api-unverified" : "api-unconfigured");
             ModeReadiness current;
             try
             {
@@ -40,7 +40,7 @@ public sealed partial class AppServices
                 current = route.IsManaged ? local : new(ModeReadinessState.Unverified, "current-tested");
             }
             catch (ProviderException) { current = new(ModeReadinessState.Unconfigured, "current-unconfigured"); }
-            var snapshot = new RuntimeStatusSnapshot(settings, current, local, cloud, model, runtime, DateTimeOffset.UtcNow);
+            var snapshot = new RuntimeStatusSnapshot(settings, current, local, api, model, runtime, DateTimeOffset.UtcNow);
             if (Settings == settings) _lastStatus = snapshot;
             return snapshot;
         }

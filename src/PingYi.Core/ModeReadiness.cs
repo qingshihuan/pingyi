@@ -24,7 +24,6 @@ public static class ModeReadinessPolicy
         return value.Running ? new(ModeReadinessState.Available, "basic-running")
             : new(ModeReadinessState.OnDemand, "basic-on-demand");
     }
-    public static bool HasRemoteEndpoint(AppSettings settings) => settings.ModelConfiguration?.Services.Length > 0;
-    public static bool HasLocalConfiguration(AppSettings settings) => RuntimePolicy.HasConfiguredManagedRuntime(settings) ||
-        settings.ModelConfiguration?.LocalServices.Length > 0;
+    public static bool HasApiConfiguration(AppSettings settings) => settings.ModelConfiguration?.AllServices.Any() == true;
+    public static bool HasLocalConfiguration(AppSettings settings) => RuntimePolicy.HasConfiguredManagedRuntime(settings);
 }

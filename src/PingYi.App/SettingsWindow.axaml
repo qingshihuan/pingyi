@@ -16,13 +16,15 @@
           <ComboBox x:Name="TargetLanguageCombo" Classes="workspace-field" AutomationProperties.Name="Translation target language"/>
         </StackPanel></ScrollViewer>
       </TabItem>
-      <TabItem x:Name="CloudSettingsTab" Header="云端 API 管理" Classes="workspace-tab">
-        <ScrollViewer><StackPanel Margin="24" Spacing="16"><ContentControl x:Name="CloudEditorHost"/></StackPanel></ScrollViewer>
+      <TabItem x:Name="ApiSettingsTab" Header="API 模型管理" Classes="workspace-tab">
+        <ScrollViewer><StackPanel Margin="24" Spacing="16">
+          <TextBlock x:Name="ApiModelHint" Classes="workspace-help" TextWrapping="Wrap"/>
+          <ContentControl x:Name="ApiEditorHost"/>
+        </StackPanel></ScrollViewer>
       </TabItem>
       <TabItem x:Name="LocalSettingsTab" Header="本地模型管理" Classes="workspace-tab">
         <ScrollViewer><StackPanel Margin="24" Spacing="16">
           <TextBlock x:Name="LocalModelHint" Classes="workspace-help" TextWrapping="Wrap"/>
-          <ContentControl x:Name="LocalEditorHost"/>
           <Expander x:Name="ManagedModelExpander" Header="{DynamicResource Text.28137e0aafbe}" IsExpanded="True" IsVisible="False">
               <StackPanel Spacing="14" Margin="0,14,0,0">
                 <StackPanel Spacing="6">

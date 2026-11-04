@@ -25,7 +25,7 @@ public partial class SettingsWindow
         if (_services is null || _managedModelOperation is not null || _runtimeHardware?.IsBusy == true || ManagedModelCombo.SelectedItem is not ManagedMultimodalModel model) return;
         try
         {
-            if (BuildSettingsFromForm() != (_services.Settings with { InitialSetupCompleted = true }) || ConfigurationCenter.PendingKeys.Count > 0 || LocalModelEditor.PendingKeys.Count > 0)
+            if (BuildSettingsFromForm() != (_services.Settings with { InitialSetupCompleted = true }) || ConfigurationCenter.PendingKeys.Count > 0)
             { SetGlobalStatus(CaptureUiText.Pick("请先保存模型与 API 编辑，再配置托管模型。", "Save model and API edits before configuring a managed model."), true); return; }
         }
         catch (Exception error) { SetGlobalStatus(UiText.Error(error), true); return; }

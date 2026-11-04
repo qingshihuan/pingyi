@@ -19,6 +19,8 @@ Release builds reject retired engines and NVIDIA CUDA/cuDNN/Torch binaries. Opti
 
 Model downloads use pinned ModelScope revisions, expected lengths and SHA-256 values from `ManagedMultimodalModels`. The UI presents each model's source, license and device guidance before downloading. Model weights and remote service credentials are not included in releases. Users should review the applicable model/service terms. Capability verification is not a quality, performance or legal-use guarantee.
 
+Built-in local deployment remains separate from API model management. The unified local/cloud API editor adds no bundled third-party runtime or new dependency; external services retain their own licenses and process ownership.
+
 ## Desktop integration
 
 Windows capture/hotkeys and DPAPI use operating-system APIs. Linux X11 uses the system libX11 (MIT/X11); Wayland capture uses system GLib/GIO/GObject (LGPL-2.1-or-later) and the public XDG screenshot portal. These system libraries and portal backends are not copied into the app package.

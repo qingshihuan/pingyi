@@ -38,7 +38,7 @@ public sealed class RuntimeStatusView : UserControl
     private void RenderHeader()
     {
         _title.Text = ModeStatusText.Pick("运行状态", "Runtime status");
-        _hint.Text = ModeStatusText.Pick("查看当前模型、本地后端和云端配置状态。", "Current model, local backend and cloud configuration status.");
+        _hint.Text = ModeStatusText.Pick("查看当前模型、本地后端和 API 模型配置状态。", "Current model, local backend and API model configuration status.");
         RefreshButton.Content = _busy ? ModeStatusText.Pick("正在检查…", "Checking…") : WorkspaceText.Refresh;
         RefreshButton.IsEnabled = !_busy;
         _checked.Text = _refreshError ? ModeStatusText.Pick("状态检查未完成。保留上次结果，请重试。", "Status check did not complete. Previous results are retained; retry.") : Snapshot.CheckedAt is { } date
@@ -52,15 +52,15 @@ public sealed class RuntimeStatusView : UserControl
         var entries = new Control[]
         {
             ModeDetail("current", Snapshot.Current, 0), ModeDetail("basic", Snapshot.Basic, 2),
-            ModeDetail("cloud", Snapshot.Cloud, 1), RuntimeDetail(), ModelDetail(), GpuDetail()
+            ModeDetail("api", Snapshot.Api, 1), RuntimeDetail(), ModelDetail(), GpuDetail()
         };
         for (var i = 0; i < entries.Length; i++) { Grid.SetColumn(entries[i], i % 2); Grid.SetRow(entries[i], i / 2); cards.Children.Add(entries[i]); }
         _details.Children.Add(cards);
         _details.Children.Add(new Border { Classes = { "workspace-inset" }, Child = new TextBlock
         {
             Classes = { "workspace-help" }, Text = ModeStatusText.Pick(
-                "绿色：本地可用或已配置按需加载；红色：未配置或需要处理；灰色：未检测／待验证。\n下载服务未联网测试，不显示虚假的“连接正常”。刷新不会下载、启动视觉模型、执行推理或更改处理方案。云端验证由用户在相应设置页主动执行。",
-                "Green: local readiness or configured on-demand loading. Red: not configured or needs attention. Gray: unknown or unverified.\nDownload connectivity has not been tested online. Refresh never downloads, starts a vision model, runs inference or changes your scheme. Cloud verification is an explicit action in its settings page.")
+                "绿色：本地可用或已配置按需加载；红色：未配置或需要处理；灰色：未检测／待验证。\n刷新不会下载、启动视觉模型、执行推理或更改处理方案。API 服务测试在“API 模型管理”中主动执行。",
+                "Green: local readiness or configured on-demand loading. Red: not configured or needs attention. Gray: unknown or unverified.\nRefresh never downloads, starts a vision model, runs inference or changes your scheme. Test API services explicitly under API models.")
         } });
     }
     private Control ModeDetail(string id, ModeReadiness readiness, int tab)

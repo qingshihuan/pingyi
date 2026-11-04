@@ -64,7 +64,7 @@ public sealed class RuntimeStatusInteractionTests
             home.Show();
             home.RenderRuntimeStatus(RuntimeStatusUiTests.SyntheticSnapshot() with
             {
-                Cloud = new(ModeReadinessState.Unverified, "cloud-unverified"),
+                Api = new(ModeReadinessState.Unverified, "api-unverified"),
                 Basic = new(ModeReadinessState.OnDemand, "basic-on-demand")
             });
             home.UpdateLayout(); Dispatcher.UIThread.RunJobs();

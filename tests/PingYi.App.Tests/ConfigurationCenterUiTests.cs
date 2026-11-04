@@ -44,8 +44,43 @@ public sealed class ConfigurationCenterUiTests
             Assert.Equal(local.Id, config.CurrentModel!.ServiceId);
             var settings = new AppSettings { ModelConfiguration = config };
             Assert.Single(ModelTasks.All.Select(task => ConfigurationRouting.Fingerprint(settings, task)).Distinct());
-            window.LocalModelEditor.EndpointEditor.Text = "https://remote.example/v1";
-            Assert.Equal("service_location_invalid", Assert.Throws<ProviderException>(() => window.BuildModelConfiguration()).Code);
+            Assert.Equal(3, window.ConfigurationCenter.ProfileSelector.Items.Count);
+            Assert.Equal(local.CredentialRef, Assert.Single(config.LocalServices).CredentialRef);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public void Api_page_combines_services_and_preserves_scoped_key_drafts_while_local_page_only_manages_deployment()
+    {
+        UiText.Configure("zh-CN");
+        var window = new SettingsWindow();
+        try
+        {
+            var local = A with { Id = "existing-local", Endpoint = "http://127.0.0.1:11434/v1" };
+            window.LoadSettings(new() { ModelConfiguration = new() { Services = [A], LocalServices = [local] } });
+            var view = window.ConfigurationCenter;
+            Assert.Equal("API 模型管理", window.FindControl<TabItem>("ApiSettingsTab")!.Header);
+            Assert.Empty(Controls<ConfigurationCenterView>(window.FindControl<TabItem>("LocalSettingsTab")!));
+            Assert.NotNull(window.FindControl<Expander>("ManagedModelExpander"));
+            var preset = Controls<ComboBox>(view).Single(c => c.Name == "ProfilePreset");
+            Assert.Contains(preset.Items, item => item is LocalLlmPreset);
+            Assert.Contains(preset.Items, item => item is ThirdPartyApiPreset);
+            Assert.True(view.BuildDraft().LocalServices[0].Models[0].VisionVerified);
+            view.KeyEditor.Text = "cloud-draft-key";
+            view.ProfileSelector.SelectedItem = view.ProfileSelector.Items.Cast<ModelServiceProfile>().Single(p => p.Id == local.Id);
+            view.KeyEditor.Text = "local-draft-key";
+            var draft = view.BuildDraft();
+            Assert.Equal(A.CredentialRef, Assert.Single(draft.Services).CredentialRef);
+            Assert.Equal(local.CredentialRef, Assert.Single(draft.LocalServices).CredentialRef);
+            Assert.Equal("cloud-draft-key", view.PendingKeys[A.CredentialRef]);
+            Assert.Equal("local-draft-key", view.PendingKeys[local.CredentialRef]);
+            view.EndpointEditor.Text = "https://new.example/v1";
+            draft = view.BuildDraft();
+            Assert.Empty(draft.LocalServices);
+            Assert.Equal(2, draft.Services.Length);
+            Assert.False(view.PendingKeys.ContainsKey(local.CredentialRef));
+            Assert.Equal("cloud-draft-key", view.PendingKeys[A.CredentialRef]);
         }
         finally { window.Close(); }
     }
