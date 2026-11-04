@@ -17,6 +17,8 @@ engine_host/.venv/
 *.pyc
 *.pfx
 *.p12
+*.cer
+*.crt
 *.pem
 *.key
 *.snk

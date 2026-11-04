@@ -15,7 +15,8 @@ TEXT_SUFFIXES = {".cs", ".axaml", ".xml", ".json", ".jsonl", ".md", ".txt", ".ym
 
 def private_path(name: str) -> bool:
     path = PurePosixPath(name.replace("\\", "/").lower())
-    return (path.name == "settings.json" or path.name.startswith("settings.json.")
+    return (path.suffix in {".pfx", ".p12", ".pem", ".key", ".snk", ".cer", ".crt"}
+            or path.name == "settings.json" or path.name.startswith("settings.json.")
             or ".pre-v" in path.name and path.name.endswith(".bak")
             or path.name == ".env" or path.name.startswith(".env.") and not path.name.endswith((".example", ".template"))
             or any(p in {"secrets", "pingyi-refactor-backups", "pingyicomplete", "pingyi-complete"} for p in path.parts))

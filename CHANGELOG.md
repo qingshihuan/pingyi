@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Require trusted Windows release signatures, the configured certificate publisher and timestamps; missing credentials cannot silently produce another unsigned release. Local unsigned development builds remain available.
+- Document the pending SignPath Foundation application, signing scope, maintainer roles and privacy policy. No signing identity has been issued or configured and no signed release is claimed.
+
 ## 0.10.0 — 2026-11-05 — unified multimodal model refactor
 
 ### Changed

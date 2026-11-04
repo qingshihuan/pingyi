@@ -9,6 +9,8 @@ param(
     [string]$InnoCompiler,
     [string]$SignTool,
     [string]$SigningCertificateThumbprint,
+    [string]$ExpectedPublisher,
+    [switch]$RequireSigning,
     [string]$TimestampUrl = "https://timestamp.digicert.com",
     [string]$Python = "python",
     [switch]$BuildInstaller
@@ -16,6 +18,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
+if ($RequireSigning) {
+    if ($Runtime -ne 'win-x64') { throw 'Required Authenticode signing applies to Windows packages only.' }
+    if ([string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) {
+        throw 'Trusted signing is not configured. Refusing to produce an unsigned release.'
+    }
+    if ([string]::IsNullOrWhiteSpace($ExpectedPublisher)) {
+        throw 'ExpectedPublisher must identify the approved certificate publisher.'
+    }
+}
 if ($Version.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
     throw "Version contains characters that are invalid in a file name."
 }
@@ -115,7 +126,10 @@ function Invoke-CodeSign([string]$TargetPath, $Signing) {
 $signing = Get-CodeSignTool
 if ($signing) {
     Invoke-CodeSign (Join-Path $output "PingYi.App.exe") $signing
-
+    if ($RequireSigning) {
+        & (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') `
+            -LiteralPath (Join-Path $output 'PingYi.App.exe') -ExpectedPublisher $ExpectedPublisher -SignTool $signing.Path
+    }
 }
 
 $archivePrefix = "PingYi-Complete"
@@ -152,4 +166,9 @@ if ($BuildInstaller -and $Runtime -eq "win-x64") {
     $innoArguments += (Join-Path $projectRoot "packaging\windows\PingYi.iss")
     & $isccPath @innoArguments
     if ($LASTEXITCODE -ne 0) { throw "Failed to build the Windows installer." }
+    if ($RequireSigning) {
+        & (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') `
+            -LiteralPath (Join-Path $projectRoot "packaging/windows/Output/$archivePrefix-$Version-win-x64-setup.exe") `
+            -ExpectedPublisher $ExpectedPublisher -SignTool $signing.Path
+    }
 }

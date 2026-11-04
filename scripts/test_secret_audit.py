@@ -15,7 +15,8 @@ class SecretAuditTests(unittest.TestCase):
         self.assertNotIn(secret.decode(), findings[0])
 
     def test_private_files_are_blocked_even_when_binary(self):
-        for name in ("settings.json", "nested/settings.json.pre-v16.bak", "secrets/local.dpapi", ".env.local"):
+        for name in ("settings.json", "nested/settings.json.pre-v16.bak", "secrets/local.dpapi", ".env.local",
+                     "signing.pfx", "signing.p12", "nested/publisher.crt", "publisher.cer", "private.key"):
             self.assertTrue(audit.inspect(name, b"\0data"), name)
         self.assertFalse(audit.inspect("settings.example.json", b'{"apiKey":"YOUR_API_KEY"}'))
         self.assertFalse(audit.inspect(".env.example", b"API_KEY=YOUR_API_KEY"))
