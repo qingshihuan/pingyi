@@ -15,4 +15,10 @@ internal static class CapturePerformance
         var elapsed = Stopwatch.GetElapsedTime(startedAt);
         Trace.WriteLine($"[PingYi.CaptureTiming] stage={stage} elapsed_ms={elapsed.TotalMilliseconds:F1}");
     }
+
+    public static void LogDuration(string stage, long startedAt)
+    {
+        var elapsed = Stopwatch.GetElapsedTime(startedAt);
+        Trace.WriteLine($"[PingYi.CaptureTiming] duration={stage} elapsed_ms={elapsed.TotalMilliseconds:F1}");
+    }
 }
