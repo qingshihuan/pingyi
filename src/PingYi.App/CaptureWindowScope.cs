@@ -13,7 +13,8 @@ internal static class CaptureWindowScope
         Func<CancellationToken, Task> waitForDesktop,
         Func<CancellationToken, Task<T>> captureAndSelect,
         CancellationToken cancellationToken,
-        Func<bool>? canRestore = null)
+        Func<bool>? canRestore = null,
+        long captureStartedAt = 0)
     {
         Dispatcher.UIThread.VerifyAccess();
         cancellationToken.ThrowIfCancellationRequested();
@@ -22,7 +23,11 @@ internal static class CaptureWindowScope
         try
         {
             foreach (var snapshot in snapshots) snapshot.Hide();
+            if (captureStartedAt != 0)
+                CapturePerformance.Log("application_windows_hidden", captureStartedAt);
             await waitForDesktop(cancellationToken);
+            if (captureStartedAt != 0)
+                CapturePerformance.Log("desktop_barrier_complete", captureStartedAt);
             cancellationToken.ThrowIfCancellationRequested();
             return await captureAndSelect(cancellationToken);
         }
