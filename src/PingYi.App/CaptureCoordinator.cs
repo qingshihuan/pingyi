@@ -62,7 +62,7 @@ public sealed partial class CaptureCoordinator(AppServices services) : IAsyncDis
                             EnsureCurrent(operation);
                             CapturePerformance.Log("desktop_frame_ready", captureStartedAt);
                             var captureDisplays = displays is { Count: > 0 } ? displays : new[] { new CaptureDisplay(frame.DesktopBounds, 1) };
-                            var overlay = new CaptureOverlaySession(frame, captureDisplays, services.ImageCropper);
+                            var overlay = new CaptureOverlaySession(frame, captureDisplays, services.ImageCropper, captureStartedAt);
                             var selection = await overlay.ShowAndSelectAsync(selectionToken);
                             EnsureCurrent(operation);
                             return selection is null ? null : services.ImageCropper.Crop(frame, selection.Value);
