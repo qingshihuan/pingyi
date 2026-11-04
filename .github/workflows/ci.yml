@@ -32,6 +32,23 @@ jobs:
         env:
           PINGYI_UI_ARTIFACTS: ${{ github.workspace }}/artifacts/ui
       - run: python -m unittest discover -s scripts -p "test_*.py"
+      - name: Native Windows capture timing and lifecycle probe
+        if: runner.os == 'Windows'
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/capture | Out-Null
+          dotnet tests/PingYi.Capture.Benchmarks/bin/Release/net10.0/PingYi.Capture.Benchmarks.dll --desktop --prewarm --verify 5 > artifacts/capture/windows.jsonl
+          if ($LASTEXITCODE -ne 0) { Get-Content artifacts/capture/windows.jsonl -Tail 1; exit $LASTEXITCODE }
+          python scripts/summarize-capture-timing.py artifacts/capture/windows.jsonl > artifacts/capture/summary.json
+      - name: Upload metadata-only capture measurements
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-capture-timing
+          path: artifacts/capture/*.json*
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Native X11 conflict and screenshot portal tests
         timeout-minutes: 5
         if: runner.os == 'Linux'

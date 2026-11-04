@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Windows capture now displays fresh opaque BGRA pixels without whole-desktop or per-monitor PNG round trips; only the selected region is encoded on a worker. Use a synchronized DIB capture, shared stride-aware monitor views, synthetic startup resource warmup and one overlay activation per session. Native HWND hide confirmation plus DWM replaces Windows fixed sleeps/dispatcher drains; Linux synchronization remains unchanged.
+- Add operation-scoped metadata timing from actual hotkey/button entry through first rendered batch and input readiness, plus an opt-in native benchmark and lifecycle/DPI/freshness checks. The three-monitor workstation measured render P50/P95 193/233ms versus 1650/1801ms before; this is a software-triggered capture-path measurement, not verified physical hotkey latency. See `docs/CAPTURE_PERFORMANCE.md` for the full evidence and limits. No settings/key migration or formal release is involved.
+
 - Require trusted Windows release signatures, the configured certificate publisher and timestamps; missing credentials cannot silently produce another unsigned release. Local unsigned development builds remain available.
 - Document the pending SignPath Foundation application, signing scope, maintainer roles and privacy policy. No signing identity has been issued or configured and no signed release is claimed.
 

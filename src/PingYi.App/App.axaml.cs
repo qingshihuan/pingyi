@@ -71,7 +71,14 @@ public partial class App : Application
                 await Dispatcher.UIThread.InvokeAsync(() => HandleExternalCommandAsync(command)));
 
             _services.HotkeyService.Pressed += (_, _) =>
-                Dispatcher.UIThread.Post(() => { if (!_isExiting) _ = _captureCoordinator.StartCaptureAsync(_mainShell); });
+            {
+                var timing = new CaptureTiming();
+                timing.Mark("hotkey_received");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!_isExiting) _ = _captureCoordinator.StartCaptureAsync(_mainShell, timing: timing);
+                });
+            };
             _ = StartHotkeyAsync();
 
             if (_services.Settings.StartMinimized && !openSettings)
@@ -85,6 +92,13 @@ public partial class App : Application
             }
 
             UiText.LanguageChanged += RefreshTrayLanguage;
+            if (OperatingSystem.IsWindows())
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_isExiting || _captureCoordinator.IsCapturingScreen) return;
+                    try { CaptureOverlayWarmup.Run(); }
+                    catch { /* Optional warmup must not prevent normal capture or startup. */ }
+                }, DispatcherPriority.ApplicationIdle);
             if (openSettings) await OpenSettingsWindowAsync();
             // A desktop custom shortcut must also work when this is the first process.
             if (SingleInstanceCoordinator.CommandFromArguments(desktop.Args ?? []) == "capture")

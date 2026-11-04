@@ -6,6 +6,8 @@ Trusted code signing is not yet active. SignPath Foundation is a proposed servic
 
 ## Shipped components
 
+The development capture optimization uses the existing Avalonia/SkiaSharp packages and Windows GDI/DWM system APIs. It adds no third-party capture library or model dependency. Startup warmup renders synthetic pixels only; desktop images remain in memory. See [capture performance and ownership](docs/CAPTURE_PERFORMANCE.md).
+
 - Avalonia 12.1.1, Avalonia.Desktop, Fluent and Inter font integration: MIT; Inter font: SIL Open Font License 1.1.
 - SkiaSharp 3.119.4 and transitive native graphics components: the licenses and upstream notices supplied by their NuGet packages.
 - ZXing.Net 0.16.11 for local QR decoding: Apache-2.0.

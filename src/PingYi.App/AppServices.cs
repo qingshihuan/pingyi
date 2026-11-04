@@ -36,7 +36,7 @@ public sealed partial class AppServices : IAsyncDisposable
             });
     }
 
-    private AppServices(AppDataPaths paths, ISettingsStore settingsStore, ISecretStore secretStore,
+    internal AppServices(AppDataPaths paths, ISettingsStore settingsStore, ISecretStore secretStore,
         AppSettings settings, IGlobalHotkeyService hotkeyService,
         IScreenCaptureService screenCaptureService, IImageCropper imageCropper, HttpClient httpClient)
     {

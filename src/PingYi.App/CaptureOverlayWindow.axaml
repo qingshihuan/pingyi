@@ -4,12 +4,13 @@
         x:Class="PingYi.App.CaptureOverlayWindow"
         WindowDecorations="None"
         ShowInTaskbar="False"
+        ShowActivated="False"
         Topmost="True"
         CanResize="False"
         WindowStartupLocation="Manual"
         Background="Black">
   <Grid>
-    <Image x:Name="ScreenshotImage" Stretch="Fill" />
+    <local:CaptureScreenshotImage x:Name="ScreenshotImage" />
     <local:SelectionOverlayControl x:Name="SelectionOverlay" Cursor="Cross"
                                    PointerPressed="SelectionOverlay_OnPointerPressed"
                                    PointerMoved="SelectionOverlay_OnPointerMoved"
