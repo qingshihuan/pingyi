@@ -1,10 +1,10 @@
-# 默认 Vulkan 与手动后端管理（v0.8.1）
+# 默认自动检测与手动后端管理
 
 ## 默认行为
 
-新安装默认选择 **通用显卡 · Vulkan（默认）**。首次配置优先复用已经安装的 Vulkan／CPU 文件，不因为配置模型而强制访问 GitHub 更新后端。首次模型权重下载仍需用户确认。
+新安装默认选择 **自动检测（默认）**，该选项排在列表首位。自动识别硬件，优先使用已安装的兼容 CUDA／ROCm，否则尝试 Vulkan、CPU。首次配置优先复用已安装后端，不因默认选项变化而自动下载或启动模型。
 
-Schema 13 将旧配置中“自动后端＋自动设备”的旧默认组合迁移为 Vulkan。明确指定的 CUDA、ROCm、CPU、Vulkan 以及具体设备选择保留；升级后仍可以主动选择“自动检测（可选）”。旧配置没有记录自动选项是否曾被主动选择，因此这类用户可在升级后重新选 Auto。现有模型、端点、凭据和语言不重置。
+已有配置中保存的 CUDA、ROCm、CPU、Vulkan、Auto 以及具体设备选择保留；缺失或无效的后端值使用 Auto，不再将旧 Auto 配置迁移成 Vulkan。已有用户可点击 **恢复默认：自动检测**，再点击 **安装并切换到所选后端** 应用。现有模型、端点、凭据和语言不重置。
 
 ## 从 Vulkan 切换到 ROCm
 
@@ -32,7 +32,7 @@ Schema 13 将旧配置中“自动后端＋自动设备”的旧默认组合迁�
 
 ## English
 
-Vulkan is the default for new installs. Schema 13 migrates the former Auto-backend/Auto-device default while retaining explicit CPU/CUDA/ROCm/Vulkan and device choices. Installed runtime files are reused for model setup; downloading an update is a separate explicit action.
+Automatic detection is the default for new installs and the first option in the list. It prefers compatible installed CUDA/ROCm, then Vulkan and CPU. Saved Auto/CPU/CUDA/ROCm/Vulkan and device choices are retained; missing or invalid backend values use Auto. Select **Reset to default: Automatic**, then **Install and switch** to apply it to an existing configuration. Installed runtime files are reused; downloads and activation remain explicit actions.
 
 Select a backend/device and choose **Install and switch**. Preparation and device checks precede activation; configured managed models must pass fixed OCR and translation requests before saving. Failure retains the previous settings and files and attempts bounded restoration. No model weights are redownloaded just to change backend. Without a configured managed model, only the backend preference is saved; finish model setup before inference.
 

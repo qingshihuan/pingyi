@@ -15,6 +15,8 @@ PaddleOCR, ONNX Runtime, Argos Translate, CTranslate2, SentencePiece and the emb
 
 Release builds reject retired engines and NVIDIA CUDA/cuDNN/Torch binaries. Optional runtimes downloaded later at the user's explicit request are separate from bundled release contents and retain their upstream licenses.
 
+Automatic backend detection is the default selection. This preference does not add bundled GPU dependencies; the package still includes CPU/Vulkan only, and optional backends retain their existing installation and license requirements.
+
 ## User-downloaded models and services
 
 Model downloads use pinned ModelScope revisions, expected lengths and SHA-256 values from `ManagedMultimodalModels`. The UI presents each model's source, license and device guidance before downloading. Model weights and remote service credentials are not included in releases. Users should review the applicable model/service terms. Capability verification is not a quality, performance or legal-use guarantee.

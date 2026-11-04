@@ -30,8 +30,9 @@ public sealed class RuntimeManagementUiTests
             panel.SwitchButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await panel.OperationTask;
             Assert.Equal(1, switches);
             panel.DefaultButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal(ManagedRuntimeBackends.Vulkan, backends.SelectedItem);
+            Assert.Equal(ManagedRuntimeBackends.Auto, backends.SelectedItem);
             Assert.Equal(1, switches);
+            backends.SelectedItem = ManagedRuntimeBackends.Vulkan;
             panel.UninstallButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await panel.OperationTask;
             Assert.Equal(0, removed);
             panel.UninstallButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await panel.OperationTask;

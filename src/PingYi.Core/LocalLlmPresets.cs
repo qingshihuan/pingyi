@@ -7,10 +7,9 @@ public sealed record LocalLlmPreset(
     string SuggestedModel = "")
 {
     public string LocalizedDisplayName =>
-        !string.Equals(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh", StringComparison.OrdinalIgnoreCase) &&
-        Id == "vllm"
-            ? "vLLM / other compatible service"
-            : DisplayName;
+        !string.Equals(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "zh", StringComparison.OrdinalIgnoreCase)
+            ? (Id == "vllm" ? "vLLM / other compatible service" : DisplayName) + " (Local)"
+            : DisplayName + "（本地）";
 
     public override string ToString() => LocalizedDisplayName;
 }

@@ -9,7 +9,7 @@ internal sealed partial class RuntimeSetupPanel
 {
     internal Button SwitchButton { get; } = new() { Name = "SwitchRuntimeButton" };
     internal Button UninstallButton { get; } = new() { Name = "UninstallRuntimeButton" };
-    internal Button DefaultButton { get; } = new() { Name = "DefaultVulkanButton" };
+    internal Button DefaultButton { get; } = new() { Name = "DefaultRuntimeButton" };
     internal TextBlock ManagementStatus { get; } = new() { TextWrapping = TextWrapping.Wrap };
     internal Task OperationTask { get; private set; } = Task.CompletedTask;
     public bool IsBusy => _work is not null;
@@ -27,7 +27,7 @@ internal sealed partial class RuntimeSetupPanel
     {
         SwitchButton.Content = Pick("安装并切换到所选后端", "Install and switch to selected backend");
         UninstallButton.Content = Pick("卸载所选已下载后端", "Uninstall selected downloaded backend");
-        DefaultButton.Content = Pick("选择默认 Vulkan", "Select default Vulkan");
+        DefaultButton.Content = Pick("恢复默认：自动检测", "Reset to default: Automatic");
         foreach (var button in new[] { SwitchButton, UninstallButton, DefaultButton })
         {
             button.Classes.Add("secondary");
@@ -35,8 +35,8 @@ internal sealed partial class RuntimeSetupPanel
             Avalonia.Automation.AutomationProperties.SetName(button, button.Content!.ToString());
         }
         ManagementStatus.Classes.Add("workspace-help");
-        ManagementStatus.Text = Pick("默认 Vulkan。更换时先验证新后端；成功切换后再卸载旧的已下载后端。内置 Vulkan／CPU 保留，不删除模型、驱动或外部服务。",
-            "Vulkan is the default. Verify and switch first, then uninstall downloaded old backends. Bundled Vulkan/CPU, models, drivers and external services are retained.");
+        ManagementStatus.Text = Pick("默认自动检测。更换时先验证新后端；成功切换后再卸载旧的已下载后端。内置 Vulkan／CPU 保留，不删除模型、驱动或外部服务。",
+            "Automatic detection is the default. Verify and switch first, then uninstall downloaded old backends. Bundled Vulkan/CPU, models, drivers and external services are retained.");
         _currentSettings = services is null ? null : () => services.Settings;
         _switchRuntime = services is null ? null : services.SwitchRuntimeAsync;
         _removeRuntime = services is null ? null : services.UninstallRuntimeAsync;

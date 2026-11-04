@@ -7,11 +7,11 @@ public sealed record ManagedRuntimeBackend(
 {
     public string LocalizedDisplayName => IsEnglishCulture ? Id switch
     {
-        "auto" => "Automatic (optional)",
+        "auto" => "Automatic (default)",
         "cuda12" => "NVIDIA · CUDA 12",
         "cuda13" => "NVIDIA · CUDA 13",
         "rocm" => "AMD · ROCm / HIP",
-        "vulkan" => "GPU · Vulkan (default)",
+        "vulkan" => "GPU · Vulkan",
         "cpu" => "CPU only",
         _ => DisplayName
     } : DisplayName;
@@ -37,12 +37,12 @@ public static class ManagedRuntimeBackends
 {
     public static ManagedRuntimeBackend Auto { get; } = new(
         "auto",
-        "自动检测（可选）",
+        "自动检测（默认）",
         "识别显卡，优先已安装的兼容 CUDA／ROCm，否则尝试 Vulkan、CPU。新后端只在确认下载后安装。");
 
     public static ManagedRuntimeBackend Vulkan { get; } = new(
         "vulkan",
-        "通用显卡 · Vulkan（默认）",
+        "通用显卡 · Vulkan",
         "只使用 Vulkan 显卡后端，支持 AMD、NVIDIA 与 Intel；失败时不会回退 CPU。");
 
     public static ManagedRuntimeBackend Cpu { get; } = new(
@@ -53,8 +53,8 @@ public static class ManagedRuntimeBackends
     public static ManagedRuntimeBackend Cuda12 { get; } = new("cuda12", "NVIDIA · CUDA 12", "兼容 NVIDIA 显卡。内置清单 Windows 为 CUDA 12.4，Linux 为 12.8；手动选择失败不静默回退。");
     public static ManagedRuntimeBackend Cuda13 { get; } = new("cuda13", "NVIDIA · CUDA 13", "面向 Turing 及更新架构，需兼容驱动；手动选择失败不静默回退。");
     public static ManagedRuntimeBackend Rocm { get; } = new("rocm", "AMD · ROCm / HIP", "AMD 专用后端；以实际设备枚举和模型验证为准，手动选择失败不静默回退。");
-    public static ManagedRuntimeBackend Default => Vulkan;
-    public static IReadOnlyList<ManagedRuntimeBackend> All { get; } = [Vulkan, Auto, Cuda12, Cuda13, Rocm, Cpu];
+    public static ManagedRuntimeBackend Default => Auto;
+    public static IReadOnlyList<ManagedRuntimeBackend> All { get; } = [Auto, Vulkan, Cuda12, Cuda13, Rocm, Cpu];
 
     public static string Normalize(string? id) => All.Any(candidate =>
         string.Equals(candidate.Id, id?.Trim(), StringComparison.OrdinalIgnoreCase))

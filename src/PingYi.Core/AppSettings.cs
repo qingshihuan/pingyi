@@ -70,10 +70,7 @@ public sealed record AppSettings
                     : CustomTranslationApiProtocol),
             ManagedModelPackageId = ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _)
                 ? ManagedModelPackageId.Trim() : string.Empty,
-            ManagedRuntimeBackend = SchemaVersion < 13 &&
-                ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend) == "auto" &&
-                RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice) == "auto"
-                    ? ManagedRuntimeBackends.Default.Id : ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
+            ManagedRuntimeBackend = ManagedRuntimeBackends.Normalize(ManagedRuntimeBackend),
             ManagedRuntimeDevice = RuntimeDeviceChoice.Normalize(ManagedRuntimeDevice),
             RuntimeMirrorPrefixes = RuntimeMirrorPrefixes?.Trim() ?? string.Empty,
             ManagedRuntimeEnabled = ManagedRuntimeEnabled && ManagedMultimodalModels.TryGet(ManagedModelPackageId, out _),

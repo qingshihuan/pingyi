@@ -6,24 +6,24 @@ namespace PingYi.Core.Tests;
 public sealed class RuntimeSwitchTests
 {
     [Fact]
-    public void New_install_defaults_to_Vulkan_but_explicit_Auto_remains_optional()
+    public void New_install_defaults_to_Automatic_and_preserves_explicit_backend_choices()
     {
-        Assert.Equal("vulkan", new AppSettings().ManagedRuntimeBackend);
-        Assert.Equal(ManagedRuntimeBackends.Vulkan, ManagedRuntimeBackends.All[0]);
-        Assert.Equal("vulkan", ManagedRuntimeBackends.Normalize(null));
-        Assert.Equal("vulkan", ManagedRuntimeBackends.Normalize("unknown"));
-        Assert.Equal("auto", new AppSettings { ManagedRuntimeBackend = "auto" }.Normalize().ManagedRuntimeBackend);
+        Assert.Equal("auto", new AppSettings().ManagedRuntimeBackend);
+        Assert.Equal(ManagedRuntimeBackends.Auto, ManagedRuntimeBackends.All[0]);
+        Assert.Equal("auto", ManagedRuntimeBackends.Normalize(null));
+        Assert.Equal("auto", ManagedRuntimeBackends.Normalize("unknown"));
+        Assert.Equal("vulkan", new AppSettings { ManagedRuntimeBackend = "vulkan" }.Normalize().ManagedRuntimeBackend);
     }
 
     [Theory]
-    [InlineData("auto", "vulkan")]
+    [InlineData("auto", "auto")]
     [InlineData("cpu", "cpu")]
     [InlineData("rocm", "rocm")]
     [InlineData("cuda12", "cuda12")]
     [InlineData("cuda13", "cuda13")]
     [InlineData("vulkan", "vulkan")]
-    [InlineData(null, "vulkan")]
-    public void Upgrade_migrates_only_the_former_automatic_default(string? backend, string expected)
+    [InlineData(null, "auto")]
+    public void Upgrade_preserves_saved_backends_and_defaults_missing_values_to_Automatic(string? backend, string expected)
     {
         var settings = new AppSettings { SchemaVersion = 12, ManagedRuntimeBackend = backend!, UiLanguage = "en-US", RuntimeAllowMirrors = true };
         var result = settings.Normalize();

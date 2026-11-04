@@ -40,7 +40,7 @@ public sealed class ManagedMultimodalModelsTests
     [InlineData("auto", "auto")]
     [InlineData("VULKAN", "vulkan")]
     [InlineData("cpu", "cpu")]
-    [InlineData("cuda", "vulkan")]
+    [InlineData("cuda", "auto")]
     public void RuntimeBackend_NormalizesSupportedChoices(string value, string expected)
     {
         Assert.Equal(expected, ManagedRuntimeBackends.Normalize(value));

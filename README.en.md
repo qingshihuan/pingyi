@@ -21,6 +21,8 @@ PaddleOCR, Baidu Cloud OCR, Google Cloud Vision, traditional OCR configuration a
 
 Settings has five sections: **Current model, API models, Local models, Hotkeys, General**. Local and cloud API profiles share one editor while retaining their IDs, capability evidence and credential references. Loading settings or fetching a model list does not select a model or start inference. App-owned setup verifies both capabilities before making the model current.
 
+The runtime backend defaults to **Automatic (default)**. Saved backend and GPU selections are retained. Existing users can reset to Automatic under Local models, then choose **Install and switch** to apply it.
+
 ## Capture and privacy
 
 Use the main capture button, `Ctrl+Alt+D` on Windows, or `Ctrl+Shift+D` on Linux X11. Hotkeys can be recorded or edited under Hotkeys. Wayland uses the system screenshot portal and requires a desktop-managed global shortcut; see [Linux capture](docs/LINUX_CAPTURE.md).

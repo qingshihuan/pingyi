@@ -28,7 +28,7 @@ public sealed class SettingsCompatibilityTests
             Assert.Equal(AppSettings.DefaultCustomTranslationEndpoint, settings.CustomTranslationEndpoint);
             Assert.Equal("auto", settings.SourceLanguage);
             Assert.Equal("auto-opposite", settings.TargetLanguage);
-            Assert.Equal("vulkan", settings.ManagedRuntimeBackend);
+            Assert.Equal("auto", settings.ManagedRuntimeBackend);
             Assert.Equal(string.Empty, settings.ManagedModelPackageId);
             Assert.False(settings.ManagedRuntimeEnabled);
             Assert.False(settings.CheckForUpdates);

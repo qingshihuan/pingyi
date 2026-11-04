@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Automatic detection is now the default runtime backend and the first dropdown option. Saved backend/device choices are retained; missing or invalid backend settings use Auto. The reset action and Chinese/English guidance follow the new default.
+- Local API endpoint presets (llama.cpp, Ollama, LM Studio and vLLM) now show a localized “Local” suffix to distinguish them from cloud presets. Endpoint URLs and model IDs are unchanged.
 - Translation and screenshot recognition share a single current multimodal model. Image description and prompt reconstruction use the same selection.
 - Current models must have verified image-input and text-output capabilities. Text-only models and catalog-only entries cannot be selected.
 - Settings now has Current model, API models, Local models, Hotkeys and General sections. API models combines existing local and cloud endpoints in one editor; Local models is the separate built-in deployment/runtime/GPU feature.
