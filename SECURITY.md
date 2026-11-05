@@ -14,6 +14,6 @@ General bugs that do not expose sensitive information can use the public bug rep
 
 ## Local keys and repository checks
 
-Retain the existing platform-specific local key store. Migration must never overwrite an existing destination key. Configuration, secrets and migration backups remain outside source control; ignore rules also cover `.env` and signing keys. Never paste real keys into issues, documentation or release examples.
+Retain the existing platform-specific local key store. Migration must never overwrite an existing destination key. Configuration, secrets and migration backups remain outside source control; ignore rules also cover `.env` and private key files. Never paste real keys into issues, documentation or release examples.
 
 Run `python scripts/audit-secrets.py` on the staged tree and `python scripts/audit-secrets.py --ref HEAD` on the commit before pushing. Packaging audits unpacked output too. Reports contain paths and line numbers only. Review the diff as well: pattern matching cannot detect every possible secret. A secret scan alone does not approve a release.

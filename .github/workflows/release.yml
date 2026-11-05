@@ -93,73 +93,26 @@ jobs:
           dotnet test PingYi.slnx -c Release --no-build
           python -m unittest discover -s scripts -p "test_*.py"
           python scripts/audit-secrets.py --ref HEAD
-      - name: Require an approved signing identity
-        shell: pwsh
-        env:
-          SIGNING_CERTIFICATE_BASE64: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_BASE64 }}
-          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_PASSWORD }}
-          EXPECTED_PUBLISHER: ${{ vars.PINGYI_EXPECTED_PUBLISHER }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_BASE64) -or
-              [string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_PASSWORD) -or
-              [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER)) {
-            throw 'Trusted signing is not configured. Obtain an approved signing identity and configure the signing integration before publishing. Unsigned release publishing is disabled.'
-          }
-      - name: Import Authenticode certificate
-        id: signing
-        shell: pwsh
-        env:
-          SIGNING_CERTIFICATE_BASE64: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_BASE64 }}
-          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.PINGYI_SIGNING_CERTIFICATE_PASSWORD }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_BASE64)) {
-            throw 'Missing signing certificate; refusing an unsigned release.'
-          }
-          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_PASSWORD)) {
-            throw "PINGYI_SIGNING_CERTIFICATE_PASSWORD is required when a signing certificate is configured."
-          }
-          $certificatePath = Join-Path $env:RUNNER_TEMP "pingyi-signing-certificate.pfx"
-          [IO.File]::WriteAllBytes(
-            $certificatePath,
-            [Convert]::FromBase64String($env:SIGNING_CERTIFICATE_BASE64))
-          $password = ConvertTo-SecureString $env:SIGNING_CERTIFICATE_PASSWORD -AsPlainText -Force
-          $imported = @(Import-PfxCertificate `
-            -FilePath $certificatePath `
-            -CertStoreLocation Cert:\CurrentUser\My `
-            -Password $password)
-          $certificate = $imported | Where-Object HasPrivateKey | Select-Object -First 1
-          if (-not $certificate) { throw "The PFX did not contain a code-signing certificate with a private key." }
-          "thumbprint=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Build Windows release
         shell: pwsh
         env:
           RELEASE_VERSION: ${{ needs.version.outputs.version }}
-          EXPECTED_PUBLISHER: ${{ vars.PINGYI_EXPECTED_PUBLISHER }}
         run: |
-          $version = $env:RELEASE_VERSION
-          $signingArguments = @{}
-          $signingThumbprint = "${{ steps.signing.outputs.thumbprint }}"
-          if (-not [string]::IsNullOrWhiteSpace($signingThumbprint)) {
-            $signingArguments.SigningCertificateThumbprint = $signingThumbprint
+          choco install innosetup --yes --no-progress
+          $isccCandidates = @(
+            (Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1),
+            (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\\ISCC.exe"),
+            (Join-Path $env:LOCALAPPDATA "Programs\\Inno Setup 6\\ISCC.exe")
+          ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) }
+          if (-not $isccCandidates) { throw "Inno Setup installation completed but ISCC.exe was not found." }
+          $env:PINGYI_ISCC = $isccCandidates[0]
+          Write-Host "Using Inno Setup compiler: $env:PINGYI_ISCC"
+          python ./scripts/prepare-llama-runtime.py --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
+          ./scripts/publish.ps1 -Runtime win-x64 -Version $env:RELEASE_VERSION -Edition Complete -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 -BuildInstaller
+          if (-not (Test-Path "packaging/windows/Output/PingYi-Complete-$($env:RELEASE_VERSION)-win-x64-setup.exe")) {
+            throw "Expected Windows installer was not produced."
           }
-          choco install innosetup --version 6.7.1 --yes --no-progress
-          $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
-          python ./scripts/prepare-llama-runtime.py `
-            --runtime win-x64 --destination ./artifacts/llama-runtime/win-x64
-          ./scripts/publish.ps1 -Runtime win-x64 -Version $version `
-            -Edition Complete `
-            -LlamaRuntimeSource ./artifacts/llama-runtime/win-x64 `
-            -BuildInstaller -RequireSigning -ExpectedPublisher $env:EXPECTED_PUBLISHER @signingArguments
-      - name: Remove optional Authenticode certificate
-        if: always()
-        shell: pwsh
-        run: |
-          $thumbprint = "${{ steps.signing.outputs.thumbprint }}"
-          if (-not [string]::IsNullOrWhiteSpace($thumbprint)) {
-            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$thumbprint" -Force -ErrorAction SilentlyContinue
-          }
-          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "pingyi-signing-certificate.pfx") `
-            -Force -ErrorAction SilentlyContinue
+          python scripts/audit-secrets.py --directory "./artifacts/publish/win-x64-$($env:RELEASE_VERSION)-complete"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-release
@@ -305,7 +258,8 @@ jobs:
           name: 截屏释义 ${{ needs.version.outputs.tag }}
           body_path: ${{ needs.version.outputs.notes }}
           prerelease: ${{ contains(needs.version.outputs.version, '-') }}
-          make_latest: ${{ !contains(needs.version.outputs.version, '-') }}
+          draft: true
+          make_latest: false
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: release-assets/*

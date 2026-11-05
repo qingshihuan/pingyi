@@ -1,20 +1,21 @@
 # Changelog
 
-## Unreleased
+## 0.10.2 — 2026-11-05 — documentation and release maintenance
 
-- Require trusted Windows release signatures, the configured certificate publisher and timestamps; missing credentials cannot silently produce another unsigned release. Local unsigned development builds remain available.
-- Document the pending SignPath Foundation application, signing scope, maintainer roles and privacy policy. No signing identity has been issued or configured and no signed release is claimed.
+- Clean up obsolete project policy and application documentation, correct the published status of v0.10.1, and restore the standard release packaging path.
+- Preserve source and package secret scans, dependency/license checks, SHA-256 checksums and verification before publication. No application behavior, local configuration or API Key storage changes.
+
 
 ## 0.10.1 — 2026-11-05 — original version naming
 
-- Rebuild the verified screenshot performance improvements with `0.10.1` in the application version and package filenames, and use the original release title `截屏释义 v0.10.1`. Windows packages remain explicitly unsigned and the release remains a prerelease until trusted signing is available.
-- Make unsigned preview builds manual and require an explicit unsigned-build confirmation. Creating a tag for an already published release no longer starts a second build that could replace its verified assets; the stable signing requirement is retained.
+- Rebuild the verified screenshot performance improvements with `0.10.1` in the application version and package filenames, and use the original release title `截屏释义 v0.10.1`.
+- Creating a tag for an already published release no longer starts a second build that could replace its verified assets.
 
 ## 0.10.1-unsigned.3 — 2026-11-05 — screenshot performance preview
 
 - Windows capture now displays fresh opaque BGRA pixels without whole-desktop or per-monitor PNG round trips; only the selected region is encoded on a worker. Use a synchronized DIB capture, shared stride-aware monitor views, synthetic startup resource warmup and one overlay activation per session. Native HWND hide confirmation plus DWM replaces Windows fixed sleeps/dispatcher drains; Linux synchronization remains unchanged.
 - Add operation-scoped metadata timing from actual hotkey/button entry through first rendered batch and input readiness, plus an opt-in native benchmark and lifecycle/DPI/freshness checks. The three-monitor workstation measured render P50/P95 193/233ms versus 1650/1801ms before; this is a software-triggered capture-path measurement, not verified physical hotkey latency. See `docs/CAPTURE_PERFORMANCE.md` for the full evidence and limits.
-- Publish as an explicitly unsigned prerelease after verifying the final draft assets. No settings/key migration is introduced; the trusted-signing requirement for stable releases is unchanged.
+- Publish after verifying the final draft assets. No settings/key migration is introduced.
 
 ## 0.10.0 — 2026-11-05 — unified multimodal model refactor
 

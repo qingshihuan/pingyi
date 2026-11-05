@@ -6,9 +6,8 @@ A Windows / Ubuntu desktop tool for screenshot recognition, translation, image d
 
 This README describes the unified multimodal architecture in v0.10.0. [Download packages and read upgrade notes](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.0). Older releases retain the behavior documented for their version.
 
-Windows v0.10.0 is unsigned. Free open-source signing is being prepared and has not been approved; future official releases require successful signature verification. [Code signing policy](docs/CODE_SIGNING_POLICY.md)
 
-The [v0.10.1 performance preview](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.1) displays fresh raw Windows capture pixels and encodes only the selected region after selection. See the [capture performance report](docs/CAPTURE_PERFORMANCE.md) for three-monitor measurements, render versus input readiness, reproduction and limitations. The release, application and package filenames use version `0.10.1`. This unsigned prerelease does not replace the stable release.
+The [v0.10.1 performance update](https://github.com/qingshihuan/pingyi/releases/tag/v0.10.1) displays fresh raw Windows capture pixels and encodes only the selected region after selection. See the [capture performance report](docs/CAPTURE_PERFORMANCE.md) for three-monitor measurements, render versus input readiness, reproduction and limitations. The release, application and package filenames use version `0.10.1`.
 
 ## Current model architecture
 

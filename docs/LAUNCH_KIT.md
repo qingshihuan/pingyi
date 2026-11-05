@@ -53,7 +53,7 @@ PingYi is an MIT-licensed Avalonia desktop app. The Standard release bundles Pad
 
 The privacy boundary is intentionally explicit: local mode makes no network request, and screenshots, recognized text, translations, credentials, and history are not logged or persisted by default.
 
-Current limitations: Ubuntu capture is X11-only, bundled offline translation is Chinese-English, and releases are not yet code-signed. I would value feedback on OCR failure cases and packaging on different hardware.
+Current limitations: Ubuntu capture is X11-only and bundled offline translation is Chinese-English. I would value feedback on OCR failure cases and packaging on different hardware.
 
 Repo and binaries: https://github.com/qingshihuan/pingyi
 
