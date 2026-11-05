@@ -2,7 +2,7 @@
 
 ## 0.10.2 — 2026-11-05 — documentation and release maintenance
 
-- Clean up obsolete project policy and application documentation, correct the published status of v0.10.1, and restore the standard release packaging path.
+- Improve release packaging and verify final artifacts before publication.
 - Preserve source and package secret scans, dependency/license checks, SHA-256 checksums and verification before publication. No application behavior, local configuration or API Key storage changes.
 
 
