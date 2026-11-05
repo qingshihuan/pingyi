@@ -2,7 +2,6 @@
 
 Screen Insight (截屏释义, formerly PingYi) is MIT licensed. This notice describes the v0.10.0 unified-model architecture; historical release notes describe older packages.
 
-Trusted code signing is not yet active. SignPath Foundation is a proposed service pending application and approval, not a bundled dependency or current sponsor. See the [Code signing policy](docs/CODE_SIGNING_POLICY.md).
 
 ## Shipped components
 
