@@ -14,6 +14,7 @@ public static class ThirdPartyApiPresets
     public static IReadOnlyList<ThirdPartyApiPreset> All { get; } =
     [
         new("openai", "OpenAI", "https://api.openai.com/v1/chat/completions", ModelApiProtocols.Responses),
+        new("google-gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", ModelApiProtocols.ChatCompletions),
         new("deepseek", "DeepSeek", "https://api.deepseek.com/chat/completions", ModelApiProtocols.ChatCompletions),
         new("siliconflow", "SiliconFlow", "https://api.siliconflow.cn/v1/chat/completions", ModelApiProtocols.ChatCompletions),
         new("openrouter", "OpenRouter", "https://openrouter.ai/api/v1/chat/completions", ModelApiProtocols.ChatCompletions),
