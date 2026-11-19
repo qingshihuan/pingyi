@@ -33,12 +33,16 @@ public sealed class ConfigurationCenterUiTests
         try
         {
             var local = A with { Id = "on-device", Endpoint = "http://127.0.0.1:11434/v1/chat/completions" };
+            var firstCloud = B with { Id = "test-api-one", Name = "Example API", DefaultModel = "example-vision",
+                Models = [new("example-vision", true, true)] };
             var secondCloud = B with { Id = "test-api-two", Name = "Second API",
                 Endpoint = "https://second.example/v1/chat/completions", DefaultModel = "second-vision",
                 Models = [new("second-vision", true, true)] };
-            var textOnly = B with { Models = [new("example-text", true, false), new("unknown")] };
-            window.LoadSettings(new() { ModelConfiguration = new() { Services = [A, secondCloud, textOnly],
-                LocalServices = [local], CurrentModel = new(A.Id, "local-vision") } });
+            var textOnly = B with { Id = "test-api-text-only", Name = "Text-only API",
+                Endpoint = "https://text-only.example/v1/chat/completions",
+                Models = [new("example-text", true, false), new("unknown")] };
+            window.LoadSettings(new() { ModelConfiguration = new() { Services = [firstCloud, secondCloud, textOnly],
+                LocalServices = [local], CurrentModel = new(firstCloud.Id, "example-vision") } });
             var combo = window.FindControl<ComboBox>("CurrentModelCombo")!;
             Assert.Equal(4, combo.Items.Count); // No selection + two verified cloud models + one verified local API model.
             Assert.Contains(combo.Items, item => item!.ToString()!.Contains("Example API · example-vision"));
