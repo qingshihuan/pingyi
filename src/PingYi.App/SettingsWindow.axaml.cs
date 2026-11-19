@@ -108,6 +108,9 @@ public partial class SettingsWindow : Window
     {
         var selection = preferred ?? (CurrentModelCombo.SelectedItem as CurrentChoice)?.Selection;
         var api = ConfigurationCenter.BuildDraft();
+        CurrentModelHint.Text = CaptureUiText.Pick(
+            "截图识字、翻译、图片描述与提示词反推共用此模型。请先在 API 模型管理中测试接口模型，或在本地模型管理中下载并验证本机模型。未验证和纯文本模型不能设为当前模型。",
+            "Recognition, translation, image description and prompt reconstruction share this model. Test an endpoint under API models, or download and verify a model under Local models. Unverified and text-only models cannot be selected.");
         var choices = new List<CurrentChoice> { new(null, CaptureUiText.Pick("尚未选择模型", "No model selected")) };
         foreach (var profile in api.AllServices)
             foreach (var entry in profile.Models.Where(m => m.TextVerified && m.VisionVerified))
