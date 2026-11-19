@@ -4,7 +4,7 @@ on:
   push:
     tags: ["v*"]
     branches: [main]
-    paths: [".github/release-version.txt"]
+    paths: [".github/release-version.txt", ".github/workflows/release.yml"]
   workflow_dispatch:
     inputs:
       version:
@@ -258,7 +258,7 @@ jobs:
           name: 截屏释义 ${{ needs.version.outputs.tag }}
           body_path: ${{ needs.version.outputs.notes }}
           prerelease: ${{ contains(needs.version.outputs.version, '-') }}
-          draft: true
+          draft: false
           make_latest: false
           generate_release_notes: true
           fail_on_unmatched_files: true
