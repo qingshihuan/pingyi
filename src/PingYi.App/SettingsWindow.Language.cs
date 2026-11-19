@@ -104,5 +104,6 @@ public partial class SettingsWindow
         UiLanguageLabel.Text = CaptureUiText.Pick("界面语言", "Interface language");
         Avalonia.Automation.AutomationProperties.SetName(SaveSettingsButton, CaptureUiText.Pick("保存并应用", "Save and apply"));
         SaveSettingsButton.Content = CaptureUiText.Pick("保存并应用", "Save and apply");
+        TryRefreshCurrentModels();
     }
 }
