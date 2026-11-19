@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
     { public override string ToString() => Label; }
     private sealed record LanguageChoice(string Code, string Name)
     { public override string ToString() => Name; }
+    internal string CurrentModelHintMessage => CurrentModelHint.Text ?? "";
 
     public SettingsWindow()
     {
@@ -107,6 +108,9 @@ public partial class SettingsWindow : Window
     {
         var selection = preferred ?? (CurrentModelCombo.SelectedItem as CurrentChoice)?.Selection;
         var api = ConfigurationCenter.BuildDraft();
+        CurrentModelHint.Text = CaptureUiText.Pick(
+            "截图识字、翻译、图片描述与提示词反推共用此模型。请先在 API 模型管理中测试接口模型，或在本地模型管理中下载并验证本机模型。未验证和纯文本模型不能设为当前模型。",
+            "Recognition, translation, image description and prompt reconstruction share this model. Test an endpoint under API models, or download and verify a model under Local models. Unverified and text-only models cannot be selected.");
         var choices = new List<CurrentChoice> { new(null, CaptureUiText.Pick("尚未选择模型", "No model selected")) };
         foreach (var profile in api.AllServices)
             foreach (var entry in profile.Models.Where(m => m.TextVerified && m.VisionVerified))
@@ -116,6 +120,18 @@ public partial class SettingsWindow : Window
             choices.Add(new(new(ModelConfiguration.Managed, model.Id), CaptureUiText.Pick("本地托管 · ", "Managed local · ") + model.LocalizedDisplayName));
         CurrentModelCombo.ItemsSource = choices;
         CurrentModelCombo.SelectedItem = choices.FirstOrDefault(c => c.Selection == selection) ?? choices[0];
+
+        // Unverified API models are intentionally not selectable, but explain why they
+        // are absent instead of making configured cloud profiles look as if they vanished.
+        var pendingApiModels = api.Services.Sum(profile =>
+            profile.Models.Count(model => !model.TextVerified || !model.VisionVerified));
+        if (pendingApiModels > 0)
+        {
+            var explanation = UiText.IsEnglish
+                ? $"{pendingApiModels} configured API model(s) are hidden until both text and image capability tests pass. Open API models, test both capabilities, then save."
+                : $"另有 {pendingApiModels} 个已配置的 API 模型尚未通过文字和图片能力测试，因此暂不显示。请进入「API 模型管理」，分别完成两项测试并保存。";
+            CurrentModelHint.Text = CurrentModelHint.Text + Environment.NewLine + explanation;
+        }
     }
     private void TryRefreshCurrentModels()
     {

@@ -104,5 +104,18 @@ public partial class SettingsWindow
         UiLanguageLabel.Text = CaptureUiText.Pick("界面语言", "Interface language");
         Avalonia.Automation.AutomationProperties.SetName(SaveSettingsButton, CaptureUiText.Pick("保存并应用", "Save and apply"));
         SaveSettingsButton.Content = CaptureUiText.Pick("保存并应用", "Save and apply");
+
+        // Do not rebuild the model selector here: BuildDraft() commits the active
+        // editor and clears its password box. Language changes must preserve unsaved
+        // API-key drafts, so refresh only the explanatory text from the saved baseline.
+        var pendingApiModels = _baselineConfiguration?.Services.Sum(profile =>
+            profile.Models.Count(model => !model.TextVerified || !model.VisionVerified)) ?? 0;
+        if (pendingApiModels > 0)
+        {
+            var explanation = UiText.IsEnglish
+                ? $"{pendingApiModels} configured API model(s) are hidden until both text and image capability tests pass. Open API models, test both capabilities, then save."
+                : $"另有 {pendingApiModels} 个已配置的 API 模型尚未通过文字和图片能力测试，因此暂不显示。请进入「API 模型管理」，分别完成两项测试并保存。";
+            CurrentModelHint.Text += Environment.NewLine + explanation;
+        }
     }
 }
