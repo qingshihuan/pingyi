@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
     { public override string ToString() => Label; }
     private sealed record LanguageChoice(string Code, string Name)
     { public override string ToString() => Name; }
+    internal string CurrentModelHintMessage => CurrentModelHint.Text ?? "";
 
     public SettingsWindow()
     {
@@ -116,6 +117,18 @@ public partial class SettingsWindow : Window
             choices.Add(new(new(ModelConfiguration.Managed, model.Id), CaptureUiText.Pick("本地托管 · ", "Managed local · ") + model.LocalizedDisplayName));
         CurrentModelCombo.ItemsSource = choices;
         CurrentModelCombo.SelectedItem = choices.FirstOrDefault(c => c.Selection == selection) ?? choices[0];
+
+        // Unverified API models are intentionally not selectable, but explain why they
+        // are absent instead of making configured cloud profiles look as if they vanished.
+        var pendingApiModels = api.Services.Sum(profile =>
+            profile.Models.Count(model => !model.TextVerified || !model.VisionVerified));
+        if (pendingApiModels > 0)
+        {
+            var explanation = UiText.IsEnglish
+                ? $"{pendingApiModels} configured API model(s) are hidden until both text and image capability tests pass. Open API models, test both capabilities, then save."
+                : $"另有 {pendingApiModels} 个已配置的 API 模型尚未通过文字和图片能力测试，因此暂不显示。请进入「API 模型管理」，分别完成两项测试并保存。";
+            CurrentModelHint.Text = CurrentModelHint.Text + Environment.NewLine + explanation;
+        }
     }
     private void TryRefreshCurrentModels()
     {
