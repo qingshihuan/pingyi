@@ -29,6 +29,7 @@ public sealed class ConfigurationCenterUiTests
     [AvaloniaFact]
     public void Current_selector_excludes_text_only_and_unverified_models_and_shares_one_selection()
     {
+        UiText.Configure("zh-CN");
         var window = new SettingsWindow();
         try
         {
