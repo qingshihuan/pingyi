@@ -33,18 +33,25 @@ public sealed class ConfigurationCenterUiTests
         try
         {
             var local = A with { Id = "on-device", Endpoint = "http://127.0.0.1:11434/v1/chat/completions" };
+            var secondCloud = B with { Id = "test-api-two", Name = "Second API",
+                Endpoint = "https://second.example/v1/chat/completions", DefaultModel = "second-vision",
+                Models = [new("second-vision", true, true)] };
             var textOnly = B with { Models = [new("example-text", true, false), new("unknown")] };
-            window.LoadSettings(new() { ModelConfiguration = new() { Services = [A, textOnly], LocalServices = [local], CurrentModel = new(A.Id, "local-vision") } });
+            window.LoadSettings(new() { ModelConfiguration = new() { Services = [A, secondCloud, textOnly],
+                LocalServices = [local], CurrentModel = new(A.Id, "local-vision") } });
             var combo = window.FindControl<ComboBox>("CurrentModelCombo")!;
-            Assert.Equal(3, combo.Items.Count); // No selection + two verified multimodal models.
+            Assert.Equal(4, combo.Items.Count); // No selection + two verified cloud models + one verified local API model.
+            Assert.Contains(combo.Items, item => item!.ToString()!.Contains("Example API · example-vision"));
+            Assert.Contains(combo.Items, item => item!.ToString()!.Contains("Second API · second-vision"));
             Assert.DoesNotContain(combo.Items, item => item!.ToString()!.Contains("example-text"));
             Assert.DoesNotContain(combo.Items, item => item!.ToString()!.Contains("unknown"));
-            combo.SelectedIndex = 2;
+            Assert.Contains("2 个已配置的 API 模型", window.CurrentModelHintMessage);
+            combo.SelectedIndex = 3;
             var config = window.BuildModelConfiguration();
             Assert.Equal(local.Id, config.CurrentModel!.ServiceId);
             var settings = new AppSettings { ModelConfiguration = config };
             Assert.Single(ModelTasks.All.Select(task => ConfigurationRouting.Fingerprint(settings, task)).Distinct());
-            Assert.Equal(3, window.ConfigurationCenter.ProfileSelector.Items.Count);
+            Assert.Equal(4, window.ConfigurationCenter.ProfileSelector.Items.Count);
             Assert.Equal(local.CredentialRef, Assert.Single(config.LocalServices).CredentialRef);
         }
         finally { window.Close(); }
@@ -83,6 +90,21 @@ public sealed class ConfigurationCenterUiTests
             Assert.Equal("cloud-draft-key", view.PendingKeys[A.CredentialRef]);
         }
         finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public void Google_gemini_endpoint_preset_uses_the_official_openai_compatible_endpoint()
+    {
+        UiText.Configure("zh-CN");
+        var view = new ConfigurationCenterView();
+        view.Load(new AppSettings());
+        var preset = Controls<ComboBox>(view).Single(c => c.Name == "ProfilePreset");
+        var google = preset.Items.OfType<ThirdPartyApiPreset>().Single(p => p.Id == "google-gemini");
+        Assert.Equal("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", google.ChatCompletionsEndpoint);
+        Assert.Equal(ModelApiProtocols.ChatCompletions, google.DefaultProtocol);
+        preset.SelectedItem = google;
+        Click(FindButton(view, "填入预设"));
+        Assert.Equal(google.ChatCompletionsEndpoint, view.EndpointEditor.Text);
     }
 
     [AvaloniaFact]
